@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff } from './types';
 import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_ATTENDANCE, MOCK_REPAIR_TICKETS } from './lib/mockData';
 import { AttendanceCard } from './components/AttendanceCard';
@@ -7,16 +7,59 @@ import { RepairTicketView } from './components/RepairTicketView';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock } from 'lucide-react';
+import { supabase } from './lib/supabase';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw } from 'lucide-react';
 
 export function App() {
-  const [currentUser, setCurrentUser] = useState<Staff | null>(null); // Default NULL: Require Login on page load!
+  const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets'>('attendance');
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(true); // Default TRUE: Show login modal on initial load!
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
+  const [loadingDb, setLoadingDb] = useState<boolean>(false);
+
+  // Fetch real attendance records directly from Supabase Cloud DB!
+  const fetchRealAttendance = async () => {
+    setLoadingDb(true);
+    try {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .order('check_in', { ascending: false })
+        .limit(20);
+
+      if (error) {
+        console.error('Error fetching Supabase attendance:', error);
+      } else if (data && data.length > 0) {
+        const formatted: AttendanceRecord[] = data.map((item: any) => {
+          const matchedStaff = MOCK_STAFF.find((s) => s.id === item.staff_id);
+          const staffName = matchedStaff ? matchedStaff.fullName : 'Nhân sự Phụ Kiện 88';
+          return {
+            id: item.id,
+            staffId: item.staff_id,
+            branchId: item.branch_id,
+            checkIn: item.check_in,
+            lat: item.lat,
+            lng: item.lng,
+            distanceMeters: item.distance_meters,
+            isVerified: item.is_verified,
+            notes: `${staffName} - ${item.notes || 'Check-in GPS'}`
+          };
+        });
+        setAttendanceHistory(formatted);
+      }
+    } catch (err) {
+      console.error('Fetch error:', err);
+    } finally {
+      setLoadingDb(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRealAttendance();
+  }, []);
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
 
@@ -24,6 +67,9 @@ export function App() {
     setCurrentUser(staff);
     setIsCustomerMode(false);
     setShowLoginModal(false);
+
+    // Refresh real attendance logs on login
+    fetchRealAttendance();
 
     if (staff.role === 'admin') setActiveTab('admin');
     else if (staff.role === 'founder') setActiveTab('dashboard');
@@ -36,7 +82,10 @@ export function App() {
   };
 
   const handleCheckInSuccess = (record: AttendanceRecord) => {
-    setAttendanceHistory((prev) => [record, ...prev]);
+    // Immediately refresh real list from Supabase
+    setTimeout(() => {
+      fetchRealAttendance();
+    }, 500);
   };
 
   const handleCreateTicket = (newTicket: RepairTicket) => {
@@ -45,7 +94,7 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Login Modal Popup - Displayed on first load or when logged out */}
+      {/* Login Modal Popup */}
       {(showLoginModal || (!currentUser && !isCustomerMode)) && (
         <LoginModal onLoginSuccess={handleLoginSuccess} />
       )}
@@ -62,7 +111,7 @@ export function App() {
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-extrabold tracking-tight text-slate-100">PK88 AUTOMATION PORTAL</h1>
                 <span className="text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-                  VERIFIED
+                  CLOUD CONNECTED
                 </span>
               </div>
               <p className="text-xs text-slate-400">Hệ Thống Vận Hành Tự Động Hóa Chuỗi Phụ Kiện 88</p>
@@ -71,6 +120,17 @@ export function App() {
 
           {/* User Account / Login & Branch Bar */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Refresh DB Button */}
+            {currentUser && !isCustomerMode && (
+              <button
+                onClick={fetchRealAttendance}
+                className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1"
+                title="Tải lại dữ liệu chấm công từ Supabase Cloud"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingDb ? 'animate-spin' : ''}`} />
+              </button>
+            )}
+
             {/* Branch Selector */}
             {!isCustomerMode && currentUser && (
               <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
@@ -92,7 +152,7 @@ export function App() {
               </div>
             )}
 
-            {/* Authenticated User Status or Login Trigger */}
+            {/* Authenticated User Status */}
             {currentUser && !isCustomerMode ? (
               <div className="flex items-center gap-2">
                 <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
@@ -214,7 +274,7 @@ export function App() {
             )}
 
             {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
-              <ExecutiveDashboard branches={INITIAL_BRANCHES} />
+              <ExecutiveDashboard branches={INITIAL_BRANCHES} attendanceLogs={attendanceHistory} />
             )}
 
             {activeTab === 'attendance' && currentUser && (
