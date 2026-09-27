@@ -76,21 +76,60 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
     // Guaranteed Direct Insert into Supabase Cloud Database!
     try {
-      const { error: insertErr } = await supabase.from('attendance').insert([
-        {
-          check_in: now,
-          lat: currentLat,
-          lng: currentLng,
-          distance_meters: distance,
-          is_verified: true,
-          notes: noteText
-        }
-      ]);
-
-      if (insertErr) {
-        console.error('Supabase Insert Error:', insertErr);
+      // 1. Resolve Branch ID from Supabase
+      let dbBranchId = null;
+      const { data: bData } = await supabase.from('branches').select('id').eq('name', currentBranch.name).single();
+      if (bData) {
+        dbBranchId = bData.id;
       } else {
-        console.log('✅ Successfully inserted attendance record to Supabase Cloud:', noteText);
+        const { data: bFallback } = await supabase.from('branches').select('id').limit(1).single();
+        dbBranchId = bFallback?.id;
+      }
+
+      // 2. Resolve Staff ID from Supabase
+      let dbStaffId = null;
+      const { data: sData } = await supabase.from('staff').select('id').eq('phone', currentStaff.phone).single();
+      if (sData) {
+        dbStaffId = sData.id;
+      } else {
+        // Auto-create missing staff to prevent Foreign Key errors
+        const { data: newStaff, error: staffErr } = await supabase.from('staff').insert([
+          {
+            full_name: currentStaff.fullName,
+            phone: currentStaff.phone,
+            role: currentStaff.role
+          }
+        ]).select().single();
+        
+        if (newStaff) {
+          dbStaffId = newStaff.id;
+        } else {
+          console.error('Could not create missing staff:', staffErr);
+        }
+      }
+
+      // 3. Insert Attendance Record
+      if (dbBranchId && dbStaffId) {
+        const { error: insertErr } = await supabase.from('attendance').insert([
+          {
+            staff_id: dbStaffId,
+            branch_id: dbBranchId,
+            check_in: now,
+            lat: currentLat,
+            lng: currentLng,
+            distance_meters: distance,
+            is_verified: true,
+            notes: noteText
+          }
+        ]);
+
+        if (insertErr) {
+          console.error('Supabase Insert Error:', insertErr);
+        } else {
+          console.log('✅ Successfully inserted attendance record to Supabase Cloud:', noteText);
+        }
+      } else {
+        console.error('Missing DB IDs - Branch:', dbBranchId, 'Staff:', dbStaffId);
       }
     } catch (err) {
       console.error('Supabase Sync error:', err);
