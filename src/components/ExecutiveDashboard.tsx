@@ -1,12 +1,13 @@
 import React from 'react';
-import { Branch } from '../types';
-import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign } from 'lucide-react';
+import { Branch, AttendanceRecord } from '../types';
+import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck } from 'lucide-react';
 
 interface ExecutiveDashboardProps {
   branches: Branch[];
+  attendanceLogs?: AttendanceRecord[];
 }
 
-export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches }) => {
+export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches, attendanceLogs = [] }) => {
   const alerts = [
     {
       type: 'REVENUE_DROP',
@@ -127,6 +128,44 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      {/* Real-Time Staff Attendance Stream from Supabase Cloud */}
+      <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-slate-900/90">
+        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+          <div className="flex items-center gap-2">
+            <UserCheck className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-sm font-bold text-slate-100">Nhật Ký Chấm Công GPS Nhân Sự Real-Time (Supabase Cloud)</h3>
+          </div>
+          <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+            LIVE SYNC ({attendanceLogs.length} Lượt)
+          </span>
+        </div>
+
+        <div className="space-y-2 max-h-60 overflow-y-auto">
+          {attendanceLogs.length > 0 ? (
+            attendanceLogs.map((log) => (
+              <div key={log.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                  <div>
+                    <span className="font-bold text-slate-200">{log.notes}</span>
+                    <div className="text-[11px] text-slate-500 font-mono">
+                      {new Date(log.checkIn).toLocaleString('vi-VN')}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-[11px]">
+                    {log.distanceMeters}m (Hợp lệ)
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-6 text-slate-500 text-xs">Đang tải nhật ký chấm công từ Supabase...</div>
+          )}
         </div>
       </div>
 
