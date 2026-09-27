@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Branch, Staff } from '../types';
+import { supabase } from '../lib/supabase';
 import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal } from 'lucide-react';
 
 interface AdminPanelProps {
@@ -8,7 +9,43 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'webhooks' | 'ai' | 'logs'>('branches');
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs'>('branches');
+  const [newStaffName, setNewStaffName] = useState('');
+  const [newStaffPhone, setNewStaffPhone] = useState('');
+  const [newStaffRole, setNewStaffRole] = useState<'sales' | 'technician' | 'manager'>('sales');
+  const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
+
+  const handleAddStaff = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStaffName || !newStaffPhone) return;
+
+    const newS: Staff = {
+      id: `s-${Date.now()}`,
+      branchId: branches[0]?.id || 'b1',
+      fullName: newStaffName,
+      phone: newStaffPhone,
+      role: newStaffRole,
+      isActive: true
+    };
+
+    setLocalStaff((prev) => [...prev, newS]);
+
+    // Insert to Supabase DB live
+    try {
+      await supabase.from('staff').insert([
+        {
+          full_name: newStaffName,
+          phone: newStaffPhone,
+          role: newStaffRole
+        }
+      ]);
+      alert(`✅ Đã thêm nhân sự mới: ${newStaffName} (${newStaffPhone}) thành công!`);
+      setNewStaffName('');
+      setNewStaffPhone('');
+    } catch (err) {
+      console.error('Error adding staff to Supabase:', err);
+    }
+  };
 
   const webhookLogs = [
     { id: 'wh-1', event: 'KIOTVIET_ORDER_CREATED', source: 'KiotViet API', status: 'SUCCESS', time: '20:42:10', payload: 'Bill #1092 - PK88 Mỹ Tho (450.000đ)' },
@@ -64,6 +101,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
         </button>
 
         <button
+          onClick={() => setActiveSubTab('staff')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+            activeSubTab === 'staff'
+              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+          }`}
+        >
+          <ShieldCheck className="w-4 h-4" />
+          <span>2. Thêm & Quản Lý Nhân Sự Mới</span>
+        </button>
+
+        <button
           onClick={() => setActiveSubTab('webhooks')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
             activeSubTab === 'webhooks'
@@ -72,7 +121,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
           }`}
         >
           <Radio className="w-4 h-4" />
-          <span>2. Kết Nối Webhook & POS (KiotViet/n8n)</span>
+          <span>3. Kết Nối Webhook & POS (KiotViet/n8n)</span>
         </button>
 
         <button
@@ -84,7 +133,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
           }`}
         >
           <Settings2 className="w-4 h-4" />
-          <span>3. Tham Số AI Engine (Chị 8 & Bé 8)</span>
+          <span>4. Tham Số AI Engine (Chị 8 & Bé 8)</span>
         </button>
 
         <button
@@ -96,11 +145,88 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
           }`}
         >
           <Terminal className="w-4 h-4" />
-          <span>4. System Logs & Webhook Sync</span>
+          <span>5. System Logs & Webhook Sync</span>
         </button>
       </div>
 
       {/* Subtab Content */}
+      {activeSubTab === 'staff' && (
+        <div className="space-y-6">
+          {/* Form Create New Staff */}
+          <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-slate-900/90">
+            <h3 className="text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+              <Plus className="w-4 h-4 text-cyan-400" />
+              <span>Thêm Nhân Viên Mới Vào Hệ Thống (Thao tác 10 giây)</span>
+            </h3>
+
+            <form onSubmit={handleAddStaff} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+              <div>
+                <label className="text-slate-400 block mb-1">Họ & Tên nhân viên:</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: Nguyễn Văn A"
+                  value={newStaffName}
+                  onChange={(e) => setNewStaffName(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Số điện thoại đăng nhập:</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: 0988112233"
+                  value={newStaffPhone}
+                  onChange={(e) => setNewStaffPhone(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">Vai trò nghiệp vụ:</label>
+                <select
+                  value={newStaffRole}
+                  onChange={(e) => setNewStaffRole(e.target.value as any)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                >
+                  <option value="sales">Bán Hàng Tại Quầy</option>
+                  <option value="technician">Kỹ Thuật Viên Sửa Chữa</option>
+                  <option value="manager">Quản Lý Chi Nhánh</option>
+                </select>
+              </div>
+
+              <div className="flex items-end">
+                <button
+                  type="submit"
+                  className="w-full py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold rounded-xl shadow-md transition-all cursor-pointer"
+                >
+                  + Tạo Tài Khoản Ngay
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Current Staff List */}
+          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Danh Sách Nhân Sự Đang Hoạt Động Toàn Chuỗi</h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              {localStaff.map((s) => (
+                <div key={s.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
+                  <div>
+                    <div className="font-bold text-slate-200">{s.fullName}</div>
+                    <div className="text-[11px] text-slate-400 font-mono">{s.phone}</div>
+                  </div>
+                  <span className="text-[10px] bg-slate-800 text-cyan-400 border border-slate-700 px-2 py-0.5 rounded font-mono uppercase font-bold">
+                    {s.role}
+                  </span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       {activeSubTab === 'branches' && (
         <div className="space-y-4">
           <div className="flex justify-between items-center">

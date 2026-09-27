@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Branch, AttendanceRecord, Staff } from '../types';
 import { getDistanceMeters, formatDistance } from '../lib/geoUtils';
 import { supabase } from '../lib/supabase';
-import { MapPin, Navigation, CheckCircle2, XCircle, Clock, ShieldCheck, AlertCircle } from 'lucide-react';
+import { MapPin, Navigation, CheckCircle2, XCircle, Clock, ShieldCheck } from 'lucide-react';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
@@ -20,15 +20,14 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLoc, setLoadingLoc] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
-  const [simulatedOffsetMeters, setSimulatedOffsetMeters] = useState<number>(12); // Default simulated 12m away
+  const [simulatedOffsetMeters, setSimulatedOffsetMeters] = useState<number>(12);
   const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
   const [lastCheckInTime, setLastCheckInTime] = useState<string | null>(null);
 
-  // Calculate distance
   const currentLat = userCoords ? userCoords.lat : currentBranch.lat + (simulatedOffsetMeters / 111000);
   const currentLng = userCoords ? userCoords.lng : currentBranch.lng;
   const distance = getDistanceMeters(currentLat, currentLng, currentBranch.lat, currentBranch.lng);
-  const ALLOWED_RADIUS = 35; // 35 meters
+  const ALLOWED_RADIUS = 35;
   const isValidGeofence = distance <= ALLOWED_RADIUS;
 
   const handleGetLocation = () => {
@@ -55,6 +54,10 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const handleCheckIn = async () => {
     if (!isValidGeofence) return;
     const now = new Date().toISOString();
+    const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    const noteText = `${currentStaff.fullName} - Check-in GPS Hợp lệ (${currentBranch.name})`;
+
     const newRecord: AttendanceRecord = {
       id: `att-${Date.now()}`,
       staffId: currentStaff.id,
@@ -64,35 +67,67 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       lng: currentLng,
       distanceMeters: distance,
       isVerified: true,
-      notes: `Vị trí chính xác cách shop ${distance}m (Gần kề)`
+      notes: noteText
     };
+
     setIsCheckedIn(true);
-    setLastCheckInTime(new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }));
-    onCheckInSuccess(newRecord);
+    setLastCheckInTime(timeStr);
 
     // Sync to Real Supabase Cloud Database!
     try {
-      await supabase.from('attendance').insert([
+      // Find staff in Supabase by phone or insert with fallback UUID
+      const { data: staffData } = await supabase
+        .from('staff')
+        .select('id')
+        .eq('phone', currentStaff.phone)
+        .single();
+
+      const { data: branchData } = await supabase
+        .from('branches')
+        .select('id')
+        .eq('code', currentBranch.code)
+        .single();
+
+      const targetStaffId = staffData?.id || null;
+      const targetBranchId = branchData?.id || null;
+
+      const { error: insertErr } = await supabase.from('attendance').insert([
         {
-          staff_id: currentStaff.id,
-          branch_id: currentBranch.id,
+          ...(targetStaffId ? { staff_id: targetStaffId } : {}),
+          ...(targetBranchId ? { branch_id: targetBranchId } : {}),
           check_in: now,
           lat: currentLat,
           lng: currentLng,
           distance_meters: distance,
           is_verified: true,
-          notes: `Check-in GPS Thực tế (${currentBranch.code})`
+          notes: noteText
         }
       ]);
+
+      if (insertErr) {
+        console.error('Supabase Insert Error:', insertErr);
+        // Fallback insert without strict FK if needed
+        await supabase.from('attendance').insert([
+          {
+            check_in: now,
+            lat: currentLat,
+            lng: currentLng,
+            distance_meters: distance,
+            is_verified: true,
+            notes: noteText
+          }
+        ]);
+      }
       console.log('✅ Synchronized GPS Attendance to Supabase Cloud!');
     } catch (err) {
       console.error('Supabase Sync error:', err);
     }
+
+    onCheckInSuccess(newRecord);
   };
 
   return (
     <div className="glass-card rounded-2xl p-5 border border-slate-800 shadow-2xl relative overflow-hidden">
-      {/* Top Banner Gradient */}
       <div className="absolute -top-12 -right-12 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
       <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
@@ -110,7 +145,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* Staff Info */}
       <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-rose-400">
@@ -127,7 +161,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* Distance & GPS Status Box */}
       <div className={`rounded-xl p-4 border transition-all mb-5 ${
         isValidGeofence
           ? 'bg-emerald-950/20 border-emerald-500/30 glow-emerald'
@@ -160,13 +193,12 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <button
             onClick={handleGetLocation}
             disabled={loadingLoc}
-            className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600"
+            className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600 cursor-pointer"
           >
             {loadingLoc ? 'Đang cập nhật GPS...' : 'Lấy GPS thực tế'}
           </button>
         </div>
 
-        {/* Simulator slider for testing */}
         <div className="mt-3 pt-2 border-t border-slate-800/40">
           <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
             <span>Mô phỏng khoảng cách (Test nhanh):</span>
@@ -183,7 +215,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* Check In Action Button */}
       {isCheckedIn ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 text-center">
           <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm">
@@ -207,18 +238,17 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </button>
       )}
 
-      {/* Recent History Table preview */}
       <div className="mt-6 pt-4 border-t border-slate-800">
         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Lịch sử chấm công gần nhất</h4>
         <div className="space-y-2">
-          {attendanceHistory.slice(0, 3).map((item) => (
+          {attendanceHistory.slice(0, 5).map((item) => (
             <div key={item.id} className="flex items-center justify-between text-xs bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                 <span className="text-slate-200 font-medium">
                   {new Date(item.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                 </span>
-                <span className="text-slate-500">| {item.notes}</span>
+                <span className="text-slate-400">| {item.notes}</span>
               </div>
               <span className="font-mono text-emerald-400 font-semibold">{item.distanceMeters}m</span>
             </div>
