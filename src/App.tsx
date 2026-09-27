@@ -28,24 +28,22 @@ export function App() {
         .from('attendance')
         .select('*')
         .order('check_in', { ascending: false })
-        .limit(20);
+        .limit(30);
 
       if (error) {
         console.error('Error fetching Supabase attendance:', error);
       } else if (data && data.length > 0) {
         const formatted: AttendanceRecord[] = data.map((item: any) => {
-          const matchedStaff = MOCK_STAFF.find((s) => s.id === item.staff_id);
-          const staffName = matchedStaff ? matchedStaff.fullName : 'Nhân sự Phụ Kiện 88';
           return {
             id: item.id,
-            staffId: item.staff_id,
-            branchId: item.branch_id,
+            staffId: item.staff_id || 'unknown',
+            branchId: item.branch_id || 'b1',
             checkIn: item.check_in,
             lat: item.lat,
             lng: item.lng,
             distanceMeters: item.distance_meters,
             isVerified: item.is_verified,
-            notes: `${staffName} - ${item.notes || 'Check-in GPS'}`
+            notes: item.notes || 'Check-in GPS Hợp lệ'
           };
         });
         setAttendanceHistory(formatted);
@@ -82,10 +80,7 @@ export function App() {
   };
 
   const handleCheckInSuccess = (record: AttendanceRecord) => {
-    // Immediately refresh real list from Supabase
-    setTimeout(() => {
-      fetchRealAttendance();
-    }, 500);
+    fetchRealAttendance();
   };
 
   const handleCreateTicket = (newTicket: RepairTicket) => {
@@ -124,7 +119,7 @@ export function App() {
             {currentUser && !isCustomerMode && (
               <button
                 onClick={fetchRealAttendance}
-                className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1"
+                className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
                 title="Tải lại dữ liệu chấm công từ Supabase Cloud"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingDb ? 'animate-spin' : ''}`} />
@@ -167,7 +162,7 @@ export function App() {
 
                 <button
                   onClick={handleLogout}
-                  className="p-2 bg-slate-800 hover:bg-rose-900/40 hover:text-rose-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all"
+                  className="p-2 bg-slate-800 hover:bg-rose-900/40 hover:text-rose-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
                   title="Đăng xuất khỏi tài khoản"
                 >
                   <LogOut className="w-4 h-4" />
@@ -179,7 +174,7 @@ export function App() {
                   setIsCustomerMode(false);
                   setShowLoginModal(true);
                 }}
-                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md"
+                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Đăng Nhập Nhân Sự</span>
@@ -192,7 +187,7 @@ export function App() {
                 setIsCustomerMode(!isCustomerMode);
                 if (!isCustomerMode) setActiveTab('tickets');
               }}
-              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 ${
+              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
                 isCustomerMode
                   ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
@@ -213,7 +208,7 @@ export function App() {
             {currentUser.role === 'admin' && (
               <button
                 onClick={() => setActiveTab('admin')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'admin'
                     ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 font-extrabold'
                     : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -227,7 +222,7 @@ export function App() {
             {(currentUser.role === 'founder' || currentUser.role === 'admin') && (
               <button
                 onClick={() => setActiveTab('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'dashboard'
                     ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
                     : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -240,7 +235,7 @@ export function App() {
 
             <button
               onClick={() => setActiveTab('attendance')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'attendance'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -252,7 +247,7 @@ export function App() {
 
             <button
               onClick={() => setActiveTab('tickets')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'tickets'
                   ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
