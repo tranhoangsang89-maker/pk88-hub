@@ -7,16 +7,16 @@ import { RepairTicketView } from './components/RepairTicketView';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, UserCheck, ShieldCheck, QrCode } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock } from 'lucide-react';
 
 export function App() {
-  const [currentUser, setCurrentUser] = useState<Staff | null>(MOCK_STAFF[1]); // Default Admin Sang logged in
+  const [currentUser, setCurrentUser] = useState<Staff | null>(null); // Default NULL: Require Login on page load!
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets'>('admin');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets'>('attendance');
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(false);
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(true); // Default TRUE: Show login modal on initial load!
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
 
@@ -30,6 +30,11 @@ export function App() {
     else setActiveTab('attendance');
   };
 
+  const handleLogout = () => {
+    setCurrentUser(null);
+    setShowLoginModal(true);
+  };
+
   const handleCheckInSuccess = (record: AttendanceRecord) => {
     setAttendanceHistory((prev) => [record, ...prev]);
   };
@@ -40,8 +45,10 @@ export function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
-      {/* Login Modal Popup */}
-      {showLoginModal && <LoginModal onLoginSuccess={handleLoginSuccess} />}
+      {/* Login Modal Popup - Displayed on first load or when logged out */}
+      {(showLoginModal || (!currentUser && !isCustomerMode)) && (
+        <LoginModal onLoginSuccess={handleLoginSuccess} />
+      )}
 
       {/* Main Header Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-md">
@@ -65,7 +72,7 @@ export function App() {
           {/* User Account / Login & Branch Bar */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
             {/* Branch Selector */}
-            {!isCustomerMode && (
+            {!isCustomerMode && currentUser && (
               <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
                 <Building2 className="w-4 h-4 text-rose-500" />
                 <select
@@ -99,16 +106,19 @@ export function App() {
                 </div>
 
                 <button
-                  onClick={() => setShowLoginModal(true)}
-                  className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1"
-                  title="Đổi tài khoản đăng nhập"
+                  onClick={handleLogout}
+                  className="p-2 bg-slate-800 hover:bg-rose-900/40 hover:text-rose-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all"
+                  title="Đăng xuất khỏi tài khoản"
                 >
-                  <LogOut className="w-4 h-4 text-slate-400" />
+                  <LogOut className="w-4 h-4" />
                 </button>
               </div>
             ) : (
               <button
-                onClick={() => setShowLoginModal(true)}
+                onClick={() => {
+                  setIsCustomerMode(false);
+                  setShowLoginModal(true);
+                }}
                 className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md"
               >
                 <ShieldCheck className="w-4 h-4" />
@@ -129,7 +139,7 @@ export function App() {
               }`}
             >
               <QrCode className="w-4 h-4" />
-              <span>{isCustomerMode ? 'Thoát Khách QR' : 'Xem Giao Diện Khách'}</span>
+              <span>{isCustomerMode ? 'Thoát Khách QR' : 'Khách Tra Cứu QR'}</span>
             </button>
           </div>
         </div>
@@ -220,6 +230,14 @@ export function App() {
 
             {activeTab === 'tickets' && currentUser && (
               <RepairTicketView tickets={tickets} role={currentUser.role} onCreateTicket={handleCreateTicket} />
+            )}
+
+            {!currentUser && (
+              <div className="text-center py-20 text-slate-400">
+                <Lock className="w-12 h-12 mx-auto mb-3 text-rose-500 animate-pulse" />
+                <h3 className="text-base font-bold text-slate-200">Vui lòng Đăng nhập tài khoản Nhân sự Phụ Kiện 88</h3>
+                <p className="text-xs text-slate-500 mt-1">Hoặc bấm nút "Khách Tra Cứu QR" ở góc trên bên phải để tra cứu dịch vụ.</p>
+              </div>
             )}
           </>
         )}
