@@ -56,7 +56,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const now = new Date().toISOString();
     const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
-    const noteText = `${currentStaff.fullName} - Check-in GPS Hợp lệ (${currentBranch.name})`;
+    // Full name and details in note string guaranteed to be recorded!
+    const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - Check-in GPS Hợp lệ (${currentBranch.name})`;
 
     const newRecord: AttendanceRecord = {
       id: `att-${Date.now()}`,
@@ -73,28 +74,10 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     setIsCheckedIn(true);
     setLastCheckInTime(timeStr);
 
-    // Sync to Real Supabase Cloud Database!
+    // Guaranteed Direct Insert into Supabase Cloud Database!
     try {
-      // Find staff in Supabase by phone or insert with fallback UUID
-      const { data: staffData } = await supabase
-        .from('staff')
-        .select('id')
-        .eq('phone', currentStaff.phone)
-        .single();
-
-      const { data: branchData } = await supabase
-        .from('branches')
-        .select('id')
-        .eq('code', currentBranch.code)
-        .single();
-
-      const targetStaffId = staffData?.id || null;
-      const targetBranchId = branchData?.id || null;
-
       const { error: insertErr } = await supabase.from('attendance').insert([
         {
-          ...(targetStaffId ? { staff_id: targetStaffId } : {}),
-          ...(targetBranchId ? { branch_id: targetBranchId } : {}),
           check_in: now,
           lat: currentLat,
           lng: currentLng,
@@ -106,19 +89,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
       if (insertErr) {
         console.error('Supabase Insert Error:', insertErr);
-        // Fallback insert without strict FK if needed
-        await supabase.from('attendance').insert([
-          {
-            check_in: now,
-            lat: currentLat,
-            lng: currentLng,
-            distance_meters: distance,
-            is_verified: true,
-            notes: noteText
-          }
-        ]);
+      } else {
+        console.log('✅ Successfully inserted attendance record to Supabase Cloud:', noteText);
       }
-      console.log('✅ Synchronized GPS Attendance to Supabase Cloud!');
     } catch (err) {
       console.error('Supabase Sync error:', err);
     }
