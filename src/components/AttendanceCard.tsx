@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Branch, AttendanceRecord, Staff } from '../types';
+import { Branch, AttendanceRecord, Staff, ShiftType } from '../types';
 import { getDistanceMeters, formatDistance } from '../lib/geoUtils';
 import { supabase } from '../lib/supabase';
 import { MapPin, Navigation, CheckCircle2, XCircle, Clock, ShieldCheck } from 'lucide-react';
@@ -17,18 +17,33 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   onCheckInSuccess,
   attendanceHistory,
 }) => {
+  const isOffice = currentStaff.role === 'admin' || currentStaff.role === 'founder';
+  const defaultShift: ShiftType = isOffice ? 'HANH_CHINH' : 'CA_SANG';
+  
+  const [selectedShift, setSelectedShift] = useState<ShiftType>(defaultShift);
   const [userCoords, setUserCoords] = useState<{ lat: number; lng: number } | null>(null);
   const [loadingLoc, setLoadingLoc] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
   const [simulatedOffsetMeters, setSimulatedOffsetMeters] = useState<number>(12);
-  const [isCheckedIn, setIsCheckedIn] = useState<boolean>(false);
-  const [lastCheckInTime, setLastCheckInTime] = useState<string | null>(null);
+  const [showSuccessMsg, setShowSuccessMsg] = useState<boolean>(false);
+  const [actionMessage, setActionMessage] = useState<string>('');
+
+  const todayDateStr = new Date().toDateString();
+  const todayRecords = attendanceHistory.filter(r => 
+    (r.staffId === currentStaff.id || (r.notes && r.notes.includes(currentStaff.phone))) && 
+    new Date(r.checkIn).toDateString() === todayDateStr
+  );
+  // Record has no checkOut
+  const activeRecord = todayRecords.find(r => !r.checkOut);
+  const isCurrentlyCheckedIn = !!activeRecord;
 
   const currentLat = userCoords ? userCoords.lat : currentBranch.lat + (simulatedOffsetMeters / 111000);
   const currentLng = userCoords ? userCoords.lng : currentBranch.lng;
   const distance = getDistanceMeters(currentLat, currentLng, currentBranch.lat, currentBranch.lng);
   const ALLOWED_RADIUS = 35;
   const isValidGeofence = distance <= ALLOWED_RADIUS;
+  const hasRealGps = userCoords !== null;
+  const canCheckIn = isValidGeofence && hasRealGps;
 
   const handleGetLocation = () => {
     setLoadingLoc(true);
@@ -51,91 +66,107 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     }
   };
 
-  const handleCheckIn = async () => {
+  const handleCheckAction = async () => {
     if (!isValidGeofence) return;
-    const now = new Date().toISOString();
-    const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
-    // Full name and details in note string guaranteed to be recorded!
-    const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - Check-in GPS Hợp lệ (${currentBranch.name})`;
-
-    const newRecord: AttendanceRecord = {
-      id: `att-${Date.now()}`,
-      staffId: currentStaff.id,
-      branchId: currentBranch.id,
-      checkIn: now,
-      lat: currentLat,
-      lng: currentLng,
-      distanceMeters: distance,
-      isVerified: true,
-      notes: noteText
-    };
-
-    setIsCheckedIn(true);
-    setLastCheckInTime(timeStr);
-
-    // Guaranteed Direct Insert into Supabase Cloud Database!
-    try {
-      // 1. Resolve Branch ID from Supabase
-      let dbBranchId = null;
-      const { data: bData } = await supabase.from('branches').select('id').eq('name', currentBranch.name).single();
-      if (bData) {
-        dbBranchId = bData.id;
-      } else {
-        const { data: bFallback } = await supabase.from('branches').select('id').limit(1).single();
-        dbBranchId = bFallback?.id;
+    if (isCurrentlyCheckedIn && activeRecord) {
+      // CHECK-OUT LOGIC
+      const checkInTime = new Date(activeRecord.checkIn);
+      const diffMs = now.getTime() - checkInTime.getTime();
+      const workHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+      
+      const noteText = `${currentStaff.fullName} - Tan Ca lúc ${timeStr} (${workHours}h)`;
+      
+      setShowSuccessMsg(true);
+      setActionMessage(`Đã Tan Ca thành công! Số giờ làm: ${workHours}h`);
+      
+      try {
+        // Try to update Supabase
+        const { error } = await supabase.from('attendance')
+          .update({
+            check_out: nowIso,
+            work_hours: workHours,
+            notes: activeRecord.notes + ` | ${noteText}`
+          })
+          .eq('id', activeRecord.id);
+          
+        if (error) console.error('Supabase Update Error:', error);
+      } catch (err) {
+        console.error('Supabase error:', err);
       }
+      
+      onCheckInSuccess({
+        ...activeRecord,
+        checkOut: nowIso,
+        workHours,
+        notes: activeRecord.notes + ` | ${noteText}`
+      });
+      
+    } else {
+      // CHECK-IN LOGIC
+      const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - Check-in ${selectedShift} Hợp lệ (${currentBranch.name})`;
 
-      // 2. Resolve Staff ID from Supabase
-      let dbStaffId = null;
-      const { data: sData } = await supabase.from('staff').select('id').eq('phone', currentStaff.phone).single();
-      if (sData) {
-        dbStaffId = sData.id;
-      } else {
-        // Auto-create missing staff to prevent Foreign Key errors
-        const { data: newStaff, error: staffErr } = await supabase.from('staff').insert([
-          {
-            full_name: currentStaff.fullName,
-            phone: currentStaff.phone,
-            role: currentStaff.role
-          }
-        ]).select().single();
-        
-        if (newStaff) {
-          dbStaffId = newStaff.id;
-        } else {
-          console.error('Could not create missing staff:', staffErr);
+      const newRecord: AttendanceRecord = {
+        id: `att-${Date.now()}`,
+        staffId: currentStaff.id,
+        branchId: currentBranch.id,
+        checkIn: nowIso,
+        shiftType: selectedShift,
+        lat: currentLat,
+        lng: currentLng,
+        distanceMeters: distance,
+        isVerified: true,
+        notes: noteText
+      };
+
+      setShowSuccessMsg(true);
+      setActionMessage(`Đã Chấm Công Vào Ca thành công lúc ${timeStr}`);
+
+      try {
+        let dbBranchId = null;
+        const { data: bData } = await supabase.from('branches').select('id').eq('name', currentBranch.name).single();
+        if (bData) dbBranchId = bData.id;
+        else {
+          const { data: bFallback } = await supabase.from('branches').select('id').limit(1).single();
+          dbBranchId = bFallback?.id;
         }
-      }
 
-      // 3. Insert Attendance Record
-      if (dbBranchId && dbStaffId) {
-        const { error: insertErr } = await supabase.from('attendance').insert([
-          {
+        let dbStaffId = null;
+        const { data: sData } = await supabase.from('staff').select('id').eq('phone', currentStaff.phone).single();
+        if (sData) dbStaffId = sData.id;
+        else {
+          const { data: newStaff, error: staffErr } = await supabase.from('staff').insert([{ full_name: currentStaff.fullName, phone: currentStaff.phone, role: currentStaff.role }]).select().single();
+          if (newStaff) dbStaffId = newStaff.id;
+        }
+
+        if (dbBranchId && dbStaffId) {
+          const { error: insertErr } = await supabase.from('attendance').insert([{
             staff_id: dbStaffId,
             branch_id: dbBranchId,
-            check_in: now,
+            check_in: nowIso,
+            shift_type: selectedShift,
             lat: currentLat,
             lng: currentLng,
             distance_meters: distance,
             is_verified: true,
             notes: noteText
-          }
-        ]);
-
-        if (insertErr) {
-          console.error('Supabase Insert Error:', insertErr);
-        } else {
-          console.log('✅ Successfully inserted attendance record to Supabase Cloud:', noteText);
+          }]);
+          if (insertErr) console.error('Supabase Insert Error:', insertErr);
         }
-      } else {
-        console.error('Missing DB IDs - Branch:', dbBranchId, 'Staff:', dbStaffId);
+      } catch (err) {
+        console.error('Supabase Sync error:', err);
       }
-    } catch (err) {
-      console.error('Supabase Sync error:', err);
+      
+      onCheckInSuccess(newRecord);
     }
-
-    onCheckInSuccess(newRecord);
+    
+    // Hide success message after 3 seconds
+    setTimeout(() => {
+      setShowSuccessMsg(false);
+    }, 3000);
   };
 
   return (
@@ -173,6 +204,46 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
+      {!isCurrentlyCheckedIn && !showSuccessMsg && (
+        <div className="mb-5 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
+          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">1. Chọn ca làm việc của bạn</label>
+          <div className="grid grid-cols-2 gap-2">
+            {isOffice ? (
+              <button
+                type="button"
+                className={`col-span-2 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                  selectedShift === 'HANH_CHINH' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                }`}
+                onClick={() => setSelectedShift('HANH_CHINH')}
+              >
+                Giờ Hành Chính (08:00 - 17:00)
+              </button>
+            ) : (
+              <>
+                <button
+                  type="button"
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                    selectedShift === 'CA_SANG' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                  }`}
+                  onClick={() => setSelectedShift('CA_SANG')}
+                >
+                  Ca Sáng (07:00 - 15:00)
+                </button>
+                <button
+                  type="button"
+                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
+                    selectedShift === 'CA_CHIEU' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
+                  }`}
+                  onClick={() => setSelectedShift('CA_CHIEU')}
+                >
+                  Ca Chiều (14:00 - 22:00)
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className={`rounded-xl p-4 border transition-all mb-5 ${
         isValidGeofence
           ? 'bg-emerald-950/20 border-emerald-500/30 glow-emerald'
@@ -202,13 +273,23 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
               </>
             )}
           </div>
-          <button
-            onClick={handleGetLocation}
-            disabled={loadingLoc}
-            className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600 cursor-pointer"
-          >
-            {loadingLoc ? 'Đang cập nhật GPS...' : 'Lấy GPS thực tế'}
-          </button>
+          <div className="flex items-center gap-3">
+            {window.location.hostname === 'localhost' && (
+              <button
+                onClick={() => setUserCoords({ lat: currentBranch.lat, lng: currentBranch.lng })}
+                className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md hover:bg-amber-500/30"
+              >
+                Mock GPS (Dev)
+              </button>
+            )}
+            <button
+              onClick={handleGetLocation}
+              disabled={loadingLoc}
+              className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600 cursor-pointer"
+            >
+              {loadingLoc ? 'Đang cập nhật...' : 'Lấy GPS thực tế'}
+            </button>
+          </div>
         </div>
 
         <div className="mt-3 pt-2 border-t border-slate-800/40">
@@ -227,26 +308,34 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {isCheckedIn ? (
+      {showSuccessMsg ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 text-center">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm">
+          <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm mb-1">
             <ShieldCheck className="w-5 h-5" />
-            <span>Đã Chấm Công Thành Công Lúc {lastCheckInTime}</span>
+            <span>{actionMessage}</span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">Dữ liệu GPS đã được ghi nhận an toàn vào Supabase Database.</p>
+          <p className="text-[11px] text-slate-400">Dữ liệu đã được ghi nhận an toàn vào Supabase.</p>
         </div>
       ) : (
         <button
-          onClick={handleCheckIn}
-          disabled={!isValidGeofence}
+          onClick={handleCheckAction}
+          disabled={!canCheckIn}
           className={`w-full py-3.5 px-4 rounded-xl font-bold text-sm shadow-lg flex items-center justify-center gap-2 transition-all ${
-            isValidGeofence
-              ? 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold cursor-pointer active:scale-95'
+            canCheckIn
+              ? isCurrentlyCheckedIn 
+                ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-extrabold cursor-pointer active:scale-95'
+                : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold cursor-pointer active:scale-95'
               : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed'
           }`}
         >
           <Clock className="w-4 h-4" />
-          <span>Bấm Chấm Công Vào Ca ({currentBranch.code})</span>
+          <span>
+            {!hasRealGps 
+              ? 'Vui lòng Lấy GPS thực tế' 
+              : isCurrentlyCheckedIn 
+                ? `Bấm Chấm Công Tan Ca (${currentBranch.code})` 
+                : `Bấm Chấm Công Vào Ca (${currentBranch.code})`}
+          </span>
         </button>
       )}
 
@@ -257,10 +346,13 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
             <div key={item.id} className="flex items-center justify-between text-xs bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
-                <span className="text-slate-200 font-medium">
-                  {new Date(item.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-                <span className="text-slate-400">| {item.notes}</span>
+                <div className="flex flex-col">
+                  <span className="text-slate-200 font-medium">
+                    In: {new Date(item.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                    {item.checkOut && ` - Out: ${new Date(item.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+                  </span>
+                  <span className="text-[10px] text-slate-400">{item.notes}</span>
+                </div>
               </div>
               <span className="font-mono text-emerald-400 font-semibold">{item.distanceMeters}m</span>
             </div>

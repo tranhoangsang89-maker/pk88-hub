@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
-import { Branch, Staff } from '../types';
+import { Branch, Staff, AttendanceRecord } from '../types';
 import { supabase } from '../lib/supabase';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal } from 'lucide-react';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
   staffList: Staff[];
+  attendanceLogs?: AttendanceRecord[];
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs'>('branches');
+export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, attendanceLogs = [] }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll'>('payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffRole, setNewStaffRole] = useState<'sales' | 'technician' | 'manager'>('sales');
@@ -88,6 +89,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
 
       {/* Admin Subtabs */}
       <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+
+        <button
+          onClick={() => setActiveSubTab('payroll')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+            activeSubTab === 'payroll'
+              ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+          }`}
+        >
+          <Calculator className="w-4 h-4" />
+          <span>1. Bảng Chấm Công & Tính Lương</span>
+        </button>
+
         <button
           onClick={() => setActiveSubTab('branches')}
           className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
@@ -97,7 +111,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
           }`}
         >
           <Server className="w-4 h-4" />
-          <span>1. Cấu Hình 6 Chi Nhánh & GPS</span>
+          <span>2. Cấu Hình 6 Chi Nhánh & GPS</span>
         </button>
 
         <button
@@ -150,6 +164,85 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList }) =
       </div>
 
       {/* Subtab Content */}
+      {activeSubTab === 'payroll' && (
+        <div className="space-y-6">
+          <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-slate-900/90">
+            <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-rose-400" />
+                  Bảng Tổng Hợp Lương Tháng Này
+                </h3>
+                <p className="text-xs text-slate-400 mt-1">Dữ liệu được tổng hợp tự động từ lịch sử check-in GPS. Hệ số lương mặc định: 25.000đ/giờ.</p>
+              </div>
+              <div className="text-right">
+                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Tháng hiện tại</div>
+                <div className="px-3 py-1 bg-slate-950 border border-slate-800 rounded-lg text-rose-400 font-mono font-bold">Tháng 09/2026</div>
+              </div>
+            </div>
+
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-slate-950/50 text-slate-400 border-b border-slate-800">
+                  <tr>
+                    <th className="p-3 font-bold">Nhân Viên</th>
+                    <th className="p-3 font-bold text-center">Ca Làm Việc</th>
+                    <th className="p-3 font-bold text-center">Tổng Giờ Làm</th>
+                    <th className="p-3 font-bold text-right">Lương Thực Lãnh (Tạm Tính)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800">
+                  {localStaff.map(staff => {
+                    // Aggregate payroll for this staff
+                    const logs = attendanceLogs.filter(log => 
+                      log.staffId === staff.id || (log.notes && log.notes.includes(staff.phone))
+                    );
+                    const totalHours = logs.reduce((sum, log) => sum + (log.workHours || 0), 0);
+                    const salary = totalHours * 25000;
+
+                    if (totalHours === 0) return null;
+
+                    return (
+                      <tr key={staff.id} className="hover:bg-slate-800/30 transition-colors">
+                        <td className="p-3">
+                          <div className="font-bold text-slate-200">{staff.fullName}</div>
+                          <div className="text-[10px] text-slate-500 font-mono">{staff.phone}</div>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="text-[10px] bg-slate-800 text-slate-300 border border-slate-700 px-2 py-0.5 rounded font-mono uppercase font-bold">
+                            {staff.role}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-1 rounded border border-emerald-500/20 text-xs">
+                            {totalHours.toFixed(2)}h
+                          </span>
+                        </td>
+                        <td className="p-3 text-right">
+                          <span className="font-mono text-rose-400 font-bold text-sm">
+                            {salary.toLocaleString('vi-VN')} đ
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                  {localStaff.filter(staff => {
+                    const logs = attendanceLogs.filter(log => log.staffId === staff.id || (log.notes && log.notes.includes(staff.phone)));
+                    return logs.reduce((sum, log) => sum + (log.workHours || 0), 0) > 0;
+                  }).length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="p-8 text-center text-slate-500">
+                        Chưa có dữ liệu chấm công đã hoàn tất (Tan ca) trong tháng này.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
+
       {activeSubTab === 'staff' && (
         <div className="space-y-6">
           {/* Form Create New Staff */}

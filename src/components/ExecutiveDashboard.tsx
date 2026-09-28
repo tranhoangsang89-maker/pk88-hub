@@ -1,7 +1,19 @@
 import React from 'react';
 import { Branch, AttendanceRecord } from '../types';
-import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck } from 'lucide-react';
-
+import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck, Activity } from 'lucide-react';
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  Legend,
+  ReferenceLine
+} from 'recharts';
 interface ExecutiveDashboardProps {
   branches: Branch[];
   attendanceLogs?: AttendanceRecord[];
@@ -34,12 +46,37 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
 
   const branchMetrics = [
     { name: 'PK88 Mỹ Tho', revenue: 14500000, orders: 42, growth: '+15%' },
-    { name: 'PK88 Bến Tre', revenue: 12200000, orders: 38, growth: '+8%' },
+    { name: 'PK88 Bến Tre 1', revenue: 12200000, orders: 38, growth: '+8%' },
     { name: 'PK88 Vĩnh Long', revenue: 9800000, orders: 27, growth: '+4%' },
+    { name: 'PK88 Bến Tre 2', revenue: 8500000, orders: 24, growth: '+2%' },
+    { name: 'PK88 Trà Vinh', revenue: 7200000, orders: 20, growth: '-5%' },
     { name: 'PK88 Cần Thơ', revenue: 6400000, orders: 19, growth: '-28%' },
   ];
 
   const totalRevenue = branchMetrics.reduce((sum, b) => sum + b.revenue, 0);
+
+  // Dữ liệu biểu đồ Doanh thu & Lợi nhuận (7 ngày qua)
+  const revenueData = [
+    { date: '21/09', revenue: 28000000, profit: 9500000 },
+    { date: '22/09', revenue: 32000000, profit: 11000000 },
+    { date: '23/09', revenue: 25000000, profit: 8200000 },
+    { date: '24/09', revenue: 35000000, profit: 12500000 },
+    { date: '25/09', revenue: 39000000, profit: 14000000 },
+    { date: '26/09', revenue: 34000000, profit: 11500000 },
+    { date: '27/09', revenue: 42900000, profit: 14670000 },
+  ];
+
+  // Dữ liệu Tồn kho các mặt hàng chủ lực giữa các chi nhánh
+  const inventoryData = [
+    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Bến Tre 1': 12, 'Bến Tre 2': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, 'Trà Vinh': 25 },
+    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Bến Tre 1': 8, 'Bến Tre 2': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, 'Trà Vinh': 10 },
+    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Bến Tre 1': 35, 'Bến Tre 2': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, 'Trà Vinh': 15 }, // Cần Thơ cảnh báo đỏ
+    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Bến Tre 1': 80, 'Bến Tre 2': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, 'Trà Vinh': 50 },
+  ];
+
+  const formatCurrency = (value: number) => {
+    return `${(value / 1000000).toFixed(1)}M`;
+  };
 
   return (
     <div className="space-y-6">
@@ -92,6 +129,82 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
           </div>
           <div className="text-xl font-extrabold text-rose-400 mt-2 font-mono">3 Cảnh Báo</div>
           <div className="text-xs text-rose-300 mt-2">Tự động gửi Telegram Founder</div>
+        </div>
+      </div>
+
+      {/* CHARTS SECTION - BIỂU ĐỒ BÁO CÁO */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Revenue & Profit Area Chart */}
+        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <Activity className="w-4 h-4 text-emerald-400" />
+              <span>Biến động Doanh Thu & Lợi Nhuận (7 Ngày)</span>
+            </h3>
+            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-mono">Real-time</span>
+          </div>
+          
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCurrency} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
+                  itemStyle={{ color: '#f1f5f9' }}
+                  formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, '']}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <Area type="monotone" name="Doanh Thu" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
+                <Area type="monotone" name="Lợi Nhuận Ròng" dataKey="profit" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Inventory Bar Chart */}
+        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40">
+          <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
+            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <Package className="w-4 h-4 text-sky-400" />
+              <span>Theo Dõi Tồn Kho Mặt Hàng Chủ Lực</span>
+            </h3>
+            <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-1 rounded font-mono border border-amber-500/20">Cần Luân Chuyển</span>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={inventoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
+                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
+                <Tooltip 
+                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
+                  cursor={{ fill: '#1e293b', opacity: 0.4 }}
+                />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
+                <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" label={{ position: 'top', value: 'Safety Stock (10)', fill: '#f43f5e', fontSize: 10 }} />
+                <Bar name="Mỹ Tho" dataKey="Mỹ Tho" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar name="Bến Tre 1" dataKey="Bến Tre 1" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar name="Bến Tre 2" dataKey="Bến Tre 2" fill="#d946ef" radius={[4, 4, 0, 0]} />
+                <Bar name="Vĩnh Long" dataKey="Vĩnh Long" fill="#14b8a6" radius={[4, 4, 0, 0]} />
+                <Bar name="Cần Thơ" dataKey="Cần Thơ" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                <Bar name="Trà Vinh" dataKey="Trà Vinh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
       </div>
 

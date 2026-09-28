@@ -5,9 +5,10 @@ import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle 
 
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
+  onGuestLookup?: () => void;
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup }) => {
   const [phone, setPhone] = useState('0888003205'); // Default Admin Sang phone for fast testing
   const [password, setPassword] = useState('123456');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -128,6 +129,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess }) => {
             ))}
           </div>
         </div>
+
+        {/* Guest / Customer Lookup Shortcut */}
+        {onGuestLookup && (
+          <div className="mt-4 pt-4 border-t border-slate-800 text-center">
+            <button
+              type="button"
+              onClick={onGuestLookup}
+              className="w-full py-2.5 px-4 bg-slate-950/50 hover:bg-slate-800 text-cyan-400 border border-slate-800 hover:border-cyan-500/50 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+            >
+              Bạn là Khách hàng? Bấm tra cứu QR tại đây →
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

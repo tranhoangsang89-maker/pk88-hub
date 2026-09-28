@@ -6,11 +6,18 @@ interface RepairTicketViewProps {
   tickets: RepairTicket[];
   role: UserRole;
   onCreateTicket: (ticket: RepairTicket) => void;
+  onUpdateTicket?: (ticketId: string, updates: Partial<RepairTicket>) => Promise<boolean>;
+  currentUserName?: string;
 }
 
-export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, role, onCreateTicket }) => {
+export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, role, onCreateTicket, onUpdateTicket, currentUserName }) => {
   const [searchCode, setSearchCode] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+
+  // Customer Search State
+  const [customerSearchInput, setCustomerSearchInput] = useState('');
+  const [searchedTicket, setSearchedTicket] = useState<RepairTicket | null>(null);
+  const [hasSearched, setHasSearched] = useState(false);
 
   // Form state
   const [customerName, setCustomerName] = useState('');
@@ -31,7 +38,7 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
     const newT: RepairTicket = {
       id: `t-${Date.now()}`,
       code: `PK88-SC-${Math.floor(1000 + Math.random() * 9000)}`,
-      branchId: 'b1',
+      branchId: 'b1', // Tạm gắn cứng b1 cho demo
       customerName,
       customerPhone,
       deviceModel,
@@ -39,12 +46,45 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
       status: 'RECEIVED',
       price: Number(price),
       createdAt: new Date().toISOString(),
-      technicianName: 'Lê Hoàng Nam'
+      technicianName: '' // Bỏ trống KTV để họ tự nhận
     };
     onCreateTicket(newT);
     setShowCreateModal(false);
     setCustomerName('');
     setCustomerPhone('');
+  };
+
+  const handleCustomerSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const search = customerSearchInput.trim().toLowerCase();
+    const found = tickets.find(t => t.code.toLowerCase() === search || t.customerPhone.trim() === search);
+    setSearchedTicket(found || null);
+    setHasSearched(true);
+    
+    // Phát tín hiệu Context cho Chatbot
+    if (found) {
+      window.dispatchEvent(new CustomEvent('AI_CONTEXT_UPDATE', { 
+        detail: { 
+          userName: found.customerName, 
+          phone: found.customerPhone, 
+          ticketCode: found.code,
+          device: found.deviceModel,
+          status: found.status
+        }
+      }));
+    }
+  };
+
+  const handleClaimTicket = async (ticketId: string) => {
+    if (onUpdateTicket && currentUserName) {
+      await onUpdateTicket(ticketId, { status: 'IN_PROGRESS', technicianName: currentUserName });
+    }
+  };
+
+  const handleUpdateStatus = async (ticketId: string, newStatus: RepairTicket['status']) => {
+    if (onUpdateTicket) {
+      await onUpdateTicket(ticketId, { status: newStatus });
+    }
   };
 
   const getStatusBadge = (status: RepairTicket['status']) => {
@@ -62,7 +102,6 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
 
   // If role is customer, show the simplified Public Lookup View!
   if (role === 'customer') {
-    const selectedTicket = tickets[0]; // Display top sample ticket
     return (
       <div className="max-w-md mx-auto glass-card rounded-3xl p-6 border border-slate-800 shadow-2xl">
         <div className="text-center pb-5 border-b border-slate-800">
@@ -73,28 +112,50 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
           <p className="text-xs text-slate-400 mt-1">Hệ Thống Chuỗi Phụ Kiện 88 Minh Bạch 24/7</p>
         </div>
 
-        {selectedTicket && (
+        <form onSubmit={handleCustomerSearch} className="mt-5 mb-5 relative">
+          <input 
+            type="text" 
+            placeholder="Nhập mã phiếu (VD: PK88-SC-1420) hoặc SĐT..." 
+            value={customerSearchInput}
+            onChange={(e) => setCustomerSearchInput(e.target.value)}
+            className="w-full pl-4 pr-12 py-3 bg-slate-900 border border-slate-800 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-rose-500 transition-colors"
+            required
+          />
+          <button type="submit" className="absolute right-2 top-2 p-1.5 bg-rose-500 text-white rounded-lg hover:bg-rose-600 transition-colors">
+            <Search className="w-5 h-5" />
+          </button>
+        </form>
+
+        {hasSearched && !searchedTicket && (
+          <div className="text-center py-8 text-slate-400 bg-slate-900/50 rounded-2xl border border-slate-800">
+            <Search className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            <p className="text-sm font-semibold">Không tìm thấy mã phiếu này!</p>
+            <p className="text-xs mt-1">Vui lòng kiểm tra lại mã trên biên nhận hoặc SĐT của bạn.</p>
+          </div>
+        )}
+
+        {searchedTicket && (
           <div className="mt-5 space-y-4">
             <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400 font-mono">Mã phiếu:</span>
-                <span className="text-xs font-mono font-bold text-rose-400">{selectedTicket.code}</span>
+                <span className="text-xs font-mono font-bold text-rose-400">{searchedTicket.code}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400">Khách hàng:</span>
-                <span className="text-xs font-bold text-slate-200">{selectedTicket.customerName} ({selectedTicket.customerPhone})</span>
+                <span className="text-xs font-bold text-slate-200">{searchedTicket.customerName} ({searchedTicket.customerPhone})</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400">Dòng máy:</span>
-                <span className="text-xs font-bold text-slate-200">{selectedTicket.deviceModel}</span>
+                <span className="text-xs font-bold text-slate-200">{searchedTicket.deviceModel}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-400">Dịch vụ:</span>
-                <span className="text-xs font-bold text-emerald-400">{selectedTicket.serviceType}</span>
+                <span className="text-xs font-bold text-emerald-400">{searchedTicket.serviceType}</span>
               </div>
               <div className="flex items-center justify-between pt-2 border-t border-slate-800">
                 <span className="text-xs text-slate-400">Chi phí tạm tính:</span>
-                <span className="text-sm font-bold font-mono text-slate-100">{selectedTicket.price.toLocaleString('vi-VN')} đ</span>
+                <span className="text-sm font-bold font-mono text-slate-100">{searchedTicket.price.toLocaleString('vi-VN')} đ</span>
               </div>
             </div>
 
@@ -103,16 +164,16 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
               <span className="text-xs font-bold text-slate-300 block mb-3">Tiến Độ Xử Lý Thực Tế:</span>
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-xs">✓</div>
-                  <span className="text-xs text-slate-200 font-medium">1. Tiếp nhận thiết bị tại quầy</span>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${searchedTicket.status === 'RECEIVED' || searchedTicket.status === 'IN_PROGRESS' || searchedTicket.status === 'READY' || searchedTicket.status === 'DELIVERED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400'}`}>✓</div>
+                  <span className={`text-xs font-medium ${searchedTicket.status === 'RECEIVED' || searchedTicket.status === 'IN_PROGRESS' || searchedTicket.status === 'READY' || searchedTicket.status === 'DELIVERED' ? 'text-slate-200' : 'text-slate-500'}`}>1. Tiếp nhận thiết bị tại quầy</span>
                 </div>
                 <div className="flex items-center gap-3">
-                  <div className="w-6 h-6 rounded-full bg-sky-500 text-slate-950 flex items-center justify-center font-bold text-xs">2</div>
-                  <span className="text-xs text-sky-400 font-bold">2. Đang tháo máy & ép kính (Kỹ thuật viên Nam)</span>
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${searchedTicket.status === 'IN_PROGRESS' ? 'bg-sky-500 text-slate-950 shadow-[0_0_10px_rgba(14,165,233,0.5)]' : (searchedTicket.status === 'READY' || searchedTicket.status === 'DELIVERED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400')}`}>2</div>
+                  <span className={`text-xs font-bold ${searchedTicket.status === 'IN_PROGRESS' ? 'text-sky-400' : (searchedTicket.status === 'READY' || searchedTicket.status === 'DELIVERED' ? 'text-slate-200' : 'text-slate-500')}`}>2. Đang sửa chữa {searchedTicket.technicianName ? `(Bởi KTV: ${searchedTicket.technicianName})` : ''}</span>
                 </div>
-                <div className="flex items-center gap-3 opacity-40">
-                  <div className="w-6 h-6 rounded-full bg-slate-800 text-slate-400 flex items-center justify-center font-bold text-xs">3</div>
-                  <span className="text-xs text-slate-400">3. Sẵn sàng giao máy & Dán tem bảo hành</span>
+                <div className="flex items-center gap-3">
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center font-bold text-xs ${searchedTicket.status === 'READY' ? 'bg-amber-500 text-slate-950 shadow-[0_0_10px_rgba(245,158,11,0.5)]' : (searchedTicket.status === 'DELIVERED' ? 'bg-emerald-500 text-slate-950' : 'bg-slate-800 text-slate-400')}`}>3</div>
+                  <span className={`text-xs font-bold ${searchedTicket.status === 'READY' ? 'text-amber-400' : (searchedTicket.status === 'DELIVERED' ? 'text-slate-200' : 'text-slate-500')}`}>3. Sẵn sàng giao máy & Bàn giao</span>
                 </div>
               </div>
             </div>
@@ -174,18 +235,44 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
                 <span className="text-slate-400">Thiết bị:</span>
                 <span className="font-semibold text-slate-300">{t.deviceModel} ({t.serviceType})</span>
               </div>
-              <div className="flex justify-between">
+              <div className="flex justify-between items-center mt-1">
                 <span className="text-slate-400">Kỹ thuật viên:</span>
-                <span className="text-slate-300">{t.technicianName}</span>
+                {t.technicianName ? (
+                  <span className="font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">{t.technicianName}</span>
+                ) : (
+                  <button 
+                    onClick={() => handleClaimTicket(t.id)}
+                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1 rounded shadow-[0_0_10px_rgba(245,158,11,0.3)] transition-all animate-pulse"
+                  >
+                    Bấm Nhận Việc
+                  </button>
+                )}
               </div>
             </div>
 
             <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
               <span className="text-sm font-extrabold font-mono text-slate-100">{t.price.toLocaleString('vi-VN')} đ</span>
-              <button className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1">
-                <span>In QR / Gửi Zalo</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </button>
+              
+              <div className="flex gap-2">
+                {/* Staff Actions Dropdown (Simple buttons for now) */}
+                {t.technicianName && t.status !== 'DELIVERED' && (
+                  <select 
+                    value={t.status}
+                    onChange={(e) => handleUpdateStatus(t.id, e.target.value as any)}
+                    className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded px-2 outline-none focus:border-rose-500"
+                  >
+                    <option value="RECEIVED">Đã tiếp nhận</option>
+                    <option value="IN_PROGRESS">Đang sửa chữa</option>
+                    <option value="READY">Sẵn sàng giao</option>
+                    <option value="DELIVERED">Đã bàn giao</option>
+                  </select>
+                )}
+                
+                <button className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-1 rounded">
+                  <QrCode className="w-3.5 h-3.5" />
+                  <span>In QR</span>
+                </button>
+              </div>
             </div>
           </div>
         ))}

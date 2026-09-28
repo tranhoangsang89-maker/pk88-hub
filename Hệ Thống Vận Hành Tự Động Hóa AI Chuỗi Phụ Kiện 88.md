@@ -158,3 +158,26 @@ Sau khi hoàn thành 12 tuần triển khai, Phụ Kiện 88 sẽ đạt đượ
 > * **Đối với Nhân viên tại quầy:** Giảm 100% việc ghi chép sổ sách thủ công, chấm công nhanh gọn qua điện thoại, có trợ lý AI hỗ trợ kỹ thuật tức thì, lộ trình thăng tiến rõ ràng qua điểm thi đua tự động.  
 > * **Đối với Bộ phận Kế toán:** Tiết kiệm hơn 70% thời gian gõ hóa đơn thủ công và đối soát tiền chuyển khoản ngân hàng, không còn cảnh làm thêm giờ căng thẳng vào cuối tháng.  
 > * **Đối với Founder (Sếp Thao):** Thoát khỏi sự vụ vụn vặt, không phải gọi điện kiểm tra từng shop mỗi ngày. Mọi số liệu kinh doanh đều minh bạch trong lòng bàn tay, sẵn sàng mở rộng từ 6 lên 30 chi nhánh một cách vững chắc\!
+
+---
+## **11\. NHẬT KÝ PHÁT TRIỂN & CÁC BƯỚC TIẾP THEO (HANDOVER LÀM VIỆC DÀNH CHO AI AGENT TIẾP THEO)**
+
+### **✅ Công việc đã hoàn thành (Gần nhất):**
+1. **Sửa lỗi UI và logic tra cứu Phiếu sửa chữa**: Đã sửa luồng tra cứu khách hàng không tìm thấy dữ liệu và lỗi nhân viên không nhận việc được.
+2. **Quản trị lỗi (Error Handling)**: Đã thêm các cảnh báo (Alert) để dễ dàng gỡ lỗi khi thao tác với Supabase bị từ chối do chính sách RLS.
+3. **Tính năng Cấy ghép "Thần giao cách cảm" (Context Injection) cho Chatbot**:
+   - Khách hàng khi tra cứu mã phiếu trên Web App sẽ tự động phát tín hiệu (Custom Event) sang iFrame Chatbot.
+   - Dữ liệu (Tên, SĐT, Dòng máy, Mã phiếu) được gắn vào URL Parameters (`?name=...`).
+   - Sửa code `index.html` của Chatbot (trên GitHub/Vercel) để bắt URL Params và đẩy vào Context khi gọi API.
+   - Sửa code `app.py` của Chatbot (FastAPI) để ép "LỆNH TỐI CAO" vào `dynamic_system_context`, bắt buộc Gemini Flash nhận diện danh tính và tư vấn cá nhân hóa (Personalized Greeting).
+   - Đã fix triệt để lỗi 500 trên Vercel do thụt lề sai (IndentationError) trong Python.
+
+### **🚀 Công việc cần làm tiếp theo (Next Steps):**
+1. **Đồng bộ Dữ liệu Nhân sự (Đang chờ file từ HR):**
+   - User (Sếp) đang yêu cầu bộ phận nhân sự cung cấp dữ liệu nhân sự thật.
+   - **Nhiệm vụ:** Khi sếp cung cấp danh sách này (có thể là file Excel, CSV hoặc text), Agent tiếp theo cần tạo bảng `staff` (nếu chưa có hoặc sửa đổi cho phù hợp), viết script import dữ liệu vào Supabase, và cập nhật `LoginModal.tsx` để xác thực bằng tài khoản thật thay vì Mock Data.
+2. **Nâng cấp tính năng Chatbot (Knowledge Base hoặc Lead Gen):**
+   - Đợi sếp cung cấp bảng giá chi tiết các dịch vụ (ép kính, thay pin). Cập nhật vào file `PK88_Knowledge_Base.json` bên repo Chatbot.
+   - Cập nhật thêm Prompt để Chatbot tự động xin SĐT khách chốt sale (Lead Generation) khi khách hỏi giá chưa có trong hệ thống.
+3. **Phát triển Màn hình Dashboard Bán Lẻ (Retail Dashboard):**
+   - Thiết kế UI cho Executive Dashboard bằng dữ liệu giả (Mock data) trong lúc chờ kết nối API/Webhook thực tế từ KiotViet hoặc Pos365. Cần các biểu đồ Doanh thu, Lợi nhuận, và Tồn kho.

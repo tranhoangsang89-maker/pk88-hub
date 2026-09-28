@@ -22,12 +22,16 @@ export interface Staff {
   avatarUrl?: string;
 }
 
+export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH';
+
 export interface AttendanceRecord {
   id: string;
   staffId: string;
   branchId: string;
   checkIn: string;
   checkOut?: string;
+  shiftType?: ShiftType;
+  workHours?: number;
   lat: number;
   lng: number;
   distanceMeters: number;

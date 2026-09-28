@@ -1,9 +1,59 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, X, ExternalLink, RefreshCw } from 'lucide-react';
+import { User } from '../types';
 
-export const AIChatDrawer: React.FC = () => {
+interface AIChatDrawerProps {
+  currentUser: User | null;
+  isCustomerMode: boolean;
+}
+
+export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ currentUser, isCustomerMode }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [key, setKey] = useState(0); // To reload iframe if needed
+  const [contextData, setContextData] = useState<any>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Lắng nghe tín hiệu Context từ App
+  useEffect(() => {
+    const handleContextUpdate = (e: any) => {
+      setContextData(e.detail);
+      setIsOpen(true); // Tự động bật Chatbot lên để chào khách
+      
+      // Bắn tín hiệu real-time vào trong iframe (nếu iFrame có hỗ trợ nhận)
+      if (iframeRef.current && iframeRef.current.contentWindow) {
+        iframeRef.current.contentWindow.postMessage({ type: 'CONTEXT_INJECT', data: e.detail }, '*');
+      }
+    };
+    
+    window.addEventListener('AI_CONTEXT_UPDATE', handleContextUpdate);
+    return () => window.removeEventListener('AI_CONTEXT_UPDATE', handleContextUpdate);
+  }, []);
+
+  // Xóa context khi chuyển chế độ hoặc nhân viên đăng nhập
+  useEffect(() => {
+    if (!isCustomerMode && currentUser) {
+      setContextData(null);
+    }
+  }, [isCustomerMode, currentUser]);
+
+  // Truyền Context qua URL Query (cho lúc tải lại iFrame)
+  const baseUrl = "https://chatbot-pk88.vercel.app/";
+  let iframeUrl = baseUrl;
+  
+  if (isCustomerMode && contextData) {
+    const params = new URLSearchParams();
+    if (contextData.userName) params.append('name', contextData.userName);
+    if (contextData.phone) params.append('phone', contextData.phone);
+    if (contextData.ticketCode) params.append('ticket', contextData.ticketCode);
+    if (contextData.device) params.append('device', contextData.device);
+    iframeUrl = `${baseUrl}?${params.toString()}`;
+  } else if (!isCustomerMode && currentUser) {
+    // Chế độ nhân viên nội bộ
+    const params = new URLSearchParams();
+    params.append('name', currentUser.fullName);
+    params.append('role', currentUser.role);
+    iframeUrl = `${baseUrl}?${params.toString()}`;
+  }
 
   return (
     <>
@@ -64,8 +114,9 @@ export const AIChatDrawer: React.FC = () => {
           {/* Embedded Live Chatbot Iframe */}
           <div className="flex-1 w-full bg-black relative">
             <iframe
+              ref={iframeRef}
               key={key}
-              src="https://chatbot-pk88.vercel.app/"
+              src={iframeUrl}
               title="Phụ Kiện 88 Chatbot Live"
               className="w-full h-full border-none"
               allow="microphone; camera"

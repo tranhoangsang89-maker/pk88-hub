@@ -39,6 +39,9 @@ export function App() {
             staffId: item.staff_id || 'unknown',
             branchId: item.branch_id || 'b1',
             checkIn: item.check_in,
+            checkOut: item.check_out,
+            shiftType: item.shift_type,
+            workHours: item.work_hours,
             lat: item.lat,
             lng: item.lng,
             distanceMeters: item.distance_meters,
@@ -55,8 +58,39 @@ export function App() {
     }
   };
 
+  const fetchTickets = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('repair_tickets')
+        .select('*')
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error('Fetch tickets error:', error);
+      } else if (data) {
+        const formatted: RepairTicket[] = data.map(item => ({
+          id: item.id,
+          code: item.code,
+          branchId: item.branch_id || 'b1',
+          customerName: item.customer_name,
+          customerPhone: item.customer_phone,
+          deviceModel: item.device_model,
+          serviceType: item.service_type,
+          status: item.status,
+          price: Number(item.price),
+          createdAt: item.created_at,
+          technicianName: item.technician_name
+        }));
+        setTickets(formatted);
+      }
+    } catch (err) {
+      console.error('Fetch tickets error:', err);
+    }
+  };
+
   useEffect(() => {
     fetchRealAttendance();
+    fetchTickets();
   }, []);
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
@@ -65,9 +99,16 @@ export function App() {
     setCurrentUser(staff);
     setIsCustomerMode(false);
     setShowLoginModal(false);
+    
+    // Auto-select staff's branch
+    const staffBranch = INITIAL_BRANCHES.find(b => b.id === staff.branchId);
+    if (staffBranch) {
+      setSelectedBranch(staffBranch);
+    }
 
     // Refresh real attendance logs on login
     fetchRealAttendance();
+    fetchTickets();
 
     if (staff.role === 'admin') setActiveTab('admin');
     else if (staff.role === 'founder') setActiveTab('dashboard');
@@ -83,15 +124,93 @@ export function App() {
     fetchRealAttendance();
   };
 
-  const handleCreateTicket = (newTicket: RepairTicket) => {
-    setTickets((prev) => [newTicket, ...prev]);
+  const handleCreateTicket = async (newTicket: RepairTicket) => {
+    try {
+      const { data, error } = await supabase.from('repair_tickets').insert([{
+        code: newTicket.code,
+        customer_name: newTicket.customerName,
+        customer_phone: newTicket.customerPhone,
+        device_model: newTicket.deviceModel,
+        service_type: newTicket.serviceType,
+        status: newTicket.status,
+        price: newTicket.price,
+        technician_name: newTicket.technicianName === '' ? null : newTicket.technicianName
+      }]).select();
+
+      if (error) {
+        alert('Lỗi lưu CSDL Supabase: ' + error.message);
+        console.error(error);
+        return;
+      }
+      
+      if (data && data.length > 0) {
+        const savedItem = data[0];
+        const savedTicket: RepairTicket = {
+          id: savedItem.id, // Use real UUID from DB
+          code: savedItem.code,
+          branchId: savedItem.branch_id || 'b1',
+          customerName: savedItem.customer_name,
+          customerPhone: savedItem.customer_phone,
+          deviceModel: savedItem.device_model,
+          serviceType: savedItem.service_type,
+          status: savedItem.status,
+          price: Number(savedItem.price),
+          createdAt: savedItem.created_at,
+          technicianName: savedItem.technician_name
+        };
+        setTickets((prev) => [savedTicket, ...prev]);
+      }
+    } catch (e: any) {
+      alert('Lỗi ngoại lệ: ' + e.message);
+    }
+  };
+
+  const handleUpdateTicket = async (ticketId: string, updates: Partial<RepairTicket>): Promise<boolean> => {
+    try {
+      let query = supabase.from('repair_tickets').update({
+        status: updates.status,
+        technician_name: updates.technicianName
+      }).eq('id', ticketId);
+
+      // Nếu là thao tác "Nhận việc", đảm bảo tên KTV đang trống (race condition lock)
+      if (updates.technicianName && updates.status === 'IN_PROGRESS') {
+        query = query.is('technician_name', null);
+      }
+
+      const { data, error } = await query.select();
+
+      if (error) {
+        console.error('Lỗi cập nhật CSDL:', error);
+        alert('Lỗi cập nhật hệ thống: ' + error.message);
+        return false;
+      }
+      
+      if (data && data.length > 0) {
+        // Cập nhật thành công, update local state
+        setTickets(prev => prev.map(t => t.id === ticketId ? { ...t, ...updates } : t));
+        return true;
+      } else {
+        alert('Rất tiếc! Yêu cầu thất bại do Kỹ thuật viên khác đã nhận hoặc trạng thái đã bị thay đổi.');
+        return false;
+      }
+    } catch (e: any) {
+      console.error('Exception in handleUpdateTicket:', e);
+      alert('Đã xảy ra lỗi hệ thống: ' + e.message);
+      return false;
+    }
   };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Login Modal Popup */}
       {(showLoginModal || (!currentUser && !isCustomerMode)) && (
-        <LoginModal onLoginSuccess={handleLoginSuccess} />
+        <LoginModal 
+          onLoginSuccess={handleLoginSuccess} 
+          onGuestLookup={() => {
+            setIsCustomerMode(true);
+            setShowLoginModal(false);
+          }}
+        />
       )}
 
       {/* Main Header Navbar */}
@@ -118,9 +237,12 @@ export function App() {
             {/* Refresh DB Button */}
             {currentUser && !isCustomerMode && (
               <button
-                onClick={fetchRealAttendance}
+                onClick={() => {
+                  fetchRealAttendance();
+                  fetchTickets();
+                }}
                 className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                title="Tải lại dữ liệu chấm công từ Supabase Cloud"
+                title="Tải lại dữ liệu từ Supabase Cloud"
               >
                 <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingDb ? 'animate-spin' : ''}`} />
               </button>
@@ -205,7 +327,7 @@ export function App() {
         {/* Navigation Tabs for Logged-In Users */}
         {!isCustomerMode && currentUser && (
           <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-            {currentUser.role === 'admin' && (
+            {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
               <button
                 onClick={() => setActiveTab('admin')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -264,8 +386,8 @@ export function App() {
           <RepairTicketView tickets={tickets} role="customer" onCreateTicket={handleCreateTicket} />
         ) : (
           <>
-            {activeTab === 'admin' && currentUser?.role === 'admin' && (
-              <AdminPanel branches={INITIAL_BRANCHES} staffList={MOCK_STAFF} />
+            {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder') && (
+              <AdminPanel branches={INITIAL_BRANCHES} staffList={MOCK_STAFF} attendanceLogs={attendanceHistory} />
             )}
 
             {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
@@ -284,7 +406,13 @@ export function App() {
             )}
 
             {activeTab === 'tickets' && currentUser && (
-              <RepairTicketView tickets={tickets} role={currentUser.role} onCreateTicket={handleCreateTicket} />
+              <RepairTicketView 
+                tickets={tickets} 
+                role={currentUser.role} 
+                onCreateTicket={handleCreateTicket} 
+                onUpdateTicket={handleUpdateTicket}
+                currentUserName={currentUser.fullName}
+              />
             )}
 
             {!currentUser && (
@@ -299,7 +427,7 @@ export function App() {
       </main>
 
       {/* Floating AI Chat Assistant */}
-      <AIChatDrawer />
+      <AIChatDrawer currentUser={currentUser} isCustomerMode={isCustomerMode} />
 
       {/* Footer */}
       <footer className="border-t border-slate-900 py-4 px-4 text-center text-[11px] text-slate-500">

@@ -34,12 +34,12 @@ CREATE TABLE IF NOT EXISTS staff (
 CREATE TABLE IF NOT EXISTS repair_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     code VARCHAR(30) UNIQUE NOT NULL,
-    branch_id UUID REFERENCES branches(id) NOT NULL,
+    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
     customer_phone VARCHAR(20) NOT NULL,
     customer_name VARCHAR(100) NOT NULL,
     device_model VARCHAR(100) NOT NULL,
-    service_type VARCHAR(50) NOT NULL, -- THAY_PIN, EP_KINH, DAN_PPF, THAY_MAN
-    status VARCHAR(30) DEFAULT 'RECEIVED', -- RECEIVED, IN_PROGRESS, READY, DELIVERED
+    service_type VARCHAR(50) NOT NULL,
+    status VARCHAR(30) DEFAULT 'RECEIVED',
     price NUMERIC(12, 2) DEFAULT 0,
     technician_name VARCHAR(100),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
@@ -49,10 +49,12 @@ CREATE TABLE IF NOT EXISTS repair_tickets (
 -- 4. BẢNG CHẤM CÔNG GPS GEOFENCING (ATTENDANCE)
 CREATE TABLE IF NOT EXISTS attendance (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    staff_id UUID REFERENCES staff(id) NOT NULL,
-    branch_id UUID REFERENCES branches(id) NOT NULL,
+    staff_id UUID REFERENCES staff(id) ON DELETE SET NULL,
+    branch_id UUID REFERENCES branches(id) ON DELETE SET NULL,
     check_in TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     check_out TIMESTAMP WITH TIME ZONE,
+    shift_type VARCHAR(20),
+    work_hours NUMERIC(5, 2),
     lat DOUBLE PRECISION NOT NULL,
     lng DOUBLE PRECISION NOT NULL,
     distance_meters INT NOT NULL,
@@ -60,7 +62,7 @@ CREATE TABLE IF NOT EXISTS attendance (
     notes TEXT
 );
 
--- SEED OFFICIAL 6 BRANCHES OF PHỤ KIỆN 88
+-- SEED 6 CHI NHÁNH PHỤ KIỆN 88
 INSERT INTO branches (code, name, address, lat, lng) VALUES
 ('PK88_BENTRE_1', 'Phụ Kiện 88 - Bến Tre 1 (Trụ Sở Chính)', '35B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre', 10.2465, 106.3812),
 ('PK88_BENTRE_2', 'Phụ Kiện 88 - Bến Tre 2 (Tân Thành)', '173 Đại Lộ Đồng Khởi, Vòng Xoay Tân Thành, TP. Bến Tre', 10.2589, 106.3764),
@@ -70,8 +72,11 @@ INSERT INTO branches (code, name, address, lat, lng) VALUES
 ('PK88_TRAVINH', 'Phụ Kiện 88 - Trà Vinh', '29 Nguyễn Đáng, Phường 6, TP. Trà Vinh', 9.9350, 106.3450)
 ON CONFLICT (code) DO NOTHING;
 
--- SEED KEY PERSONNEL
+-- SEED TOÀN BỘ NHÂN SỰ PHỤ KIỆN 88
 INSERT INTO staff (full_name, phone, role) VALUES
 ('Ngô Hồng Thao', '0777888688', 'founder'),
-('Trần Hoàng Sang', '0888003205', 'admin')
+('Trần Hoàng Sang', '0888003205', 'admin'),
+('Nguyễn Văn Minh', '0912345678', 'manager'),
+('Lê Hoàng Nam', '0909123456', 'technician'),
+('Phạm Thị Mỹ', '0977112233', 'sales')
 ON CONFLICT (phone) DO NOTHING;
