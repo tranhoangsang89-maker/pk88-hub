@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bot, Sparkles, X, ExternalLink, RefreshCw } from 'lucide-react';
-import { User } from '../types';
+import { Staff } from '../types';
 
 interface AIChatDrawerProps {
-  currentUser: User | null;
+  currentUser: Staff | null;
   isCustomerMode: boolean;
 }
 

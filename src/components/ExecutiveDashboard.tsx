@@ -164,7 +164,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
                 <Tooltip 
                   contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
                   itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: number) => [`${value.toLocaleString('vi-VN')} đ`, '']}
+                  formatter={(value: any) => [`${Number(value).toLocaleString('vi-VN')} đ`, '']}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
                 <Area type="monotone" name="Doanh Thu" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
