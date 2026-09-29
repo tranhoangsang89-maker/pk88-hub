@@ -79,7 +79,9 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
   const handleSubmitQuiz = async () => {
     let score = 0;
     quizzes.forEach(q => {
-      if (quizAnswers[q.id] === q.correct_option_index) {
+      // Handle both camelCase and snake_case from DB
+      const correctIdx = (q as any).correct_option_index ?? (q as any).correctOptionIndex;
+      if (quizAnswers[q.id] === correctIdx) {
         score++;
       }
     });
@@ -170,7 +172,7 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
                 lockedReason = 'Bạn phải hoàn thành Bài kiểm tra của ngày trước đó để mở khóa!';
               } else {
                 // Ràng buộc: Chỉ được học 1 bài mỗi ngày
-                const completedDate = new Date(prevProgress.completedAt).toDateString();
+                const completedDate = new Date(prevProgress.completedAt || new Date()).toDateString();
                 const today = new Date().toDateString();
                 if (completedDate === today) {
                   isLocked = true;
@@ -314,7 +316,7 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
                     if (showResult) {
                       const finalScore = completedProgress ? completedProgress.score : quizResult?.score;
                       // Giả sử 100% là pass cho bài đã hoàn thành
-                      const isSuccess = completedProgress ? true : (quizResult?.score === quizResult?.total && quizResult?.total > 0);
+                      const isSuccess = completedProgress ? true : (quizResult?.score === quizResult?.total && (quizResult?.total || 0) > 0);
                       
                       return (
                         <div className={`p-6 rounded-2xl border text-center ${isSuccess ? 'bg-emerald-900/20 border-emerald-500/30' : 'bg-rose-900/20 border-rose-500/30'}`}>
