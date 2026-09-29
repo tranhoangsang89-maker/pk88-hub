@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { Staff, Course, Lesson, Quiz, StaffProgress } from '../types';
 import { supabase } from '../lib/supabase';
-import { BookOpen, CheckCircle2, ChevronRight, PlayCircle, Trophy, GraduationCap, Shield, Layers, Camera, Smartphone, BatteryCharging, Headphones, PenTool, Car, Monitor, Watch, Zap, HardDrive, Book, Lock } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { BookOpen, CheckCircle2, ChevronRight, PlayCircle, Trophy, GraduationCap, Shield, Layers, Camera, Smartphone, BatteryCharging, Headphones, PenTool, Car, Monitor, Watch, Zap, HardDrive, Book, Lock, TrendingUp, ArrowLeft } from 'lucide-react';
+import { LMSDashboard } from './LMSDashboard';
 
 interface TrainingLMSProps {
   currentUser: Staff;
@@ -16,6 +19,9 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
   const [loading, setLoading] = useState(true);
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizResult, setQuizResult] = useState<{score: number, total: number} | null>(null);
+  const [showDashboard, setShowDashboard] = useState(false);
+
+  const isSuperUser = currentUser.role === 'admin' || currentUser.role === 'founder';
 
   const getLessonIcon = (title: string) => {
     const t = title.toLowerCase();
@@ -44,7 +50,16 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
         const { data: progressData } = await supabase.from('staff_progress').select('*').eq('staff_id', currentUser.id);
         
         if (coursesData) setCourses(coursesData);
-        if (lessonsData) setLessons(lessonsData);
+        if (lessonsData) {
+          setLessons(lessonsData.map((l: any) => ({
+            id: l.id,
+            courseId: l.course_id,
+            dayNumber: l.day_number,
+            title: l.title,
+            content: l.content,
+            createdAt: l.created_at
+          })));
+        }
         if (progressData) {
           setProgress(progressData.map((p: any) => ({
             id: p.id,
@@ -128,15 +143,42 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
 
   if (loading) return <div className="text-center py-10 text-emerald-500 animate-pulse">Đang tải phân khu Đào tạo...</div>;
 
+  if (showDashboard) {
+    return (
+      <div className="flex flex-col max-w-7xl mx-auto h-[calc(100vh-180px)]">
+        <div className="mb-4">
+          <button 
+            onClick={() => setShowDashboard(false)}
+            className="flex items-center gap-2 text-slate-400 hover:text-emerald-400 transition-colors bg-slate-900 border border-slate-800 px-4 py-2 rounded-xl text-sm font-bold shadow-lg"
+          >
+            <ArrowLeft className="w-4 h-4" /> Quay lại Giao diện Học viên
+          </button>
+        </div>
+        <LMSDashboard />
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-180px)]">
       
       {/* Cột trái: Lộ trình 60 ngày */}
       <div className="w-full md:w-1/3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-xl overflow-hidden">
         <div className="p-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10">
-          <div className="flex items-center gap-2 text-emerald-400 mb-1">
-            <GraduationCap className="w-5 h-5" />
-            <h2 className="font-extrabold text-sm uppercase tracking-wider">Học Viện Phụ Kiện 88</h2>
+          <div className="flex items-center justify-between mb-1">
+            <div className="flex items-center gap-2 text-emerald-400">
+              <GraduationCap className="w-5 h-5" />
+              <h2 className="font-extrabold text-sm uppercase tracking-wider">Học Viện Phụ Kiện 88</h2>
+            </div>
+            {isSuperUser && (
+              <button 
+                onClick={() => setShowDashboard(true)}
+                className="bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 p-1.5 rounded-lg border border-emerald-500/30 transition-all"
+                title="Mở Bảng Điều Khiển Quản Lý"
+              >
+                <TrendingUp className="w-4 h-4" />
+              </button>
+            )}
           </div>
           <p className="text-xs text-slate-400">Lộ trình Đào tạo Hội nhập & Kỹ thuật (60 Ngày)</p>
           
@@ -162,8 +204,9 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
             
             let isLocked = false;
             let lockedReason = '';
-            // Bài 1 luôn mở. Các bài sau chỉ mở khi bài trước đó đã COMPLETED
-            if (index > 0) {
+
+            // Bài 1 luôn mở. Các bài sau chỉ mở khi bài trước đó đã COMPLETED (trừ Admin/Founder)
+            if (index > 0 && !isSuperUser) {
               const prevLesson = lessons[index - 1];
               const prevProgress = progress.find(p => p.lessonId === prevLesson.id && p.status === 'COMPLETED');
               
@@ -255,50 +298,32 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
                 </div>
               </div>
 
-              <div className="space-y-3 mb-10">
-                {selectedLesson.content.split('\n').map((para, i) => {
-                  const p = para.trim();
-                  if (!p) return null;
-                  
-                  // Format bullets
-                  if (p.startsWith('-')) {
-                    return (
-                      <div key={i} className="flex items-start gap-2 pl-4">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 mt-2 flex-shrink-0"></div>
-                        <p className="text-slate-300 text-sm leading-relaxed" dangerouslySetInnerHTML={{ __html: p.substring(1).replace(/(\d{2,3}k)/g, '<span class="text-amber-400 font-bold">$1</span>') }}></p>
+              <div className="prose prose-invert prose-emerald max-w-none mb-10">
+                <ReactMarkdown
+                  remarkPlugins={[remarkGfm]}
+                  components={{
+                    h1: ({node, ...props}) => <h1 className="text-2xl font-extrabold text-emerald-400 mb-4 pb-2 border-b border-slate-800" {...props} />,
+                    h2: ({node, ...props}) => <h2 className="text-xl font-bold text-sky-400 mt-6 mb-3" {...props} />,
+                    h3: ({node, ...props}) => <h3 className="text-lg font-bold text-amber-400 mt-5 mb-2" {...props} />,
+                    p: ({node, ...props}) => <p className="text-slate-300 text-[15px] leading-relaxed mb-4" {...props} />,
+                    ul: ({node, ...props}) => <ul className="list-disc list-outside space-y-2 mb-6 ml-5 text-slate-300 text-[15px]" {...props} />,
+                    ol: ({node, ...props}) => <ol className="list-decimal list-outside space-y-2 mb-6 ml-5 text-slate-300 text-[15px]" {...props} />,
+                    li: ({node, ...props}) => <li className="pl-2 marker:text-emerald-500" {...props} />,
+                    a: ({node, ...props}) => <a className="text-sky-400 hover:text-sky-300 underline underline-offset-4 font-medium transition-colors" {...props} />,
+                    strong: ({node, ...props}) => <strong className="font-extrabold text-slate-100" {...props} />,
+                    blockquote: ({node, ...props}) => (
+                      <blockquote className="border-l-4 border-emerald-500 bg-emerald-500/10 p-4 my-6 rounded-r-xl italic text-slate-200" {...props} />
+                    ),
+                    img: ({node, ...props}) => (
+                      <div className="my-8 rounded-2xl overflow-hidden border border-slate-700 shadow-2xl relative group">
+                        <img className="w-full h-auto object-cover transform transition-transform duration-700 group-hover:scale-105" {...props} />
+                        <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                       </div>
-                    );
-                  }
-                  
-                  // Format headers (all caps)
-                  if (p.toUpperCase() === p && p.length > 5 && !p.includes('?')) {
-                    return (
-                      <div key={i} className="mt-6 mb-2">
-                        <span className="inline-block px-3 py-1 bg-slate-800 text-sky-400 rounded-lg text-xs font-bold uppercase tracking-wider border border-slate-700">
-                          {p}
-                        </span>
-                      </div>
-                    );
-                  }
-
-                  // Questions
-                  if (p.match(/^\d+\./)) {
-                    return (
-                      <div key={i} className="mt-4 font-bold text-emerald-400 text-sm">
-                        {p}
-                      </div>
-                    );
-                  }
-
-                  // Default paragraphs with price highlighting
-                  return (
-                    <p 
-                      key={i} 
-                      className="text-slate-300 text-sm leading-relaxed"
-                      dangerouslySetInnerHTML={{ __html: p.replace(/(\d{2,3}k)/g, '<span class="text-amber-400 font-bold">$1</span>') }}
-                    ></p>
-                  );
-                })}
+                    )
+                  }}
+                >
+                  {selectedLesson.content}
+                </ReactMarkdown>
               </div>
 
               {/* Phần Kiểm tra Sát hạch */}
