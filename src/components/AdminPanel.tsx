@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { Branch, Staff, AttendanceRecord } from '../types';
+import React, { useState, useEffect } from 'react';
+import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson } from '../types';
 import { supabase } from '../lib/supabase';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign } from 'lucide-react';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2 } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -10,11 +10,36 @@ interface AdminPanelProps {
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, attendanceLogs = [] }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll'>('payroll');
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>('payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffRole, setNewStaffRole] = useState<'sales' | 'technician' | 'manager'>('sales');
   const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
+
+  const [lmsProgress, setLmsProgress] = useState<StaffProgress[]>([]);
+  const [lmsLessons, setLmsLessons] = useState<Lesson[]>([]);
+
+  const fetchLmsData = async () => {
+    const { data: progress } = await supabase.from('staff_progress').select('*');
+    const { data: lessons } = await supabase.from('lessons').select('*');
+    if (progress) {
+      setLmsProgress(progress.map((p: any) => ({
+        id: p.id,
+        staffId: p.staff_id,
+        lessonId: p.lesson_id,
+        status: p.status,
+        score: p.score,
+        completedAt: p.completed_at
+      })));
+    }
+    if (lessons) setLmsLessons(lessons);
+  };
+
+  useEffect(() => {
+    if (activeSubTab === 'lms') {
+      fetchLmsData();
+    }
+  }, [activeSubTab]);
 
   const handleAddStaff = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -160,6 +185,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
         >
           <Terminal className="w-4 h-4" />
           <span>5. System Logs & Webhook Sync</span>
+        </button>
+
+        <button
+          onClick={() => setActiveSubTab('lms')}
+          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+            activeSubTab === 'lms'
+              ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+          }`}
+        >
+          <GraduationCap className="w-4 h-4" />
+          <span>6. Tiến Độ Đào Tạo LMS</span>
         </button>
       </div>
 
@@ -418,6 +455,76 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                 <span className="text-slate-300 text-[11px]">{log.payload}</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {activeSubTab === 'lms' && (
+        <div className="space-y-6">
+          <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-slate-900/90">
+            <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-800">
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <BookOpen className="w-5 h-5 text-emerald-400" />
+                <span>Báo Cáo Tiến Độ Đào Tạo Nhân Sự Mới (60 Ngày)</span>
+              </h3>
+              <button onClick={fetchLmsData} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg flex items-center gap-2 transition-all">
+                <RefreshCw className="w-3 h-3" /> Cập nhật Data
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {branches.map(branch => {
+                const staffInBranch = localStaff.filter(s => s.branchId === branch.id);
+                if (staffInBranch.length === 0) return null;
+
+                return (
+                  <div key={branch.id}>
+                    <h4 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3 border-b border-slate-800 pb-2 flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {branch.name}
+                    </h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {staffInBranch.map(staff => {
+                        const staffProgress = lmsProgress.filter(p => p.staffId === staff.id);
+                        const completedCount = staffProgress.filter(p => p.status === 'COMPLETED').length;
+                        const totalLessons = lmsLessons.length || 60; // fallback 60
+                        const percent = Math.round((completedCount / totalLessons) * 100);
+
+                        return (
+                          <div key={staff.id} className="p-4 bg-slate-950 rounded-xl border border-slate-800 hover:border-slate-700 transition-all">
+                            <div className="flex items-center justify-between mb-3">
+                              <div>
+                                <div className="font-bold text-slate-200">{staff.fullName}</div>
+                                <div className="text-[10px] text-slate-500 uppercase">{staff.role}</div>
+                              </div>
+                              <div className="w-10 h-10 rounded-full bg-emerald-500/10 flex items-center justify-center border border-emerald-500/20">
+                                <span className="text-xs font-bold text-emerald-400">{percent}%</span>
+                              </div>
+                            </div>
+                            
+                            <div className="w-full bg-slate-800 rounded-full h-1.5 mb-3">
+                              <div 
+                                className="bg-emerald-500 h-1.5 rounded-full" 
+                                style={{ width: `${percent}%` }}
+                              ></div>
+                            </div>
+                            
+                            <div className="text-[11px] text-slate-400 flex justify-between items-center">
+                              <span>Đã học: {completedCount}/{totalLessons} bài</span>
+                              {percent >= 100 ? (
+                                <span className="text-emerald-400 font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3"/> Hoàn thành</span>
+                              ) : (
+                                <span className="text-amber-400 font-bold">Đang học...</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       )}

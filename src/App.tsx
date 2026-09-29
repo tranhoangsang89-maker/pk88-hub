@@ -7,14 +7,15 @@ import { RepairTicketView } from './components/RepairTicketView';
 import { AIChatDrawer } from './components/AIChatDrawer';
 import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
+import { TrainingLMS } from './components/TrainingLMS';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap } from 'lucide-react';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets'>('attendance');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets' | 'training'>('attendance');
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
@@ -378,6 +379,18 @@ export function App() {
               <TicketCheck className="w-4 h-4" />
               <span>Phiếu Dịch Vụ & Sửa Chữa (QR)</span>
             </button>
+
+            <button
+              onClick={() => setActiveTab('training')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                activeTab === 'training'
+                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-extrabold'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              <GraduationCap className="w-4 h-4" />
+              <span>Đào Tạo & Khảo Thí (LMS)</span>
+            </button>
           </div>
         )}
 
@@ -413,6 +426,10 @@ export function App() {
                 onUpdateTicket={handleUpdateTicket}
                 currentUserName={currentUser.fullName}
               />
+            )}
+
+            {activeTab === 'training' && currentUser && (
+              <TrainingLMS currentUser={currentUser} />
             )}
 
             {!currentUser && (

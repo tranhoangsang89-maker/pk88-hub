@@ -1,8 +1,7 @@
-import React, { useState } from 'react';
-import { RepairTicket, UserRole } from '../types';
+import React, { useState, useEffect } from 'react';
+import { RepairTicket, UserRole, Product } from '../types';
 import { QrCode, Search, Wrench, Plus, CheckCircle2, Clock, Smartphone, UserCheck, ArrowRight } from 'lucide-react';
-
-interface RepairTicketViewProps {
+import { supabase } from '../lib/supabase';interface RepairTicketViewProps {
   tickets: RepairTicket[];
   role: UserRole;
   onCreateTicket: (ticket: RepairTicket) => void;
@@ -25,6 +24,30 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
   const [deviceModel, setDeviceModel] = useState('iPhone 13 Pro Max');
   const [serviceType, setServiceType] = useState<RepairTicket['serviceType']>('EP_KINH');
   const [price, setPrice] = useState('850000');
+
+  // Product Search State
+  const [products, setProducts] = useState<Product[]>([]);
+  const [productSearchTerm, setProductSearchTerm] = useState('');
+  const [showProductDropdown, setShowProductDropdown] = useState(false);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .order('category', { ascending: true });
+      if (data && !error) {
+        setProducts(data);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = products.filter(p => 
+    p.name.toLowerCase().includes(productSearchTerm.toLowerCase()) || 
+    p.category.toLowerCase().includes(productSearchTerm.toLowerCase()) ||
+    (p.brand && p.brand.toLowerCase().includes(productSearchTerm.toLowerCase()))
+  ).slice(0, 50); // Limit to 50 for performance
 
   const filteredTickets = tickets.filter(
     (t) =>
@@ -312,18 +335,56 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Dòng điện thoại / iPad:</label>
-                <input
-                  type="text"
-                  required
-                  value={deviceModel}
-                  onChange={(e) => setDeviceModel(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
-                />
+                <label className="text-slate-400 block mb-1">Sản phẩm / Dịch vụ (Gõ để tìm kiếm):</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    required
+                    placeholder="VD: Cường lực URR 15 Pro Max..."
+                    value={productSearchTerm}
+                    onChange={(e) => {
+                      setProductSearchTerm(e.target.value);
+                      setDeviceModel(e.target.value);
+                      setShowProductDropdown(true);
+                    }}
+                    onFocus={() => setShowProductDropdown(true)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                  />
+                  {showProductDropdown && productSearchTerm && filteredProducts.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl custom-scrollbar">
+                      {filteredProducts.map(product => (
+                        <div 
+                          key={product.id}
+                          className="px-3 py-2 cursor-pointer hover:bg-slate-700 border-b border-slate-700/50 last:border-0"
+                          onClick={() => {
+                            setProductSearchTerm(product.name);
+                            setDeviceModel(product.name);
+                            setPrice(product.price.toString());
+                            setShowProductDropdown(false);
+                            
+                            if (product.category.toLowerCase().includes('cường lực') || product.category.toLowerCase().includes('ppf') || product.category.toLowerCase().includes('ốp')) {
+                              setServiceType('DAN_PPF');
+                            } else if (product.category.toLowerCase().includes('pin')) {
+                              setServiceType('THAY_PIN');
+                            } else {
+                              setServiceType('KHAC');
+                            }
+                          }}
+                        >
+                          <div className="font-bold text-sm text-slate-200">{product.name}</div>
+                          <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
+                            <span className="bg-slate-900 px-1.5 rounded border border-slate-700">{product.category} {product.brand ? `- ${product.brand}` : ''}</span>
+                            <span className="text-rose-400 font-mono font-bold">{product.price.toLocaleString('vi-VN')} đ</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Dịch vụ kỹ thuật:</label>
+                <label className="text-slate-400 block mb-1">Loại Phiếu Dịch Vụ:</label>
                 <select
                   value={serviceType}
                   onChange={(e) => setServiceType(e.target.value as any)}
@@ -331,8 +392,9 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
                 >
                   <option value="EP_KINH">Ép Kính / Ép Cảm Ứng</option>
                   <option value="THAY_PIN">Thay Pin Dung Lượng Cao</option>
-                  <option value="DAN_PPF">Dán PPF / Cường Lực</option>
+                  <option value="DAN_PPF">Bán Hàng / Dán PPF / Cường Lực</option>
                   <option value="THAY_MAN">Thay Màn Hình Zin</option>
+                  <option value="KHAC">Sửa Chữa Khác</option>
                 </select>
               </div>
 
