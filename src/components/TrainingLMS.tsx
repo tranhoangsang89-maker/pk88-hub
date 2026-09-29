@@ -163,7 +163,7 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
     <div className="flex flex-col md:flex-row gap-6 max-w-7xl mx-auto h-[calc(100vh-180px)]">
       
       {/* Cột trái: Lộ trình 60 ngày */}
-      <div className="w-full md:w-1/3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-xl overflow-hidden">
+      <div className={`w-full md:w-1/3 bg-slate-900 border border-slate-800 rounded-2xl flex-col shadow-xl overflow-hidden ${selectedLesson ? 'hidden md:flex' : 'flex'}`}>
         <div className="p-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10">
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-2 text-emerald-400">
@@ -271,11 +271,17 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
       </div>
 
       {/* Cột phải: Nội dung bài học */}
-      <div className="w-full md:w-2/3 bg-slate-900 border border-slate-800 rounded-2xl flex flex-col shadow-xl overflow-hidden relative">
+      <div className={`w-full md:w-2/3 bg-slate-900 border border-slate-800 rounded-2xl flex-col shadow-xl overflow-hidden relative ${!selectedLesson ? 'hidden md:flex' : 'flex'}`}>
         {selectedLesson ? (
           <>
             <div className="p-5 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 flex items-center justify-between">
               <div>
+                <button 
+                  onClick={() => setSelectedLesson(null)}
+                  className="md:hidden flex items-center gap-1 text-slate-400 hover:text-emerald-400 mb-3 text-xs font-bold transition-colors bg-slate-800/50 px-2 py-1 rounded-md"
+                >
+                  <ArrowLeft className="w-3 h-3" /> Quay lại Lộ trình
+                </button>
                 <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20 mb-2 inline-block">
                   Bài học Ngày {selectedLesson.dayNumber}
                 </span>
