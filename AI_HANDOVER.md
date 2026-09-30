@@ -25,10 +25,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
   - Quản lý theo dõi tiến độ nhân viên phân chia theo Chi Nhánh trên `AdminPanel.tsx`.
   - Đã fix lỗi xung đột UUID `staff_id` (ép kiểu sang TEXT) để lưu `staff_progress` mượt mà.
 - **Quản lý Phiếu Sửa Chữa (Repair Tickets):** Đã hoàn thiện, kết nối trực tiếp với bảng `repair_tickets` trên Supabase (Thêm mới/Cập nhật trạng thái đều dùng dữ liệu thật).
-  - **[Cập nhật mới - 29/09/2026]:** Phát triển và nhúng thành công **Bảng Điều Khiển Quản Trị Đào Tạo (LMS Analytics Dashboard)** vào `TrainingLMS.tsx`.
-    - Sử dụng `recharts` để vẽ biểu đồ trực quan về tiến độ học của nhân viên.
-    - Bảng vàng vinh danh (Top Học Bá) và Bảng Cảnh Báo (Đứng im trên 3 ngày).
-    - Đã xử lý triệt để lỗi "Mismatch Data" bằng cách đồng bộ định danh giả lập `MOCK_STAFF` để Dashboard hoạt động đúng với logic Test hiện tại.
+- **[Cập nhật mới - 30/09/2026 - Phiên 3]:**
+  - **Multi-Role Payroll Engine (Bảng Lương Đa Vai Trò):** Cập nhật hệ số lương cơ bản `22.700đ/giờ` cho Sales, `30.000đ/giờ` cho Kỹ thuật, Lương cố định tháng cho Khối Văn Phòng (HR 12tr, Marketing 14tr, Kế toán 13.5tr, TP. Kinh doanh 15tr, Founder 0đ).
+  - **Chuẩn hóa 50+ Nhân Sự (6 Chi Nhánh):** Khởi tạo bộ 48 nhân sự giả lập + 4 nhân sự HQ phân bổ đều cho 6 chi nhánh với đầy đủ nhật ký chấm công mẫu.
+  - **Bộ Lọc Chi Nhánh, Tìm Kiếm & Sắp Xếp Cấp Bậc (Hierarchy Sorting):** Tích hợp bộ lọc 6 chi nhánh, thanh tìm kiếm tên/SĐT và tự động sắp xếp danh sách theo thứ bậc quản trị (Founder -> Admin -> TP Kinh Doanh -> Kế toán -> Marketing -> HR -> Quản lý -> Kỹ thuật -> Sales).
 
 ## 3. CƠ SỞ DỮ LIỆU (SUPABASE)
 Các bảng hiện có và đang được sử dụng chính:

@@ -1,4 +1,4 @@
-export type UserRole = 'founder' | 'admin' | 'manager' | 'technician' | 'sales' | 'customer';
+export type UserRole = 'founder' | 'admin' | 'manager' | 'technician' | 'sales' | 'customer' | 'hr' | 'marketing' | 'accountant' | 'sales_head';
 
 export interface Product {
   id: string;
@@ -41,9 +41,9 @@ export interface AttendanceRecord {
   checkOut?: string;
   shiftType?: ShiftType;
   workHours?: number;
-  lat: number;
-  lng: number;
-  distanceMeters: number;
+  lat?: number;
+  lng?: number;
+  distanceMeters?: number;
   isVerified: boolean;
   notes?: string;
 }
