@@ -219,9 +219,11 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           {/* Logo & App Title */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-pink-500 flex items-center justify-center font-extrabold text-white text-lg shadow-lg shadow-rose-500/20">
-              88
-            </div>
+            <img 
+              src="/logo-pk88.jpg" 
+              alt="Phụ Kiện 88 Logo" 
+              className="w-10 h-10 rounded-xl shadow-lg shadow-amber-500/20 object-cover border border-slate-800"
+            />
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base font-extrabold tracking-tight text-slate-100">PK88 AUTOMATION PORTAL</h1>
@@ -252,7 +254,7 @@ export function App() {
             {/* Branch Selector */}
             {!isCustomerMode && currentUser && (
               <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
-                <Building2 className="w-4 h-4 text-rose-500" />
+                <Building2 className="w-4 h-4 text-amber-500" />
                 <select
                   value={selectedBranch.id}
                   onChange={(e) => {
@@ -274,7 +276,7 @@ export function App() {
             {currentUser && !isCustomerMode ? (
               <div className="flex items-center gap-2">
                 <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-rose-500/20 text-rose-400 font-bold text-xs flex items-center justify-center border border-rose-500/30">
+                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30">
                     {currentUser.fullName.charAt(0)}
                   </div>
                   <div className="text-left hidden md:block">
@@ -285,7 +287,7 @@ export function App() {
 
                 <button
                   onClick={handleLogout}
-                  className="p-2 bg-slate-800 hover:bg-rose-900/40 hover:text-rose-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
+                  className="p-2 bg-slate-800 hover:bg-amber-900/40 hover:text-amber-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
                   title="Đăng xuất khỏi tài khoản"
                 >
                   <LogOut className="w-4 h-4" />
@@ -297,7 +299,7 @@ export function App() {
                   setIsCustomerMode(false);
                   setShowLoginModal(true);
                 }}
-                className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white font-bold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
               >
                 <ShieldCheck className="w-4 h-4" />
                 <span>Đăng Nhập Nhân Sự</span>
@@ -347,7 +349,7 @@ export function App() {
                 onClick={() => setActiveTab('dashboard')}
                 className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'dashboard'
-                    ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
                     : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
                 }`}
               >
@@ -360,7 +362,7 @@ export function App() {
               onClick={() => setActiveTab('attendance')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'attendance'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
             >
@@ -372,7 +374,7 @@ export function App() {
               onClick={() => setActiveTab('tickets')}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                 activeTab === 'tickets'
-                  ? 'bg-rose-500 text-white shadow-lg shadow-rose-500/20'
+                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
               }`}
             >

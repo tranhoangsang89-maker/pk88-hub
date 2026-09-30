@@ -44,21 +44,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
       <div className="glass-card bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 border border-slate-800 shadow-2xl relative overflow-hidden">
         {/* Top Glow Background */}
-        <div className="absolute -top-24 -left-24 w-48 h-48 bg-rose-500/20 rounded-full blur-3xl pointer-events-none"></div>
-        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-cyan-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -top-24 -left-24 w-48 h-48 bg-amber-500/20 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="absolute -bottom-24 -right-24 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
 
         {/* Logo & Header */}
         <div className="text-center pb-6 mb-6 border-b border-slate-800">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-rose-600 to-pink-500 text-white font-extrabold text-xl flex items-center justify-center mx-auto mb-3 shadow-lg shadow-rose-500/30">
-            88
-          </div>
+          <img 
+            src="/logo-pk88.jpg" 
+            alt="Phụ Kiện 88 Logo" 
+            className="w-16 h-16 rounded-2xl shadow-lg shadow-amber-500/30 object-cover mx-auto mb-3 border border-slate-800"
+          />
           <h2 className="text-xl font-extrabold text-slate-100 tracking-tight">ĐĂNG NHẬP PHÂN QUYỀN</h2>
           <p className="text-xs text-slate-400 mt-1">Hệ Thống Vận Hành Tự Động Hóa Chuỗi Phụ Kiện 88</p>
         </div>
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>{errorMsg}</span>
           </div>
@@ -76,7 +78,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
                 placeholder="Nhập SĐT nhân sự (VD: 0888003205)"
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-rose-500 transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-amber-500 transition-all"
               />
             </div>
           </div>
@@ -91,14 +93,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Nhập mật khẩu (Mặc định: 123456)"
-                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-rose-500 transition-all"
+                className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-amber-500 transition-all"
               />
             </div>
           </div>
 
           <button
             type="submit"
-            className="w-full py-3.5 px-4 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white font-extrabold rounded-xl shadow-lg shadow-rose-600/30 flex items-center justify-center gap-2 text-xs transition-all cursor-pointer active:scale-95"
+            className="w-full py-3.5 px-4 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-extrabold rounded-xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 text-xs transition-all cursor-pointer active:scale-95"
           >
             <ShieldCheck className="w-4 h-4" />
             <span>XÁC THỰC VÀO HỆ THỐNG</span>
@@ -121,7 +123,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
                 }}
                 className="p-2 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all group"
               >
-                <div className="text-[11px] font-bold text-slate-200 group-hover:text-rose-400 transition-colors">
+                <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
                   {ql.label}
                 </div>
                 <div className="text-[10px] text-slate-500 font-mono">{ql.phone}</div>

@@ -41,16 +41,47 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
   };
 
   useEffect(() => {
+    let isMounted = true;
     const fetchTrainingData = async () => {
+      if (!isMounted) return;
       setLoading(true);
+      
+      const applyMockData = () => {
+        if (!isMounted) return;
+        setCourses([{ id: 'c1', title: 'Khóa Đào Tạo 60 Ngày', totalDays: 60, createdAt: new Date().toISOString() }]);
+        setLessons([
+          { id: 'l1', courseId: 'c1', dayNumber: 1, title: 'Tổng quan công ty & Quy định', content: '# Mục tiêu Ngày 1\nHiểu rõ văn hóa và quy định làm việc tại Phụ Kiện 88.', createdAt: new Date().toISOString() },
+          { id: 'l2', courseId: 'c1', dayNumber: 2, title: 'Kiến thức: Kính cường lực & PPF', content: '# Mục tiêu Ngày 2\nNhận biết các dòng kính cường lực và cách dán.', createdAt: new Date().toISOString() },
+          { id: 'l3', courseId: 'c1', dayNumber: 3, title: 'Kiến thức: Cáp sạc & Pin dự phòng', content: '# Mục tiêu Ngày 3\nPhân biệt cáp sạc nhanh, pin dự phòng chính hãng.', createdAt: new Date().toISOString() },
+          { id: 'l4', courseId: 'c1', dayNumber: 4, title: 'Kỹ năng Bán hàng (Basic)', content: '# Mục tiêu Ngày 4\nCách tiếp đón và tư vấn khách hàng cơ bản.', createdAt: new Date().toISOString() }
+        ]);
+        setLoading(false);
+      };
+
+      // Fallback timeout to prevent infinite loading
+      const timeoutId = setTimeout(() => {
+        if (isMounted && loading) {
+          console.warn('LMS data fetch timeout. Applying mock data...');
+          applyMockData();
+        }
+      }, 3000);
+
       try {
         // Fetch courses and lessons
-        const { data: coursesData } = await supabase.from('courses').select('*');
-        const { data: lessonsData } = await supabase.from('lessons').select('*').order('day_number', { ascending: true });
-        const { data: progressData } = await supabase.from('staff_progress').select('*').eq('staff_id', currentUser.id);
+        const { data: coursesData, error: cErr } = await supabase.from('courses').select('*');
+        if (cErr) console.error(cErr);
         
-        if (coursesData) setCourses(coursesData);
-        if (lessonsData) {
+        const { data: lessonsData, error: lErr } = await supabase.from('lessons').select('*').order('day_number', { ascending: true });
+        if (lErr) console.error(lErr);
+        
+        const { data: progressData, error: pErr } = await supabase.from('staff_progress').select('*').eq('staff_id', currentUser.id);
+        if (pErr) console.error(pErr);
+        
+        if (!isMounted) return;
+        clearTimeout(timeoutId);
+
+        if (coursesData && coursesData.length > 0) setCourses(coursesData);
+        if (lessonsData && lessonsData.length > 0) {
           setLessons(lessonsData.map((l: any) => ({
             id: l.id,
             courseId: l.course_id,
@@ -59,6 +90,9 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
             content: l.content,
             createdAt: l.created_at
           })));
+        } else {
+          // If no lessons found in DB, fallback to mock data
+          applyMockData();
         }
         if (progressData) {
           setProgress(progressData.map((p: any) => ({
@@ -72,11 +106,18 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
         }
       } catch (e) {
         console.error('Lỗi tải dữ liệu LMS:', e);
+        applyMockData();
       } finally {
-        setLoading(false);
+        clearTimeout(timeoutId);
+        if (isMounted) setLoading(false);
       }
     };
+    
     fetchTrainingData();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [currentUser.id]);
 
   const loadLessonQuizzes = async (lessonId: string) => {
