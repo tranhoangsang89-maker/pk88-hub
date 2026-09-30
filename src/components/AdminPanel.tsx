@@ -14,7 +14,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
   const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>('payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
-  const [newStaffRole, setNewStaffRole] = useState<'sales' | 'technician' | 'manager'>('sales');
+  const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
+  const [newStaffRole, setNewStaffRole] = useState<Staff['role']>('sales');
   const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -50,7 +51,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
     const newS: Staff = {
       id: `s-${Date.now()}`,
-      branchId: branches[0]?.id || 'b1',
+      branchId: newStaffBranch,
       fullName: newStaffName,
       phone: newStaffPhone,
       role: newStaffRole,
@@ -65,7 +66,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
         {
           full_name: newStaffName,
           phone: newStaffPhone,
-          role: newStaffRole
+          branch_id: newStaffBranch,
+          role: newStaffRole,
+          is_active: true
         }
       ]);
       alert(`✅ Đã thêm nhân sự mới: ${newStaffName} (${newStaffPhone}) thành công!`);
@@ -73,6 +76,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
       setNewStaffPhone('');
     } catch (err) {
       console.error('Error adding staff to Supabase:', err);
+    }
+  };
+
+  const handleToggleStaffStatus = (staffId: string) => {
+    setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, isActive: !s.isActive } : s));
+  };
+
+  const handleDeleteStaff = (staffId: string, name: string) => {
+    if (confirm(`Bạn có chắc chắn muốn xóa nhân sự ${name} khỏi hệ thống?`)) {
+      setLocalStaff(prev => prev.filter(s => s.id !== staffId));
     }
   };
 
@@ -484,47 +497,65 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
       {activeSubTab === 'staff' && (
         <div className="space-y-6">
           {/* Form Create New Staff */}
-          <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-slate-900/90">
-            <h3 className="text-sm font-bold text-slate-100 mb-3 flex items-center gap-2">
+          <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-slate-900/90 space-y-4">
+            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <Plus className="w-4 h-4 text-cyan-400" />
               <span>Thêm Nhân Viên Mới Vào Hệ Thống (Thao tác 10 giây)</span>
             </h3>
 
-            <form onSubmit={handleAddStaff} className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
+            <form onSubmit={handleAddStaff} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
               <div>
-                <label className="text-slate-400 block mb-1">Họ & Tên nhân viên:</label>
+                <label className="text-slate-400 block mb-1 font-semibold">Họ & Tên nhân viên:</label>
                 <input
                   type="text"
                   required
                   placeholder="VD: Nguyễn Văn A"
                   value={newStaffName}
                   onChange={(e) => setNewStaffName(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Số điện thoại đăng nhập:</label>
+                <label className="text-slate-400 block mb-1 font-semibold">Số điện thoại đăng nhập:</label>
                 <input
                   type="text"
                   required
                   placeholder="VD: 0988112233"
                   value={newStaffPhone}
                   onChange={(e) => setNewStaffPhone(e.target.value)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-mono"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-mono focus:outline-none focus:border-cyan-500"
                 />
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Vai trò nghiệp vụ:</label>
+                <label className="text-slate-400 block mb-1 font-semibold">Chi Nhánh Công Tác:</label>
+                <select
+                  value={newStaffBranch}
+                  onChange={(e) => setNewStaffBranch(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
+                >
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>📍 {b.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1 font-semibold">Vai Trò Nghiệp Vụ:</label>
                 <select
                   value={newStaffRole}
                   onChange={(e) => setNewStaffRole(e.target.value as any)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                 >
-                  <option value="sales">Bán Hàng Tại Quầy</option>
-                  <option value="technician">Kỹ Thuật Viên Sửa Chữa</option>
-                  <option value="manager">Quản Lý Chi Nhánh</option>
+                  <option value="sales">🛒 Bán Hàng Tại Quầy</option>
+                  <option value="technician">🛠️ Kỹ Thuật Viên Sửa Chữa</option>
+                  <option value="manager">🏢 Quản Lý Chi Nhánh</option>
+                  <option value="sales_head">💼 Trưởng Phòng Kinh Doanh</option>
+                  <option value="accountant">📊 Kế Toán Trưởng</option>
+                  <option value="marketing">📢 Chuyên Viên Marketing</option>
+                  <option value="hr">👥 Chuyên Viên HC-NS</option>
+                  <option value="admin">💻 Admin Hệ Thống</option>
                 </select>
               </div>
 
@@ -540,23 +571,106 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
           </div>
 
           {/* Current Staff List */}
-          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-3">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Danh Sách Nhân Sự Đang Hoạt Động Toàn Chuỗi</h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-              {[...localStaff].sort((a, b) => {
-                const map: Record<string, number> = { founder: 1, admin: 2, sales_head: 3, accountant: 4, marketing: 5, hr: 6, manager: 7, technician: 8, sales: 9 };
-                return (map[a.role] || 99) - (map[b.role] || 99);
-              }).map((s) => (
-                <div key={s.id} className="p-3 bg-slate-950 rounded-xl border border-slate-800 flex items-center justify-between">
-                  <div>
-                    <div className="font-bold text-slate-200">{s.fullName}</div>
-                    <div className="text-[11px] text-slate-400 font-mono">{s.phone}</div>
-                  </div>
-                  <span className="text-[10px] bg-slate-800 text-cyan-400 border border-slate-700 px-2 py-0.5 rounded font-mono uppercase font-bold">
-                    {s.role}
-                  </span>
+          <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                Danh Sách Nhân Sự Đang Hoạt Động ({localStaff.length} Người)
+              </h3>
+
+              {/* Controls */}
+              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto text-xs">
+                <select
+                  value={selectedBranch}
+                  onChange={(e) => setSelectedBranch(e.target.value)}
+                  className="w-full sm:w-56 p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
+                >
+                  <option value="ALL">🏢 Tất cả 6 Chi nhánh</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>📍 {b.name}</option>
+                  ))}
+                </select>
+
+                <div className="relative w-full sm:w-56">
+                  <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
+                  <input
+                    type="text"
+                    placeholder="Tìm tên hoặc SĐT..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                  />
                 </div>
-              ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+              {[...localStaff]
+                .filter(s => {
+                  const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+                  const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
+                  return matchBranch && matchSearch;
+                })
+                .sort((a, b) => {
+                  const map: Record<string, number> = { founder: 1, admin: 2, sales_head: 3, accountant: 4, marketing: 5, hr: 6, manager: 7, technician: 8, sales: 9 };
+                  return (map[a.role] || 99) - (map[b.role] || 99);
+                })
+                .map((s) => {
+                  const branch = branches.find(b => b.id === s.branchId);
+
+                  return (
+                    <div key={s.id} className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
+                      s.isActive ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-950/40 border-rose-900/30 opacity-60'
+                    }`}>
+                      <div className="flex items-start justify-between gap-2 mb-2">
+                        <div>
+                          <div className="font-bold text-slate-200 flex items-center gap-1.5">
+                            <span>{s.fullName}</span>
+                            {!s.isActive && (
+                              <span className="text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.2 rounded font-bold">
+                                Đã nghỉ
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 font-mono mt-0.5">{s.phone}</div>
+                          <div className="text-[10px] text-cyan-400 mt-1 font-medium">
+                            📍 {branch ? branch.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+                          </div>
+                        </div>
+
+                        <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border shrink-0 ${
+                          s.role === 'sales_head' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' :
+                          s.role === 'manager' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
+                          s.role === 'technician' ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' :
+                          s.role === 'hr' ? 'bg-pink-500/10 text-pink-400 border-pink-500/30' :
+                          s.role === 'marketing' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' :
+                          s.role === 'accountant' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                          s.role === 'admin' || s.role === 'founder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
+                          'bg-slate-800 text-slate-300 border-slate-700'
+                        }`}>
+                          {s.role === 'sales_head' ? 'TP. KINH DOANH' : s.role}
+                        </span>
+                      </div>
+
+                      {/* Management Actions */}
+                      <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[10px]">
+                        <button
+                          onClick={() => handleToggleStaffStatus(s.id)}
+                          className={`font-semibold hover:underline cursor-pointer ${
+                            s.isActive ? 'text-emerald-400' : 'text-amber-400'
+                          }`}
+                        >
+                          {s.isActive ? '🟢 Đang làm việc' : '🔴 Đã nghỉ việc'}
+                        </button>
+                        <button
+                          onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                          className="text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
+                        >
+                          Xóa
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
             </div>
           </div>
         </div>
