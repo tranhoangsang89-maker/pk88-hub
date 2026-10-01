@@ -215,7 +215,10 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
 
       const allLessonsText = lessons.map(l => `Bài Ngày ${l.dayNumber} - ${l.title}:\n${l.content}`).join('\n\n');
 
-      const prompt = `Bạn là Trợ lý Ảo đào tạo nội bộ của hệ thống Phụ Kiện 88. Dưới đây là Bộ Não Nội Bộ (Knowledge Base) chứa quy định và chính sách công ty:
+      const currentDate = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      const prompt = `[THÔNG TIN HỆ THỐNG]: Hôm nay là ${currentDate}. Hãy ghi nhớ mốc thời gian này khi giao tiếp.
+
+Bạn là Trợ lý Ảo đào tạo nội bộ của hệ thống Phụ Kiện 88. Dưới đây là Bộ Não Nội Bộ (Knowledge Base) chứa quy định và chính sách công ty:
       
 ${PK88_KNOWLEDGE_BASE}
 

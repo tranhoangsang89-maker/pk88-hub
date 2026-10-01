@@ -65,11 +65,14 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
     setLoading(true);
     setResult('');
     
-    const allKeys = (import.meta.env.VITE_GEMINI_API_KEY || '').split(',').map(k => k.trim());
+    const allKeys = (import.meta.env.VITE_GEMINI_API_KEY || '').split(',').map((k: string) => k.trim());
     const apiKey = allKeys[Math.floor(Math.random() * allKeys.length)] || 'AIzaSy_MOCK_KEY_FOR_BUILD';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
 
-    const systemInstruction = `Bạn là một chuyên gia sáng tạo nội dung Marketing xuất sắc cho chuỗi bán lẻ sửa chữa điện thoại "Phụ Kiện 88". 
+    const currentDate = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const systemInstruction = `[THÔNG TIN HỆ THỐNG]: Hôm nay là ${currentDate}. Hãy ghi nhớ mốc thời gian này để viết content bắt trend, phù hợp với thời điểm hiện tại.
+
+Bạn là một chuyên gia sáng tạo nội dung Marketing xuất sắc cho chuỗi bán lẻ sửa chữa điện thoại "Phụ Kiện 88". 
 Hãy viết nội dung dựa trên yêu cầu sau:
 Sản phẩm/Dịch vụ: ${product}
 Phong cách: ${style}
