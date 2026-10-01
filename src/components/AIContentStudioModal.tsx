@@ -65,7 +65,8 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
     setLoading(true);
     setResult('');
     
-    const apiKey = import.meta.env.VITE_GEMINI_API_KEY || 'AIzaSy_MOCK_KEY_FOR_BUILD'; // Replace with real key in .env
+    const allKeys = (import.meta.env.VITE_GEMINI_API_KEY || '').split(',').map(k => k.trim());
+    const apiKey = allKeys[Math.floor(Math.random() * allKeys.length)] || 'AIzaSy_MOCK_KEY_FOR_BUILD';
     const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
 
     const systemInstruction = `Bạn là một chuyên gia sáng tạo nội dung Marketing xuất sắc cho chuỗi bán lẻ sửa chữa điện thoại "Phụ Kiện 88". 
