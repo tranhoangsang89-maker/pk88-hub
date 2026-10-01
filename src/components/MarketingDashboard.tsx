@@ -1,17 +1,20 @@
 import React, { useState } from 'react';
-import { Branch, MarketingPost } from '../types';
-import { TrendingUp, Award, AlertTriangle, ExternalLink, Facebook, Youtube, MessageCircle, Link as LinkIcon, Sparkles, Megaphone } from 'lucide-react';
+import { Branch, MarketingPost, Staff } from '../types';
+import { TrendingUp, Award, AlertTriangle, ExternalLink, Facebook, Youtube, MessageCircle, Link as LinkIcon, Sparkles, Megaphone, Target } from 'lucide-react';
 import { AIContentStudioModal } from './AIContentStudioModal';
 
 interface MarketingDashboardProps {
   branches: Branch[];
   posts: MarketingPost[];
   currentBranch: Branch;
+  currentUser: Staff;
   onOpenSubmitModal: () => void;
 }
 
-export function MarketingDashboard({ branches, posts, currentBranch, onOpenSubmitModal }: MarketingDashboardProps) {
+export function MarketingDashboard({ branches, posts, currentBranch, currentUser, onOpenSubmitModal }: MarketingDashboardProps) {
   const [showAIModal, setShowAIModal] = useState(false);
+  
+  const isAdminRole = ['founder', 'admin', 'manager', 'marketing', 'sales_head'].includes(currentUser.role);
   
   // Today's date filter
   const today = new Date().toISOString().split('T')[0];
@@ -82,53 +85,68 @@ export function MarketingDashboard({ branches, posts, currentBranch, onOpenSubmi
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-xl flex items-center justify-center border border-amber-500/30">
-            <TrendingUp className="w-6 h-6" />
+      {isAdminRole ? (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-amber-500/20 text-amber-500 rounded-xl flex items-center justify-center border border-amber-500/30">
+              <TrendingUp className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-sm text-slate-400">Tổng Bài Hôm Nay</div>
+              <div className="text-2xl font-bold text-slate-100">{totalPostsToday}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Tổng Bài Hôm Nay</div>
-            <div className="text-2xl font-bold text-slate-100">{totalPostsToday}</div>
-          </div>
-        </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-emerald-500/20 text-emerald-500 rounded-xl flex items-center justify-center border border-emerald-500/30">
-            {getPlatformIcon(topPlatform, "w-6 h-6")}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-emerald-500/20 text-emerald-500 rounded-xl flex items-center justify-center border border-emerald-500/30">
+              {getPlatformIcon(topPlatform, "w-6 h-6")}
+            </div>
+            <div>
+              <div className="text-sm text-slate-400">Kênh Dẫn Đầu</div>
+              <div className="text-lg font-bold text-slate-100 capitalize">{platformNames[topPlatform] || 'N/A'}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Kênh Dẫn Đầu</div>
-            <div className="text-lg font-bold text-slate-100 capitalize">{platformNames[topPlatform] || 'N/A'}</div>
-          </div>
-        </div>
 
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-sky-500/20 text-sky-500 rounded-xl flex items-center justify-center border border-sky-500/30">
-            <Award className="w-6 h-6" />
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-sky-500/20 text-sky-500 rounded-xl flex items-center justify-center border border-sky-500/30">
+              <Award className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-sm text-slate-400">Shop Dẫn Đầu</div>
+              <div className="text-sm font-bold text-slate-100 line-clamp-1">{topBranchName}</div>
+            </div>
           </div>
-          <div>
-            <div className="text-sm text-slate-400">Shop Dẫn Đầu</div>
-            <div className="text-sm font-bold text-slate-100 line-clamp-1">{topBranchName}</div>
-          </div>
-        </div>
 
-        <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-rose-500/20 text-rose-500 rounded-xl flex items-center justify-center border border-rose-500/30">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div>
-            <div className="text-sm text-slate-400">Shop Chưa Đạt KPI</div>
-            <div className="text-2xl font-bold text-rose-500">{missedBranches.length}</div>
+          <div className="bg-slate-900 border border-rose-500/30 rounded-2xl p-5 flex items-center gap-4">
+            <div className="w-12 h-12 bg-rose-500/20 text-rose-500 rounded-xl flex items-center justify-center border border-rose-500/30">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <div>
+              <div className="text-sm text-slate-400">Shop Chưa Đạt KPI</div>
+              <div className="text-2xl font-bold text-rose-500">{missedBranches.length}</div>
+            </div>
           </div>
         </div>
-      </div>
+      ) : (
+        <div className="bg-gradient-to-r from-blue-900/40 to-indigo-900/40 border border-blue-800/50 rounded-2xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center border border-blue-500/30 flex-shrink-0">
+            <Target className="w-6 h-6" />
+          </div>
+          <div>
+            <div className="text-sm text-blue-300">Tiến Độ Hôm Nay Của Bạn</div>
+            <div className="text-lg font-bold text-slate-100">
+              {currentBranch.name} đã đăng <span className="text-emerald-400 font-extrabold">{branchCounts[currentBranch.id] || 0}/2</span> bài
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Matrix Table */}
-        <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
-          <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
-            <h3 className="font-bold text-slate-100">Bảng Ma Trận Đăng Bài Hôm Nay (KPI: 2 Bài/Shop)</h3>
+        {isAdminRole && (
+          <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
+            <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
+              <h3 className="font-bold text-slate-100">Bảng Ma Trận Đăng Bài Hôm Nay (KPI: 2 Bài/Shop)</h3>
           </div>
           <div className="overflow-x-auto flex-1">
             <table className="w-full text-sm text-left">
@@ -192,9 +210,10 @@ export function MarketingDashboard({ branches, posts, currentBranch, onOpenSubmi
             </table>
           </div>
         </div>
+        )}
 
         {/* Live Feed */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[500px]">
+        <div className={`${isAdminRole ? 'lg:col-span-1' : 'lg:col-span-3 max-w-2xl mx-auto w-full'} bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[500px]`}>
           <div className="p-4 border-b border-slate-800 bg-slate-800/50">
             <h3 className="font-bold text-slate-100 flex items-center gap-2">
               <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>

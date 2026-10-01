@@ -24,6 +24,8 @@ export function App() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
+  const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
+  const activeBranches = branches.filter(b => b.isActive);
   
   // Marketing Posts State (Fallback to Mock Data)
   const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
@@ -132,7 +134,7 @@ export function App() {
     setShowLoginModal(false);
     
     // Auto-select staff's branch
-    const staffBranch = INITIAL_BRANCHES.find(b => b.id === staff.branchId);
+    const staffBranch = branches.find(b => b.id === staff.branchId);
     if (staffBranch) {
       setSelectedBranch(staffBranch);
     }
@@ -354,12 +356,12 @@ export function App() {
                 <select
                   value={selectedBranch.id}
                   onChange={(e) => {
-                    const b = INITIAL_BRANCHES.find((x) => x.id === e.target.value);
+                    const b = activeBranches.find((x) => x.id === e.target.value);
                     if (b) setSelectedBranch(b);
                   }}
                   className="bg-transparent text-xs font-bold text-slate-200 pr-2 py-0.5 focus:outline-none cursor-pointer"
                 >
-                  {INITIAL_BRANCHES.map((b) => (
+                  {activeBranches.map((b) => (
                     <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
                       {b.name}
                     </option>
@@ -510,11 +512,17 @@ export function App() {
         ) : (
           <>
             {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder') && (
-              <AdminPanel branches={INITIAL_BRANCHES} staffList={MOCK_STAFF} attendanceLogs={attendanceHistory} />
+              <AdminPanel 
+                branches={branches} 
+                staffList={MOCK_STAFF} 
+                attendanceLogs={attendanceHistory}
+                onAddBranch={(newBranch) => setBranches([...branches, newBranch])}
+                onToggleBranchStatus={(branchId) => setBranches(prev => prev.map(b => b.id === branchId ? { ...b, isActive: !b.isActive } : b))}
+              />
             )}
 
             {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
-              <ExecutiveDashboard branches={INITIAL_BRANCHES} attendanceLogs={attendanceHistory} marketingPosts={marketingPosts} />
+              <ExecutiveDashboard branches={branches} attendanceLogs={attendanceHistory} marketingPosts={marketingPosts} />
             )}
 
             {activeTab === 'attendance' && currentUser && (
@@ -544,9 +552,10 @@ export function App() {
 
             {activeTab === 'marketing' && currentUser && (
               <MarketingDashboard 
-                branches={INITIAL_BRANCHES} 
+                branches={activeBranches} 
                 posts={marketingPosts} 
                 currentBranch={selectedBranch}
+                currentUser={currentUser}
                 onOpenSubmitModal={() => setShowMarketingModal(true)}
               />
             )}

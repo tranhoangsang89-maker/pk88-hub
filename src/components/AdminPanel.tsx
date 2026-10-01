@@ -8,9 +8,11 @@ interface AdminPanelProps {
   branches: Branch[];
   staffList: Staff[];
   attendanceLogs?: AttendanceRecord[];
+  onAddBranch?: (branch: Branch) => void;
+  onToggleBranchStatus?: (branchId: string) => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, attendanceLogs = [] }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, attendanceLogs = [], onAddBranch, onToggleBranchStatus }) => {
   const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>('payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
@@ -19,6 +21,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
   const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  
+  // Store-in-a-box states
+  const [showAddBranchModal, setShowAddBranchModal] = useState(false);
+  const [newBranchName, setNewBranchName] = useState('');
+  const [newBranchCode, setNewBranchCode] = useState('');
+  const [newBranchAddress, setNewBranchAddress] = useState('');
+  const [newBranchLat, setNewBranchLat] = useState('');
+  const [newBranchLng, setNewBranchLng] = useState('');
 
   const [lmsProgress, setLmsProgress] = useState<StaffProgress[]>([]);
   const [lmsLessons, setLmsLessons] = useState<Lesson[]>([]);
@@ -87,6 +97,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
     if (confirm(`Bạn có chắc chắn muốn xóa nhân sự ${name} khỏi hệ thống?`)) {
       setLocalStaff(prev => prev.filter(s => s.id !== staffId));
     }
+  };
+
+  const handleAddBranchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newBranchName || !newBranchCode || !newBranchAddress || !newBranchLat || !newBranchLng) return;
+    
+    if (onAddBranch) {
+      onAddBranch({
+        id: `new_${Date.now()}`,
+        code: newBranchCode,
+        name: newBranchName,
+        address: newBranchAddress,
+        lat: parseFloat(newBranchLat),
+        lng: parseFloat(newBranchLng),
+        isActive: true
+      });
+    }
+    
+    // Reset form
+    setNewBranchName('');
+    setNewBranchCode('');
+    setNewBranchAddress('');
+    setNewBranchLat('');
+    setNewBranchLng('');
+    setShowAddBranchModal(false);
   };
 
   const webhookLogs = [
@@ -679,7 +714,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">Danh sách Chi nhánh & Tọa độ Geofencing</h3>
-            <button className="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-cyan-500/30">
+            <button 
+              onClick={() => setShowAddBranchModal(true)}
+              className="px-3 py-1.5 bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-xl text-xs font-bold flex items-center gap-1.5 hover:bg-cyan-500/30"
+            >
               <Plus className="w-3.5 h-3.5" />
               <span>Thêm Chi Nhánh Mới (Store-in-a-Box)</span>
             </button>
@@ -687,12 +725,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {branches.map((b) => (
-              <div key={b.id} className="glass-card rounded-2xl p-4 border border-slate-800 space-y-2">
+              <div key={b.id} className={`glass-card rounded-2xl p-4 border space-y-2 ${!b.isActive ? 'border-rose-900/50 opacity-70 grayscale' : 'border-slate-800'}`}>
                 <div className="flex items-center justify-between">
-                  <span className="font-mono text-xs font-bold text-cyan-400">{b.code}</span>
-                  <span className="text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full font-bold">
-                    ONLINE
-                  </span>
+                  <span className={`font-mono text-xs font-bold ${!b.isActive ? 'text-slate-500' : 'text-cyan-400'}`}>{b.code}</span>
+                  <button 
+                    onClick={() => onToggleBranchStatus && onToggleBranchStatus(b.id)}
+                    className={`text-[10px] px-2 py-0.5 rounded-full font-bold cursor-pointer hover:opacity-80 transition-opacity ${
+                      b.isActive 
+                        ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' 
+                        : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                    }`}
+                  >
+                    {b.isActive ? '🟢 ONLINE' : '🔴 CLOSED'}
+                  </button>
                 </div>
                 <h4 className="text-sm font-bold text-slate-100">{b.name}</h4>
                 <p className="text-xs text-slate-400">{b.address}</p>
@@ -843,6 +888,108 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                 );
               })}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Branch Modal */}
+      {showAddBranchModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 p-6 rounded-2xl w-full max-w-lg shadow-2xl animate-in zoom-in-95 duration-200">
+            <h2 className="text-xl font-bold text-slate-100 mb-2 flex items-center gap-2">
+              <Plus className="text-cyan-500" />
+              Thêm Chi Nhánh Mới (Store-in-a-Box)
+            </h2>
+            <p className="text-sm text-slate-400 mb-6">Tự động thiết lập cấu hình: Database, Geofencing, Marketing Dashboard, QR Codes.</p>
+            
+            <form onSubmit={handleAddBranchSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Tên Chi Nhánh Mới</label>
+                <input 
+                  type="text" 
+                  value={newBranchName}
+                  onChange={(e) => {
+                    setNewBranchName(e.target.value);
+                    if (!newBranchCode) {
+                      // auto generate code
+                      const code = e.target.value.replace('Phụ Kiện 88 - ', '').toUpperCase().replace(/[^A-Z0-9]/g, '_');
+                      setNewBranchCode('PK88_' + code);
+                    }
+                  }}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" 
+                  placeholder="VD: Phụ Kiện 88 - Sài Gòn" 
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Mã Chi Nhánh (Unique ID)</label>
+                <input 
+                  type="text" 
+                  value={newBranchCode}
+                  onChange={(e) => setNewBranchCode(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" 
+                  placeholder="VD: PK88_SAIGON" 
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-400 mb-1">Địa chỉ</label>
+                <input 
+                  type="text" 
+                  value={newBranchAddress}
+                  onChange={(e) => setNewBranchAddress(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" 
+                  placeholder="VD: 123 Nguyễn Trãi, Quận 1, TP HCM" 
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Vĩ độ GPS (Lat)</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={newBranchLat}
+                    onChange={(e) => setNewBranchLat(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" 
+                    placeholder="VD: 10.762622" 
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-400 mb-1">Kinh độ GPS (Lng)</label>
+                  <input 
+                    type="number" 
+                    step="any"
+                    value={newBranchLng}
+                    onChange={(e) => setNewBranchLng(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl p-3 text-sm text-slate-200 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500" 
+                    placeholder="VD: 106.660172" 
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-4">
+                <button 
+                  type="button"
+                  onClick={() => setShowAddBranchModal(false)}
+                  className="flex-1 py-3 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition-colors"
+                >
+                  Hủy
+                </button>
+                <button 
+                  type="submit"
+                  className="flex-1 py-3 bg-cyan-600 hover:bg-cyan-500 text-white font-bold rounded-xl transition-colors flex items-center justify-center gap-2"
+                >
+                  <Activity className="w-4 h-4" />
+                  Kích Hoạt & Setup Tự Động
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}
