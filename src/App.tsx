@@ -115,7 +115,68 @@ export function App() {
     }
   };
 
+  const fetchBranches = async () => {
+    try {
+      const { data, error } = await supabase.from('branches').select('*').order('code', { ascending: true });
+      if (error) {
+        console.error('Error fetching branches:', error);
+      } else if (data && data.length > 0) {
+        const formatted: Branch[] = data.map((d: any) => ({
+          id: d.id,
+          code: d.code,
+          name: d.name,
+          address: d.address,
+          lat: d.lat,
+          lng: d.lng,
+          isActive: d.is_active !== undefined ? d.is_active : true
+        }));
+        setBranches(formatted);
+        setSelectedBranch(formatted[0]); // Update default branch
+      }
+    } catch (err) {
+      console.error('Fetch branches exception:', err);
+    }
+  };
+
+  const handleAddBranch = async (newBranch: Branch) => {
+    // Optimistic update
+    setBranches([...branches, newBranch]);
+    
+    // Supabase
+    const { error } = await supabase.from('branches').insert([{
+      code: newBranch.code,
+      name: newBranch.name,
+      address: newBranch.address,
+      lat: newBranch.lat,
+      lng: newBranch.lng,
+      is_active: newBranch.isActive
+    }]);
+    
+    if (error) {
+      console.error("Error inserting branch:", error);
+      // Revert if needed, but keeping it simple for now
+    }
+  };
+
+  const handleToggleBranchStatus = async (branchId: string) => {
+    const branchToToggle = branches.find(b => b.id === branchId);
+    if (!branchToToggle) return;
+    
+    // Optimistic update
+    setBranches(prev => prev.map(b => b.id === branchId ? { ...b, isActive: !b.isActive } : b));
+    
+    // Supabase
+    const { error } = await supabase.from('branches')
+      .update({ is_active: !branchToToggle.isActive })
+      .eq('id', branchId);
+      
+    if (error) {
+      console.error("Error updating branch:", error);
+    }
+  };
+
   useEffect(() => {
+    fetchBranches();
     fetchRealAttendance();
     fetchTickets();
     fetchMarketingPosts();
@@ -516,8 +577,8 @@ export function App() {
                 branches={branches} 
                 staffList={MOCK_STAFF} 
                 attendanceLogs={attendanceHistory}
-                onAddBranch={(newBranch) => setBranches([...branches, newBranch])}
-                onToggleBranchStatus={(branchId) => setBranches(prev => prev.map(b => b.id === branchId ? { ...b, isActive: !b.isActive } : b))}
+                onAddBranch={handleAddBranch}
+                onToggleBranchStatus={handleToggleBranchStatus}
               />
             )}
 
