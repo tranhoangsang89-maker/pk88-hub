@@ -3,8 +3,11 @@ import { Staff, Course, Lesson, Quiz, StaffProgress } from '../types';
 import { supabase } from '../lib/supabase';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { BookOpen, CheckCircle2, ChevronRight, PlayCircle, Trophy, GraduationCap, Shield, Layers, Camera, Smartphone, BatteryCharging, Headphones, PenTool, Car, Monitor, Watch, Zap, HardDrive, Book, Lock, TrendingUp, ArrowLeft } from 'lucide-react';
+import { BookOpen, CheckCircle2, ChevronRight, PlayCircle, Trophy, GraduationCap, Shield, Layers, Camera, Smartphone, BatteryCharging, Headphones, PenTool, Car, Monitor, Watch, Zap, HardDrive, Book, Lock, TrendingUp, ArrowLeft, Bot, Sparkles, Send } from 'lucide-react';
 import { LMSDashboard } from './LMSDashboard';
+import { PK88_KNOWLEDGE_BASE } from '../lib/knowledgeBase';
+import productsData from '../lib/products.json';
+import loTrinhData from '../lib/loTrinhDaoTao.md?raw';
 
 interface TrainingLMSProps {
   currentUser: Staff;
@@ -20,6 +23,12 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
   const [quizAnswers, setQuizAnswers] = useState<Record<string, number>>({});
   const [quizResult, setQuizResult] = useState<{score: number, total: number} | null>(null);
   const [showDashboard, setShowDashboard] = useState(false);
+  
+  // AI Chat States
+  const [showAIChat, setShowAIChat] = useState(false);
+  const [chatMessages, setChatMessages] = useState<{role: 'user' | 'ai', text: string}[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   const isSuperUser = currentUser.role === 'admin' || currentUser.role === 'founder';
 
@@ -182,6 +191,76 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
     }
   };
 
+  const handleSendAIChat = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isChatLoading) return;
+    
+    const userMessage = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', text: userMessage }]);
+    setChatInput('');
+    setIsChatLoading(true);
+
+    try {
+      // Hỗ trợ xoay vòng API Key (nếu VITE_GEMINI_API_KEY là danh sách phân tách bằng dấu phẩy)
+      const apiKeysString = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKeysString) {
+        setChatMessages(prev => [...prev, { role: 'ai', text: 'Thiếu cấu hình VITE_GEMINI_API_KEY. Vui lòng liên hệ Admin.' }]);
+        setIsChatLoading(false);
+        return;
+      }
+      
+      const apiKeys = apiKeysString.split(',').map((k: string) => k.trim()).filter(Boolean);
+      // Chọn ngẫu nhiên 1 key trong danh sách để chia đều tải (Load Balancing)
+      const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
+
+      const allLessonsText = lessons.map(l => `Bài Ngày ${l.dayNumber} - ${l.title}:\n${l.content}`).join('\n\n');
+
+      const prompt = `Bạn là Trợ lý Ảo đào tạo nội bộ của hệ thống Phụ Kiện 88. Dưới đây là Bộ Não Nội Bộ (Knowledge Base) chứa quy định và chính sách công ty:
+      
+${PK88_KNOWLEDGE_BASE}
+
+THÔNG TIN VỀ NGƯỜI ĐANG CHAT VỚI BẠN:
+- Tên: ${currentUser.name}
+- Chức vụ: ${currentUser.role}
+- Chi nhánh: ${currentUser.branch_id || 'Chưa rõ'}
+Hãy luôn xưng hô lịch sự, gọi đúng tên của họ (nếu có thể) để tạo sự gần gũi.
+
+DƯỚI ĐÂY LÀ CHI TIẾT NỘI DUNG TẤT CẢ CÁC BÀI HỌC (TỪ NGÀY 1 ĐẾN NGÀY CUỐI):
+${allLessonsText}
+
+DƯỚI ĐÂY LÀ CHI TIẾT BÀI HỌC VÀ LỘ TRÌNH ĐÀO TẠO NHÂN VIÊN MỚI (TÀI LIỆU KỸ THUẬT):
+${loTrinhData}
+
+DƯỚI ĐÂY LÀ DANH SÁCH BẢNG GIÁ VÀ SẢN PHẨM HIỆN CÓ TẠI PHỤ KIỆN 88 (ĐỊNH DẠNG JSON):
+${JSON.stringify(productsData)}
+
+Dựa vào thông tin trên, hãy trả lời câu hỏi của nhân viên một cách ngắn gọn, súc tích và thân thiện. Nếu khách hỏi giá, hãy tìm kỹ trong danh sách sản phẩm. NẾU CÂU HỎI KHÔNG LIÊN QUAN ĐẾN PHỤ KIỆN 88 HOẶC NẰM NGOÀI TÀI LIỆU, hãy từ chối trả lời một cách lịch sự.
+
+Câu hỏi của nhân viên: ${userMessage}`;
+
+      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.3 } // Low temp for more factual answers
+        })
+      });
+
+      const data = await response.json();
+      if (data.candidates && data.candidates[0].content.parts[0].text) {
+        setChatMessages(prev => [...prev, { role: 'ai', text: data.candidates[0].content.parts[0].text }]);
+      } else {
+        setChatMessages(prev => [...prev, { role: 'ai', text: 'Hệ thống AI đang bảo trì hoặc phản hồi bị lỗi.' }]);
+      }
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: 'ai', text: 'Đã xảy ra lỗi kết nối với máy chủ AI.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   if (loading) return <div className="text-center py-10 text-emerald-500 animate-pulse">Đang tải phân khu Đào tạo...</div>;
 
   if (showDashboard) {
@@ -229,12 +308,24 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
               <span>Tiến độ hoàn thành</span>
               <span className="text-emerald-400">{Math.round((progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100)}%</span>
             </div>
-            <div className="w-full bg-slate-800 rounded-full h-1.5">
+            <div className="w-full bg-slate-800 rounded-full h-1.5 mb-4">
               <div 
                 className="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000" 
                 style={{ width: `${(progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100}%` }}
               ></div>
             </div>
+            
+            <button
+              onClick={() => setShowAIChat(true)}
+              className={`w-full flex items-center justify-center gap-2 p-2.5 rounded-xl text-xs font-bold transition-all ${
+                showAIChat 
+                  ? 'bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 shadow-lg' 
+                  : 'bg-slate-800 border border-slate-700 text-slate-300 hover:bg-slate-700 hover:text-white'
+              }`}
+            >
+              <Bot className="w-4 h-4" /> Hỏi Trợ Lý Đào Tạo AI
+              {showAIChat && <Sparkles className="w-3.5 h-3.5 animate-pulse" />}
+            </button>
           </div>
         </div>
 
@@ -274,6 +365,7 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
                     return;
                   }
                   handleLessonSelect(lesson);
+                  setShowAIChat(false);
                 }}
                 className={`p-3 rounded-2xl border transition-all flex items-center justify-between group ${
                   isLocked 
@@ -311,9 +403,87 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
         </div>
       </div>
 
-      {/* Cột phải: Nội dung bài học */}
-      <div className={`w-full md:w-2/3 bg-slate-900 border border-slate-800 rounded-2xl flex-col shadow-xl overflow-hidden relative ${!selectedLesson ? 'hidden md:flex' : 'flex'}`}>
-        {selectedLesson ? (
+      {/* Cột phải: Nội dung bài học hoặc Chat AI */}
+      <div className={`w-full md:w-2/3 bg-slate-900 border border-slate-800 rounded-2xl flex-col shadow-xl overflow-hidden relative ${(!selectedLesson && !showAIChat) ? 'hidden md:flex' : 'flex'}`}>
+        {showAIChat ? (
+          <div className="flex flex-col h-full">
+            <div className="p-4 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500/20 to-rose-500/20 border border-amber-500/30 flex items-center justify-center text-amber-500 shadow-lg shadow-amber-500/10">
+                  <Bot className="w-5 h-5" />
+                </div>
+                <div>
+                  <h2 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">Trợ Lý AI Nội Bộ <Sparkles className="w-3.5 h-3.5 text-amber-400" /></h2>
+                  <p className="text-[10px] text-slate-400">Hỏi đáp trực tiếp với trí tuệ nhân tạo PK88</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowAIChat(false)}
+                className="md:hidden p-2 rounded-xl bg-slate-800 text-slate-400 hover:text-white"
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar bg-slate-950/50">
+              {chatMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center px-4">
+                  <Bot className="w-12 h-12 text-slate-700 mb-3" />
+                  <h3 className="text-sm font-bold text-slate-300">Bạn cần hỗ trợ gì?</h3>
+                  <p className="text-xs text-slate-500 mt-2 max-w-sm">Tôi đã được học toàn bộ quy trình, bảng giá và chính sách của Phụ Kiện 88. Hãy đặt câu hỏi bất kỳ!</p>
+                  <div className="flex flex-wrap justify-center gap-2 mt-4">
+                    {["Pin iPhone 13 Pro Max bảo hành bao lâu?", "Khách chê giá ép kính đắt", "Thái độ đón khách chuẩn PK88"].map(s => (
+                      <button key={s} onClick={() => setChatInput(s)} className="text-[10px] px-3 py-1.5 rounded-full bg-slate-800 border border-slate-700 text-emerald-400 hover:bg-slate-700 transition-colors">
+                        "{s}"
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                chatMessages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-[85%] rounded-2xl p-3 text-sm ${msg.role === 'user' ? 'bg-emerald-600 text-white rounded-br-none' : 'bg-slate-800 border border-slate-700 text-slate-200 rounded-bl-none shadow-lg'}`}>
+                      <div className="prose prose-invert prose-sm max-w-none prose-p:leading-relaxed">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {msg.text || ''}
+                        </ReactMarkdown>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
+              {isChatLoading && (
+                <div className="flex justify-start">
+                  <div className="bg-slate-800 border border-slate-700 rounded-2xl rounded-bl-none p-4 flex gap-1 items-center">
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce"></div>
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce delay-75" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-bounce delay-150" style={{ animationDelay: '300ms' }}></div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="p-4 bg-slate-900 border-t border-slate-800">
+              <form onSubmit={handleSendAIChat} className="relative flex items-center">
+                <input 
+                  type="text" 
+                  value={chatInput}
+                  onChange={(e) => setChatInput(e.target.value)}
+                  disabled={isChatLoading}
+                  placeholder="Hỏi trợ lý nội bộ..." 
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl py-3 pl-4 pr-12 text-sm text-slate-200 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 disabled:opacity-50"
+                />
+                <button 
+                  type="submit" 
+                  disabled={isChatLoading || !chatInput.trim()}
+                  className="absolute right-2 p-2 bg-emerald-500 hover:bg-emerald-400 disabled:bg-slate-700 disabled:text-slate-500 text-slate-950 rounded-lg transition-colors"
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+              </form>
+            </div>
+          </div>
+        ) : selectedLesson ? (
           <>
             <div className="p-5 border-b border-slate-800 bg-slate-900/80 sticky top-0 z-10 flex items-center justify-between">
               <div>
