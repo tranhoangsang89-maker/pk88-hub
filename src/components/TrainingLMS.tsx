@@ -220,9 +220,9 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
 ${PK88_KNOWLEDGE_BASE}
 
 THÔNG TIN VỀ NGƯỜI ĐANG CHAT VỚI BẠN:
-- Tên: ${currentUser.name}
+- Tên: ${currentUser.fullName}
 - Chức vụ: ${currentUser.role}
-- Chi nhánh: ${currentUser.branch_id || 'Chưa rõ'}
+- Chi nhánh: ${currentUser.branchId || 'Chưa rõ'}
 Hãy luôn xưng hô lịch sự, gọi đúng tên của họ (nếu có thể) để tạo sự gần gũi.
 
 DƯỚI ĐÂY LÀ CHI TIẾT NỘI DUNG TẤT CẢ CÁC BÀI HỌC (TỪ NGÀY 1 ĐẾN NGÀY CUỐI):
