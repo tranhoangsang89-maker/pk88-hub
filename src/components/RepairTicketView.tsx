@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { RepairTicket, UserRole, Product } from '../types';
-import { QrCode, Search, Wrench, Plus, CheckCircle2, Clock, Smartphone, UserCheck, ArrowRight } from 'lucide-react';
-import { supabase } from '../lib/supabase';interface RepairTicketViewProps {
+import { QrCode, Search, Wrench, Plus, CheckCircle2, Clock, Smartphone, UserCheck, ArrowRight, Cpu } from 'lucide-react';
+import { supabase } from '../lib/supabase';
+import { AITechnicianModal } from './AITechnicianModal';
+
+interface RepairTicketViewProps {
   tickets: RepairTicket[];
   role: UserRole;
   onCreateTicket: (ticket: RepairTicket) => void;
@@ -12,6 +15,7 @@ import { supabase } from '../lib/supabase';interface RepairTicketViewProps {
 export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, role, onCreateTicket, onUpdateTicket, currentUserName }) => {
   const [searchCode, setSearchCode] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [showAIModal, setShowAIModal] = useState(false);
 
   // Customer Search State
   const [customerSearchInput, setCustomerSearchInput] = useState('');
@@ -226,13 +230,24 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
           />
         </div>
 
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="w-full sm:w-auto px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Tạo Phiếu Sửa Chữa Mới</span>
-        </button>
+        <div className="flex gap-2 w-full sm:w-auto">
+          <button
+            onClick={() => setShowAIModal(true)}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
+          >
+            <Cpu className="w-4 h-4" />
+            <span>✨ AI Kỹ Thuật PK88</span>
+          </button>
+          
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="flex-1 sm:flex-none px-4 py-2.5 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg transition-all"
+          >
+            <Plus className="w-4 h-4" />
+            <span className="hidden sm:inline">Tạo Phiếu Sửa Chữa Mới</span>
+            <span className="sm:hidden">Tạo Phiếu</span>
+          </button>
+        </div>
       </div>
 
       {/* Ticket List */}
@@ -427,6 +442,8 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
           </div>
         </div>
       )}
+
+      <AITechnicianModal isOpen={showAIModal} onClose={() => setShowAIModal(false)} />
     </div>
   );
 };
