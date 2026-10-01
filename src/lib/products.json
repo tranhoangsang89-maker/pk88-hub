@@ -1,0 +1,3649 @@
+[
+  {
+    "stt": "1",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 17Pro/17Pro Max Silver",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "2",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 17Pro/17Pro Max Blue",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "3",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 17Pro/17Pro Max Orange",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "4",
+    "category": "Lens Camera",
+    "name": "Lens Anank 17Pro/17Pro Max Orange",
+    "price": 150000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "5",
+    "category": "Lens Camera",
+    "name": "Lens Anank 17Pro/17Pro Max Blue",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "6",
+    "category": "Lens Camera",
+    "name": "Lens Anank 17Pro/17Pro Max Silver",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "7",
+    "category": "Lens Camera",
+    "name": "LENS URR IP Air Gold",
+    "price": 45000,
+    "brand": "URR"
+  },
+  {
+    "stt": "8",
+    "category": "Lens Camera",
+    "name": "LENS URR IP Air Silver",
+    "price": 45000,
+    "brand": "URR"
+  },
+  {
+    "stt": "9",
+    "category": "Lens Camera",
+    "name": "LENS URR IP Air Blue",
+    "price": 45000,
+    "brand": "URR"
+  },
+  {
+    "stt": "10",
+    "category": "Lens Camera",
+    "name": "LENS URR IP Air Black",
+    "price": 45000,
+    "brand": "URR"
+  },
+  {
+    "stt": "11",
+    "category": "Lens Camera",
+    "name": "LENS URR IP 17 Green",
+    "price": 60000,
+    "brand": "URR"
+  },
+  {
+    "stt": "12",
+    "category": "Lens Camera",
+    "name": "LENS URR IP 17 Purple",
+    "price": 60000,
+    "brand": "URR"
+  },
+  {
+    "stt": "13",
+    "category": "Lens Camera",
+    "name": "LENS URR IP 17 Silver",
+    "price": 60000,
+    "brand": "URR"
+  },
+  {
+    "stt": "14",
+    "category": "Lens Camera",
+    "name": "LENS URR IP 17 Blue",
+    "price": 60000,
+    "brand": "URR"
+  },
+  {
+    "stt": "15",
+    "category": "Lens Camera",
+    "name": "LENS URR IP 17 Black",
+    "price": 60000,
+    "brand": "URR"
+  },
+  {
+    "stt": "16",
+    "category": "Lens Camera",
+    "name": "LENS ANANK Iphone 17 Black",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "17",
+    "category": "Lens Camera",
+    "name": "LENS ANANK Iphone 17 Blue",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "18",
+    "category": "Lens Camera",
+    "name": "LENS ANANK Iphone 17 Purple",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "19",
+    "category": "Lens Camera",
+    "name": "LENS ANANK Iphone 17 Silver",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "20",
+    "category": "Lens Camera",
+    "name": "LENS ANANK Iphone 17 Green",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "21",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 16Pro/16 Pro Max Gold",
+    "price": 110000,
+    "brand": "URR"
+  },
+  {
+    "stt": "22",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 16Pro/16 Pro Max Natural",
+    "price": 110000,
+    "brand": "URR"
+  },
+  {
+    "stt": "23",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 16Pro/16 Pro Max Black",
+    "price": 110000,
+    "brand": "URR"
+  },
+  {
+    "stt": "24",
+    "category": "Lens Camera",
+    "name": "Lens URR Sapphire 16Pro/16 Pro Max Silver",
+    "price": 110000,
+    "brand": "URR"
+  },
+  {
+    "stt": "25",
+    "category": "Lens Camera",
+    "name": "Lens ANANK 16Pro/16 Pro Max Gold",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "26",
+    "category": "Lens Camera",
+    "name": "Lens ANANK 16Pro/16 Pro Max Natural",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "27",
+    "category": "Lens Camera",
+    "name": "Lens ANANK 16Pro/16 Pro Max Black",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "28",
+    "category": "Lens Camera",
+    "name": "Lens ANANK 16Pro/16 Pro Max Silver",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "29",
+    "category": "Lens Camera",
+    "name": "Lens Anank IP 16/16 Plus Titan",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "30",
+    "category": "Lens Camera",
+    "name": "Lens Anank IP 16/16 Plus Silver",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "31",
+    "category": "Lens Camera",
+    "name": "Lens Anank IP 16/16 Plus Green",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "32",
+    "category": "Lens Camera",
+    "name": "Lens Anank IP 16/16 Plus Pink",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "33",
+    "category": "Lens Camera",
+    "name": "Lens Anank IP 16/16 Plus Blue",
+    "price": 60000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "34",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S26 Ultra Trong Suốt",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "35",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S26 Ultra Black",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "36",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S25 Ultra Black",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "37",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S25 Ultra Silver",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "38",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S25 Ultra Natural",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "39",
+    "category": "Lens Camera",
+    "name": "Lens KUZOOM SS S25 Ultra Trong suốt",
+    "price": 55000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "40",
+    "category": "Lens Camera",
+    "name": "CƯỜNG LỰC KUZOOM ZLIP 7",
+    "price": 47000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "41",
+    "category": "Lens Camera",
+    "name": "Cường lực NILLKIN Zfold 7",
+    "price": 115000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "42",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE X/XS/11PRO",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "43",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE XSM/11 PRO MAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "44",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE XR/11",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "45",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 12/12PRO",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "46",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 12 PRO MAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "47",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 13/13PRO/14",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "48",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 13 PRO MAX/14 PLUS",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "49",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 14 PRO",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "50",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 14 PROMAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "51",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 15 PRO",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "52",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 15 PLUS/16 PLUS",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "53",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 15 PROMAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "54",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 15/16",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "55",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 16 PRO/17",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "56",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 16 PRO MAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "57",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 17 PRO",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "58",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 148K IPHONE 17 PRO MAX",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "59",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT IPHONE KINGKONG 15 PLUS/16 PLUS",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "60",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE AIR",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "61",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 12 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "62",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 12/12 PRO",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "63",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 13 PRO MAX/14 PLUS",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "64",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 13/13PRO/14/16E",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "65",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 14 PRO",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "66",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 14 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "67",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 15 PRO",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "68",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 15 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "69",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 15/16",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "70",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 16 PRO/17",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "71",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 16 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "72",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 17 PRO",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "73",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE 17 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "74",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE X/XS/11 PRO",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "75",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE XR/11",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "76",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT KINGKONG IPHONE XSM/11 PRO MAX",
+    "price": 199000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "77",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 28* WIWU X/XS/11PRO",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "78",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 28* WIWU IPHONE 15 PRO",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "79",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 28* WIWU IP 13 PRO MAX/14 PLUS",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "80",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* URR 15PLUS/16PLUS",
+    "price": 299000,
+    "brand": "URR"
+  },
+  {
+    "stt": "81",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* URR 17 PRO MAX",
+    "price": 299000,
+    "brand": "URR"
+  },
+  {
+    "stt": "82",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 28* WIWU IPHONE 16 PRO/17",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "83",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 28* WIWU IPHONE 17 PRO",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "84",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT ANNAK 360* IPHONE 15/16PLUS",
+    "price": 299000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "85",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK CNT 360* IP 13/14",
+    "price": 299000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "86",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* URR PRIVACY IP 17 PRO",
+    "price": 299000,
+    "brand": "URR"
+  },
+  {
+    "stt": "87",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT WIWU 360* 12/12 PRO",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "88",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT URR 360* IP 15 PRO MAX",
+    "price": 299000,
+    "brand": "URR"
+  },
+  {
+    "stt": "89",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* WIWU IPHONE XS MAX/11 PRO MAX",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "90",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* URR PRIVACY IP AIR",
+    "price": 299000,
+    "brand": "URR"
+  },
+  {
+    "stt": "91",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* WIWU IPHONE 15 PRO MAX",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "92",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* WIWU IPHONE 12 PRO MAX",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "93",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT 360* WIWU IPHONE 16 PRO MAX",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "94",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 12 PRO MAX",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "95",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IP 13 PRO MAX/14 PLUS",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "96",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 14 PRO",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "97",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 15 PRO",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "98",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 15 PRO MAX",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "99",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 15/16",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "100",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 15 PLUS/16 PLUS",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "101",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 16 PRO/17",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "102",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 16 PROMAX",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "103",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 17 PRO",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "104",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE 17 PRO MAX",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "105",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC CNT NILLKIN IPHONE AIR",
+    "price": 399000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "106",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 7 PLUS/8PLUS ĐEN",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "107",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 7 PLUS/8PLUS TRẮNG",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "108",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE X/XS/11PRO",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "109",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE XR/11",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "110",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE XSM/11 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "111",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 12/12 PRO",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "112",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 12 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "113",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 13/13PRO/14",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "114",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 13 PRO MAX/14 PLUS",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "115",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 14 PRO",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "116",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 14 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "117",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 15 PRO",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "118",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 15 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "119",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 15/16",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "120",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 15 PLUS/16 PLUS",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "121",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 16 PRO/17",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "122",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 16 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "123",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 17 PRO",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "124",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE 17 PRO MAX",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "125",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KINGKONG IPHONE AIR",
+    "price": 250000,
+    "brand": "KINGKONG"
+  },
+  {
+    "stt": "126",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 11PRO/XS",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "127",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE XR/11",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "128",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE XSM/11 PRO MAX",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "129",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 12/12 PRO",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "130",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 12 PRO MAX",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "131",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 13/13 PRO/14",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "132",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 13/13 PRO/14",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "133",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 13 PRO MAX",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "134",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 13 PRO MAX/14 PLUS",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "135",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 15/16 PLUS/14 PRO MAX",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "136",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IP 15 PRO",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "137",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 15 PRM",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "138",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 17/16PRO",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "139",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR INVISIBLE 16PRM",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "140",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 16 PRO MAX",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "141",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 17 PRO",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "142",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR  IP 17 PRO MAX",
+    "price": 300000,
+    "brand": "URR"
+  },
+  {
+    "stt": "143",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE AIR",
+    "price": 300000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "144",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM IP 12/12 PRO",
+    "price": 380000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "145",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANKIPHONE 12/12 PRO",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "146",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK IPHONE 12 PRO MAX",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "147",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU 3D IPHONE 13/13 PRO/14",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "148",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK IPHONE 14 PRO",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "149",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANNAK IPHONE 14 PRO MAX",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "150",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK IP 15 PRO",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "151",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR 3D MASTER IP 15 PRO MAX",
+    "price": 380000,
+    "brand": "URR"
+  },
+  {
+    "stt": "152",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 15/16",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "153",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU 15 PLUS/16 PLUS",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "154",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANNAK IPHONE 16 PRO/17",
+    "price": 380000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "155",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR  MASTER IP 16 PRO MAX",
+    "price": 380000,
+    "brand": "URR"
+  },
+  {
+    "stt": "156",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR MASTER 16 PLUS",
+    "price": 380000,
+    "brand": "URR"
+  },
+  {
+    "stt": "157",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU 3D IPHONE 17 PRO",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "158",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC URR 3D MASTER IP 17 PRO MAX",
+    "price": 380000,
+    "brand": "URR"
+  },
+  {
+    "stt": "159",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU 3D IPHONE AIR",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "160",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 15 PRO",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "161",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 15 PRO MAX",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "162",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 16 PRO MAX",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "163",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 17/16 PRO",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "164",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 17 PRO*",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "165",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC WIWU IPHONE 17 PRO MAX*",
+    "price": 380000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "166",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 6G/6S TRẮNG",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "167",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 6G/6S ĐEN",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "168",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 6PLUS TRẮNG",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "169",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 6PLUS ĐEN",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "170",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 7G/8G TRẮNG",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "171",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 7G/8G ĐEN",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "172",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 7PLUS/8PLUS TRẮNG",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "173",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 7PLUS/8PLUS ĐEN",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "174",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - X/XS/11PRO",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "175",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - XR/11",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "176",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - XSM/11PRM",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "177",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 12/12PRO",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "178",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 12PROMAX",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "179",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 13/13PRO/14/16E",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "180",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 13PROMAX/14PLUS",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "181",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 14PRO",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "182",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 14PROMAX",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "183",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 15/16",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "184",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 15PRO",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "185",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 15PLUS/16PLUS",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "186",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 15PROMAX",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "187",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 16PRO/17",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "188",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 16PROMAX",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "189",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 17PRO",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "190",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - 17 PROMAX",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "191",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 100K* - AIR",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "192",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 6G/6S TRẮNG",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "193",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 6G/6S ĐEN",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "194",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 6PLUS TRẮNG",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "195",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 6PLUS ĐEN",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "196",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 7G/8G TRẮNG",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "197",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 7G/8G ĐEN",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "198",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 7PLUS/8PLUS TRẮNG",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "199",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 7PLUS/8PLUS ĐEN",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "200",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - X/XS/11PRO",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "201",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - XR/11",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "202",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - XSM/11PRM",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "203",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 12/12PRO",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "204",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 12PROMAX",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "205",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 13/13PRO/14/16E",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "206",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 13PROMAX/14PLUS",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "207",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 14PRO",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "208",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 14PROMAX",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "209",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 15/16",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "210",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 15PRO",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "211",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 15PLUS/16PLUS",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "212",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 15PROMAX",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "213",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 16PRO/17",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "214",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 16PROMAX",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "215",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 17PRO",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "216",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - 17 PROMAX",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "217",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC IPHONE - 60K* - AIR",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "218",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 1",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "219",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 2",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "220",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 3",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "221",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 4",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "222",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 5",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "223",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 6",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "224",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 7",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "225",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 8",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "226",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 9",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "227",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 10",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "228",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 11",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "229",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 12",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "230",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 13",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "231",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 14",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "232",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 15",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "233",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 16",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "234",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 17",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "235",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 18",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "236",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 19",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "237",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 20",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "238",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 21",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "239",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 22",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "240",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 23",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "241",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 24",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "242",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 25",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "243",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 26",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "244",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 27",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "245",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 28",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "246",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 29",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "247",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 100K* - 30",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "248",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 1",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "249",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 2",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "250",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 3",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "251",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 4",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "252",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 5",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "253",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 6",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "254",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 7",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "255",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 8",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "256",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 9",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "257",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 10",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "258",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 11",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "259",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 12",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "260",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 13",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "261",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 14",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "262",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 15",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "263",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 16",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "264",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 17",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "265",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 19",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "266",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 20",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "267",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 21",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "268",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 22",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "269",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 23",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "270",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 24",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "271",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 25",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "272",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 26",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "273",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 27",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "274",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 28",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "275",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 29",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "276",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 30",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "277",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANDROID - 60K* - 31",
+    "price": 60000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "278",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM S26 ULTRA",
+    "price": 199000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "279",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM S24 ULTRA",
+    "price": 199000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "280",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM S25 ULTRA",
+    "price": 199000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "281",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM ZLIP 7",
+    "price": 199000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "282",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK S26",
+    "price": 269000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "283",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC ANANK S26+",
+    "price": 269000,
+    "brand": "ANANK"
+  },
+  {
+    "stt": "284",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC NILLKIN ZFold 7",
+    "price": 299000,
+    "brand": "NILLKIN"
+  },
+  {
+    "stt": "285",
+    "category": "Kính Cường Lực",
+    "name": "CƯỜNG LỰC KUZOOM S26",
+    "price": 199000,
+    "brand": "KUZOOM"
+  },
+  {
+    "stt": "286",
+    "category": "PPF",
+    "name": "PPF full nhám SS S22*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "287",
+    "category": "PPF",
+    "name": "PPF full nhám SS S22PLUS*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "288",
+    "category": "PPF",
+    "name": "PPF full nhám SS S22 ULTRA*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "289",
+    "category": "PPF",
+    "name": "PPF full nhám SS S23PLUS*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "290",
+    "category": "PPF",
+    "name": "PPF full nhám SS S23ULTRA*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "291",
+    "category": "PPF",
+    "name": "PPF full nhám SS S24*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "292",
+    "category": "PPF",
+    "name": "PPF full nhám SS S24PLUS*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "293",
+    "category": "PPF",
+    "name": "PPF full nhám SS S24ULTRA*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "294",
+    "category": "PPF",
+    "name": "PPF full nhám SS S25*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "295",
+    "category": "PPF",
+    "name": "PPF full nhám SS S25PLUS*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "296",
+    "category": "PPF",
+    "name": "PPF full nhám SS S25ULTRA*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "297",
+    "category": "PPF",
+    "name": "PPF FULL NHÁM SS S26ULTRA*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "298",
+    "category": "PPF",
+    "name": "PPF full nhám SS ZFLIP5*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "299",
+    "category": "PPF",
+    "name": "PPF full nhám SS ZFlip 6*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "300",
+    "category": "PPF",
+    "name": "PPF full nhám SS ZFlip 7*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "301",
+    "category": "PPF",
+    "name": "PPF full nhám SS ZFOLD 5*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "302",
+    "category": "PPF",
+    "name": "PPF full nhám SS ZFOLD 6*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "303",
+    "category": "PPF",
+    "name": "PPF full nhám SS Zfold 7*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "304",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE X*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "305",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE XS*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "306",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 11PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "307",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 11PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "308",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 12/12pro*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "309",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 12PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "310",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 13/14*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "311",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 13PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "312",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 13PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "313",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 14PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "314",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 14PLUS*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "315",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 14PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "316",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 15*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "317",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 15PLUS*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "318",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 15PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "319",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 15PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "320",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 16*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "321",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 16E*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "322",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 16PLUS*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "323",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 16PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "324",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 16PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "325",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE AIR*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "326",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 17*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "327",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 17PRO*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "328",
+    "category": "PPF",
+    "name": "PPF full nhám IPHONE 17PROMAX*",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "329",
+    "category": "PPF",
+    "name": "PPF UV CAO CẤP (TH-30N)*",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "330",
+    "category": "PPF",
+    "name": "PPF CHỐNG NHÌN TRỘM VIMSHI (NN-30N)*",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "331",
+    "category": "PPF",
+    "name": "PPF MÀN HÌNH GẬP (NN-30N)*",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "332",
+    "category": "PPF",
+    "name": "PPF NHÁM CẮT MÁY IPAD (PB-30N)*",
+    "price": 99000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "333",
+    "category": "PPF",
+    "name": "PPF TRONG CẮT MÁY IPAD",
+    "price": 99000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "334",
+    "category": "PPF",
+    "name": "PPF PHỤC HỒI VẾT XƯỚC (NN-30N)*",
+    "price": 100000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "335",
+    "category": "PPF",
+    "name": "PPF NHÁM CẮT MÁY (TH-30N)*",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "336",
+    "category": "PPF",
+    "name": "PPF TRONG CẮT MÁY (PB-30N)*",
+    "price": 148000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "337",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE X",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "338",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE XS",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "339",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE XSM",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "340",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 11",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "341",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 12PROMAX",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "342",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 13",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "343",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 13PRO",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "344",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 13PROMAX",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "345",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 14PLUS",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "346",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 14PRO",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "347",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 14PRO MAX",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "348",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 15",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "349",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 15PLUS",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "350",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 15PRO",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "351",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 15PROMAX",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "352",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 16",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "353",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 16PLUS",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "354",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 16PRO",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "355",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 16PROMAX",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "356",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 17PRO",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "357",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE 17PROMAX",
+    "price": 250000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "358",
+    "category": "PPF",
+    "name": "PPF full trong IPHONE AIR",
+    "price": 150000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "359",
+    "category": "ỐP LƯNG",
+    "name": "ỐP OPPO",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "359.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP OPPO",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "359.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP OPPO",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "360",
+    "category": "ỐP LƯNG",
+    "name": "ỐP VIVO",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "360.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP VIVO",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "360.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP VIVO",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "361",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "361.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "361.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "362",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP CAO CÁP",
+    "price": 199000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "362.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP CAO CÁP",
+    "price": 239000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "362.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP IP CAO CÁP",
+    "price": 299000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "363",
+    "category": "ỐP LƯNG",
+    "name": "ỐP SAMSUNG",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "363.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP SAMSUNG",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "363.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP SAMSUNG",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "364",
+    "category": "ỐP LƯNG",
+    "name": "ỐP SAMSUNG CAO CẤP",
+    "price": 199000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "364.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP SAMSUNG CAO CẤP",
+    "price": 299000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "365",
+    "category": "ỐP LƯNG",
+    "name": "ỐP XIAOMI",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "365.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP XIAOMI",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "365.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP XIAOMI",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "366",
+    "category": "ỐP LƯNG",
+    "name": "ỐP REALME",
+    "price": 39000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "366.1",
+    "category": "ỐP LƯNG",
+    "name": "ỐP REALME",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "366.2",
+    "category": "ỐP LƯNG",
+    "name": "ỐP REALME",
+    "price": 59000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "367",
+    "category": "LOA BLUETOOTH",
+    "name": "LOA BLUETOOTH HOCO BS51",
+    "price": 399000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "368",
+    "category": "LOA BLUETOOTH",
+    "name": "LOA KARAOKE KMS-252 KÈM 2 MIC",
+    "price": 1600000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "369",
+    "category": "LOA BLUETOOTH",
+    "name": "Loa Bluetooth HC9",
+    "price": 559000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "370",
+    "category": "LOA BLUETOOTH",
+    "name": "Loa Bluetooth BS64",
+    "price": 639000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "371",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "TAI NGHE BLUETOOTH QUAKER QP4*",
+    "price": 499000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "372",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "TAI NGHE BLUETOOTH HOCO EQ3*",
+    "price": 519000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "373",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "TAI NGHE WIWU AIRBUDS PRO 2 ENC/ANC*",
+    "price": 699000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "374",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "TAI NGHE BLUETOOTH QUAKER QP2*",
+    "price": 399000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "375",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "Tai nghe Airbuds Pro 2 MKAB-06 (MK)",
+    "price": 499000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "376",
+    "category": "TAI NGHE BLUETOOTH",
+    "name": "tai nghe bluetooh WIWU AIRBUDS 4 ENC*",
+    "price": 720000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "378",
+    "category": "TAI NGHE DÂY",
+    "name": "TAI NGHE CÓ DÂY MKH01-XSM*",
+    "price": 30000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "379",
+    "category": "TAI NGHE DÂY",
+    "name": "Tai nghe có dây ip Wiwu EB319*",
+    "price": 125000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "380",
+    "category": "TAI NGHE DÂY",
+    "name": "Tai nghe có dây IP Wiwu EB302*",
+    "price": 110000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "381",
+    "category": "TAI NGHE DÂY",
+    "name": "TAI NGHE DÂY 3.5MM QUAKER TN6*",
+    "price": 129000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "382",
+    "category": "TAI NGHE DÂY",
+    "name": "TAI NGHE CÓ DÂY MK-H15*",
+    "price": 99000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "383",
+    "category": "TAI NGHE DÂY",
+    "name": "TAI NGHE DÂY CHÂN IPHONE TP-LH02*",
+    "price": 299000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "384",
+    "category": "TAI NGHE DÂY",
+    "name": "TAI NGHE DÂY HOCO TYPE-C M116*",
+    "price": 148000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "385",
+    "category": "TAI NGHE DÂY",
+    "name": "Tai nghe chân iphone Remax RM-670i*",
+    "price": 248000,
+    "brand": "REMAX"
+  },
+  {
+    "stt": "386",
+    "category": "CỦ SẠC",
+    "name": "CỦ SẠC QUAKER USB 2.4A H16",
+    "price": 125000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "387",
+    "category": "CỦ SẠC",
+    "name": "CỦ SẠC 2 CỔNG 25w QUAKER H10*",
+    "price": 205000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "389",
+    "category": "CỦ SẠC",
+    "name": "CỦ SẠC ESSEN GAN 30W WiWU Wi-G002",
+    "price": 275000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "390",
+    "category": "CỦ SẠC",
+    "name": "CỦ SẠC ESSEN GAN 20W WiWU Wi-G001",
+    "price": 229000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "391",
+    "category": "CỦ SẠC",
+    "name": "Cốc Sạc Pisen 20W PSD01*",
+    "price": 319000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "392",
+    "category": "CỦ SẠC",
+    "name": "CÓC SẠC TYPE-C 25W QUAKER H05 (QK-8T)",
+    "price": 179000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "393",
+    "category": "CỦ SẠC",
+    "name": "Củ sạc Pisen PD-20WTS-C135A*",
+    "price": 336000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "394",
+    "category": "CỦ SẠC",
+    "name": "Củ sạc Pisen 2 đầu TypeC+USB 20W TS-C181",
+    "price": 509000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "395",
+    "category": "CỦ SẠC",
+    "name": "CÓC SẠC PISEN TYPE C 45W TP-C113*",
+    "price": 699000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "396",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPEC-IP 20W WIWU ESSEN WI-G001*",
+    "price": 299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "397",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPEC-IP 30W QUAKER MIN 1*",
+    "price": 339000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "398",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPEC-IP 30W WIWU ESSEN WI-G002*",
+    "price": 329000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "399",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC PISEN 30W C-IP TS-C172 (PISEN)*",
+    "price": 695000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "400",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 25W QUANKER MIN3*",
+    "price": 299000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "401",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPEC-IP 20W QUAKER H11*",
+    "price": 235000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "402",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC NHANH 20W C TO LIGHTNING MK - CB1(MK)*",
+    "price": 279000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "403",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC USB-IP 2.4A QUAKER H16I*",
+    "price": 148000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "404",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC 30W PISEN C TO C TP-C72*",
+    "price": 699000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "405",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-IP 30W PISEN TS-C179*",
+    "price": 699000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "406",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC USB - IP 2.4A WIWU WI-G023*",
+    "price": 179000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "407",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC PISEN 20W C TO IP TS-C165*",
+    "price": 516000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "408",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 25W QUAKER H19",
+    "price": 259000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "409",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 30W WIWU ESSEN WI-G002*",
+    "price": 329000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "410",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 30W HOCO CS55A*",
+    "price": 239000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "411",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC USB-C HOCO C106A*",
+    "price": 179000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "412",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC PISEN 20W TYPEC 1M2 TS-C135A*",
+    "price": 499000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "413",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPE-C 45W WIWU ESSEN WI-G024*",
+    "price": 459000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "414",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 20W HOCO C109A*",
+    "price": 179000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "415",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC USB-C 22.5W HOCO THM101*",
+    "price": 259000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "416",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC MK C-C 30W MK-CB2*",
+    "price": 259000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "417",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C HOCO CS53A*",
+    "price": 239000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "418",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC C-C 20W PISEN TS-C165*",
+    "price": 559000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "419",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPE-C 45W WIWU CUBE WI-G025*",
+    "price": 629000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "420",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC TYPEC GAN 30W MOPHIE*",
+    "price": 589000,
+    "brand": "MOPHIE"
+  },
+  {
+    "stt": "421",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC USB-MICRO 2.4A WIWU WI-G023",
+    "price": 199000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "422",
+    "category": "BỘ SẠC",
+    "name": "BỘ SẠC MICRO HOCO C134",
+    "price": 135000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "423",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 3 IN 1 QUAKERR X55",
+    "price": 155000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "424",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 100W 3 IN 1 MK EG-03",
+    "price": 289000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "425",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 27W WIWU NEOLINK C-IP WI-C062*",
+    "price": 175000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "426",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 27W C TO IP MK -SH8*",
+    "price": 105000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "427",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-IP WIWU STELLAR WI-C089*",
+    "price": 105000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "428",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 60W C TO C MK -SH9*",
+    "price": 105000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "429",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-TYPE C WIWU C096*",
+    "price": 159000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "430",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC PISEN 3.0A C TO LIGHTNING PD-1000*",
+    "price": 279000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "431",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC PISEN 27W C-IP PD10-1000*",
+    "price": 309000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "432",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB TO IP + I WATH 1.5M WC - 01*",
+    "price": 379000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "433",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC 5W USB TO IP MK01- LA*",
+    "price": 109000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "434",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC QUAKER USB-IP 1.5M X91I",
+    "price": 108000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "435",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC TYPE C TO TYPE C 240W WIWU ESSEN WI-C101*",
+    "price": 189000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "436",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC PISEN 2.4A USB-IP AL05-1000*",
+    "price": 189000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "437",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB TO IP WIWU TITANLINK WI-C055*",
+    "price": 189000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "438",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-C SO-MK1*",
+    "price": 239000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "439",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB TO IP ORINGLINK WIWU WI-C068*",
+    "price": 159000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "440",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-C 100W WI-C079*",
+    "price": 359000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "441",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-C HOCO THM205*",
+    "price": 109000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "442",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC MICRO 1.5M PISEN DM-MU01*",
+    "price": 159000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "443",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-C 100W PISEN CC03*",
+    "price": 375000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "444",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-C 60W WIWU FLAMEGUARD WI-C098*",
+    "price": 179000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "445",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-C 5.0A 100W PISEN PD02-1000*",
+    "price": 289000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "446",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-MICRO QUAKER X11M*",
+    "price": 99000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "447",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC C-C 100W HOCO U125*",
+    "price": 279000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "448",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-C 1M PISEN TC25*",
+    "price": 159000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "449",
+    "category": "CÁP SẠC",
+    "name": "CÁP SẠC USB-C HOCO X89*",
+    "price": 48000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "450",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG HOCO J102 10.000MAH*",
+    "price": 459000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "451",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG PISEN TP-D266 10.000 MAH (PISEN)*",
+    "price": 599000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "452",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG PISEN TP-D105 10.000 MAH (PISEN)*",
+    "price": 999000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "453",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH HOCO THM501 22.5W*",
+    "price": 595000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "454",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH TS-D308*",
+    "price": 799000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "455",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000 MAH PISEN LT-DY04*",
+    "price": 1500000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "456",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH WIWU MH136*",
+    "price": 699000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "457",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH WIWU WI-PO57*",
+    "price": 1199000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "458",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "PIN DỰ PHÒNG 35W 10.000MAH WIWU WI-P026*",
+    "price": 770000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "459",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG WIWU 10.000MAH WI-P082",
+    "price": 748000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "460",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG PISEN 10000MAH TP-D193*",
+    "price": 799000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "461",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG WIWU 3 IN 1 WI-P055*",
+    "price": 1150000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "462",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH RPP-558 ( TL-BH8T )",
+    "price": 899000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "463",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH PISEN TP-D117*",
+    "price": 1399000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "464",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH 22.5W WIWU WI-P041*",
+    "price": 899000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "465",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "PIN DỰ PHÒNG 20.000MAH WIWU WI-P068*",
+    "price": 499000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "466",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "PIN DỰ PHÒNG 20.000MAH WIWU ESSEN WI-CP082*",
+    "price": 899000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "467",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG MAGSAFE 10.000MAH P15-1*",
+    "price": 1199000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "468",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG MAGSAFE 10.000MAH WI-P089*",
+    "price": 1479000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "469",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 20.000MAH WIWU WI-P091*",
+    "price": 1299000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "470",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 10.000MAH MK -001*",
+    "price": 399000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "471",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG HOCO 20.000MAH J102A*",
+    "price": 759000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "472",
+    "category": "SẠC DỰ PHÒNG",
+    "name": "SẠC DỰ PHÒNG 3IN1 10.000MAH WIWU J23-C*",
+    "price": 969000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "473",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 8PLUS*",
+    "price": 650000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "474",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP X*",
+    "price": 750000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "475",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP XR*",
+    "price": 750000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "476",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP XS*",
+    "price": 800000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "477",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN XSMAX*",
+    "price": 850000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "478",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP 11*",
+    "price": 980000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "479",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP 11 PRO*",
+    "price": 1250000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "480",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 11PM*",
+    "price": 1250000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "481",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP 12/12PRO*",
+    "price": 1050000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "482",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 12PM*",
+    "price": 1350000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "483",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 13*",
+    "price": 1050000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "484",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 13PRO*",
+    "price": 1260000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "485",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 13PM*",
+    "price": 1330000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "486",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN IP 14*",
+    "price": 990000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "487",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 14PLUS*",
+    "price": 1370000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "488",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 14PRO*",
+    "price": 1450000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "489",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 14PM*",
+    "price": 1450000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "490",
+    "category": "PIN",
+    "name": "PIN CAO CẤP CHÍNH HÃNG PISEN 15PRM*",
+    "price": 1535000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "491",
+    "category": "PIN",
+    "name": "PIN CAO CẤP PISEN SUPERMAN IP 15PRM*",
+    "price": 2299000,
+    "brand": "PISEN"
+  },
+  {
+    "stt": "492",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "GIÁ ĐỠ ĐIỆN THOẠI XOAY 360",
+    "price": 48000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "493",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "KỆ XOAY 360 ĐỘ WIWU ZM-014*",
+    "price": 289000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "494",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "KỆ ĐỠ LAPTOP WIWU ZM-107*",
+    "price": 548000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "496",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "KỆ ĐIỆN THOẠI WIWU ZM-013",
+    "price": 399000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "497",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "KỆ ĐT HÚT KÍNH TRÊN OTO WI-CH061",
+    "price": 299000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "498",
+    "category": "KỆ & GIÁ ĐỠ",
+    "name": "KỆ ĐỠ LAPTOP XOAY 360 S801*",
+    "price": 1079000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "499",
+    "category": "TẨU SẠC",
+    "name": "TẨU SẠC USB/TYPE-C 48W QUAKER CH2*",
+    "price": 135000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "500",
+    "category": "TẨU SẠC",
+    "name": "TẨU SẠC 1 CỔNG USB 18W Z46 (HOCO)",
+    "price": 109000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "501",
+    "category": "TẨU SẠC",
+    "name": "TẨU SẠC 2 ĐẦU CÓ DÂY USB 2.4A Z40*",
+    "price": 129000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "502",
+    "category": "TẨU SẠC",
+    "name": "TẨU SẠC USB/TYPE-C 45W QUAKER CH5*",
+    "price": 168000,
+    "brand": "QUAKER"
+  },
+  {
+    "stt": "503",
+    "category": "TẨU SẠC",
+    "name": "BỘ CHIA TẨU 1 RA 3 + 2 USB Z13 (HOCO)",
+    "price": 279000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "504",
+    "category": "TẨU SẠC",
+    "name": "TẨU SẠC USB+C 30W Z47A (HOCO)",
+    "price": 299000,
+    "brand": "HOCO"
+  },
+  {
+    "stt": "505",
+    "category": "GẬY SELFIE",
+    "name": "GẬY 3 CHÂN TRIPOD Y21",
+    "price": 399000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "507",
+    "category": "GẬY SELFIE",
+    "name": "GẬY SELFIE WIWU WI - SE012*",
+    "price": 290000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "508",
+    "category": "GẬY SELFIE",
+    "name": "GẬY SELFI MINI WIWU WI-SE011*",
+    "price": 799000,
+    "brand": "WIWU"
+  },
+  {
+    "stt": "509",
+    "category": "GẬY SELFIE",
+    "name": "GIMBAL 360 ĐỘ P01",
+    "price": 599000,
+    "brand": "Khác"
+  },
+  {
+    "stt": "510",
+    "category": "GẬY SELFIE",
+    "name": "GẬY SELFIE SHARP FILM WIWU WI-SE003*",
+    "price": 499000,
+    "brand": "WIWU"
+  }
+]

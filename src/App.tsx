@@ -8,18 +8,25 @@ import { AIChatDrawer } from './components/AIChatDrawer';
 import { AdminPanel } from './components/AdminPanel';
 import { LoginModal } from './components/LoginModal';
 import { TrainingLMS } from './components/TrainingLMS';
+import { MarketingDashboard } from './components/MarketingDashboard';
+import { MarketingModal } from './components/MarketingModal';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone } from 'lucide-react';
+import { MarketingPost, MarketingPlatform } from './types';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets' | 'training'>('attendance');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets' | 'training' | 'marketing'>('attendance');
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
+  const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
+  
+  // Marketing Posts State (Fallback to Mock Data)
+  const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
 
   // Fetch real attendance records directly from Supabase Cloud DB!
   const fetchRealAttendance = async () => {
@@ -89,9 +96,32 @@ export function App() {
     }
   };
 
+  const fetchMarketingPosts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('marketing_posts')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Fetch marketing posts error:', error);
+      } else if (data) {
+        setMarketingPosts(data as MarketingPost[]);
+      }
+    } catch (err) {
+      console.error('Fetch marketing posts exception:', err);
+    }
+  };
+
   useEffect(() => {
     fetchRealAttendance();
     fetchTickets();
+    fetchMarketingPosts();
+    
+    // In demo mode, load mock if empty
+    import('./lib/mockData').then(({ MOCK_MARKETING_POSTS }) => {
+      setMarketingPosts(prev => prev.length > 0 ? prev : MOCK_MARKETING_POSTS as MarketingPost[]);
+    });
   }, []);
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
@@ -110,6 +140,7 @@ export function App() {
     // Refresh real attendance logs on login
     fetchRealAttendance();
     fetchTickets();
+    fetchMarketingPosts();
 
     if (staff.role === 'admin') setActiveTab('admin');
     else if (staff.role === 'founder') setActiveTab('dashboard');
@@ -201,6 +232,48 @@ export function App() {
     }
   };
 
+  const handleMarketingSubmit = async (platform: MarketingPlatform, url: string) => {
+    if (!currentUser) return;
+    
+    const newPost = {
+      branch_id: selectedBranch.id,
+      platform,
+      post_url: url,
+      author_name: currentUser.fullName
+    };
+
+    try {
+      const { data, error } = await supabase.from('marketing_posts').insert([newPost]).select();
+      
+      if (!error && data && data.length > 0) {
+        setMarketingPosts(prev => [data[0] as MarketingPost, ...prev]);
+      } else {
+        // Fallback to local state
+        const fallbackPost: MarketingPost = {
+          id: `local-${Date.now()}`,
+          ...newPost,
+          created_at: new Date().toISOString()
+        };
+        setMarketingPosts(prev => [fallbackPost, ...prev]);
+      }
+      
+      setShowMarketingModal(false);
+      
+      // Simple Toast notification
+      const toast = document.createElement('div');
+      toast.className = 'fixed bottom-4 right-4 bg-emerald-500 text-white px-4 py-3 rounded-xl shadow-lg z-50 font-bold animate-in slide-in-from-bottom-5';
+      toast.innerText = '✅ Nộp bài đăng thành công!';
+      document.body.appendChild(toast);
+      setTimeout(() => {
+        toast.classList.add('opacity-0', 'transition-opacity');
+        setTimeout(() => toast.remove(), 300);
+      }, 3000);
+      
+    } catch (err) {
+      console.error('Marketing submission error', err);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Login Modal Popup */}
@@ -211,6 +284,17 @@ export function App() {
             setIsCustomerMode(true);
             setShowLoginModal(false);
           }}
+        />
+      )}
+
+      {/* Marketing Modal */}
+      {currentUser && (
+        <MarketingModal
+          isOpen={showMarketingModal}
+          onClose={() => setShowMarketingModal(false)}
+          currentUser={currentUser}
+          currentBranch={selectedBranch}
+          onSubmit={handleMarketingSubmit}
         />
       )}
 
@@ -237,12 +321,24 @@ export function App() {
 
           {/* User Account / Login & Branch Bar */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Quick Post Button for Staff */}
+            {currentUser && !isCustomerMode && (
+              <button
+                onClick={() => setShowMarketingModal(true)}
+                className="hidden sm:flex px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs items-center gap-1.5 shadow-md shadow-blue-500/20 transition-colors animate-pulse hover:animate-none"
+              >
+                <Send className="w-3.5 h-3.5" />
+                + Nộp Link Bài Đăng (5s)
+              </button>
+            )}
+
             {/* Refresh DB Button */}
             {currentUser && !isCustomerMode && (
               <button
                 onClick={() => {
                   fetchRealAttendance();
                   fetchTickets();
+                  fetchMarketingPosts();
                 }}
                 className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
                 title="Tải lại dữ liệu từ Supabase Cloud"
@@ -360,7 +456,7 @@ export function App() {
 
             <button
               onClick={() => setActiveTab('attendance')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                 activeTab === 'attendance'
                   ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
                   : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
@@ -368,6 +464,18 @@ export function App() {
             >
               <Clock className="w-4 h-4" />
               <span>Chấm Công GPS Geofence</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('marketing')}
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+                activeTab === 'marketing'
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 font-extrabold'
+                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+              }`}
+            >
+              <Megaphone className="w-4 h-4" />
+              <span>📢 Hiệu Suất Marketing</span>
             </button>
 
             <button
@@ -406,7 +514,7 @@ export function App() {
             )}
 
             {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
-              <ExecutiveDashboard branches={INITIAL_BRANCHES} attendanceLogs={attendanceHistory} />
+              <ExecutiveDashboard branches={INITIAL_BRANCHES} attendanceLogs={attendanceHistory} marketingPosts={marketingPosts} />
             )}
 
             {activeTab === 'attendance' && currentUser && (
@@ -432,6 +540,15 @@ export function App() {
 
             {activeTab === 'training' && currentUser && (
               <TrainingLMS currentUser={currentUser} />
+            )}
+
+            {activeTab === 'marketing' && currentUser && (
+              <MarketingDashboard 
+                branches={INITIAL_BRANCHES} 
+                posts={marketingPosts} 
+                currentBranch={selectedBranch}
+                onOpenSubmitModal={() => setShowMarketingModal(true)}
+              />
             )}
 
             {!currentUser && (

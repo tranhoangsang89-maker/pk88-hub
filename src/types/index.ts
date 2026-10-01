@@ -95,3 +95,14 @@ export interface StaffProgress {
   score?: number;
   completedAt?: string;
 }
+
+export type MarketingPlatform = 'facebook' | 'tiktok' | 'zalo' | 'youtube';
+
+export interface MarketingPost {
+  id: string;
+  branch_id: string; // cn_bt1, cn_mt, etc.
+  platform: MarketingPlatform;
+  post_url: string;
+  author_name: string;
+  created_at: string;
+}

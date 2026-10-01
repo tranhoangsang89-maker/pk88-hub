@@ -1,5 +1,5 @@
 import React from 'react';
-import { Branch, AttendanceRecord } from '../types';
+import { Branch, AttendanceRecord, MarketingPost } from '../types';
 import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck, Activity } from 'lucide-react';
 import {
   AreaChart,
@@ -17,9 +17,10 @@ import {
 interface ExecutiveDashboardProps {
   branches: Branch[];
   attendanceLogs?: AttendanceRecord[];
+  marketingPosts?: MarketingPost[];
 }
 
-export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches, attendanceLogs = [] }) => {
+export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches, attendanceLogs = [], marketingPosts = [] }) => {
   const alerts = [
     {
       type: 'REVENUE_DROP',
@@ -77,6 +78,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
   const formatCurrency = (value: number) => {
     return `${(value / 1000000).toFixed(1)}M`;
   };
+
+  // Calculate Marketing Stats for AI Copilot
+  const today = new Date().toISOString().split('T')[0];
+  const todayPosts = marketingPosts.filter(p => p.created_at.startsWith(today));
+  const branchCounts = todayPosts.reduce((acc, p) => {
+    acc[p.branch_id] = (acc[p.branch_id] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  const topBranchId = Object.entries(branchCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
+  const topBranchName = branches.find(b => b.id === topBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'N/A';
+  const missedBranches = branches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
+
 
   return (
     <div className="space-y-6">
@@ -336,6 +350,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
               </li>
               <li>
                 <strong className="text-slate-100">Đề xuất luân chuyển kho:</strong> Chuyển 20 ốp lưng iPhone 15 Promax từ Mỹ Tho ➔ Cần Thơ (Cần Thơ đang cháy hàng).
+              </li>
+              <li>
+                <strong className="text-slate-100">📢 Marketing:</strong> Toàn chuỗi đăng <span className="font-bold text-blue-400">{todayPosts.length} bài</span> hôm nay. Chi nhánh <span className="font-bold text-amber-400">{topBranchName}</span> tích cực nhất. Cảnh báo chi nhánh <span className="font-bold text-rose-400">{missedBranches}</span> chưa đăng bài.
               </li>
             </ul>
 

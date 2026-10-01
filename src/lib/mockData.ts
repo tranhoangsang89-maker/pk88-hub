@@ -237,3 +237,22 @@ export const MOCK_REPAIR_TICKETS: RepairTicket[] = [
     technicianName: 'Nguyễn Văn Minh'
   }
 ];
+
+export const MOCK_MARKETING_POSTS = [
+  {
+    id: 'post-1',
+    branch_id: 'b1',
+    platform: 'facebook',
+    post_url: 'https://facebook.com/post/1',
+    author_name: 'Ngô Hồng Thao',
+    created_at: new Date(Date.now() - 3600000).toISOString()
+  },
+  {
+    id: 'post-2',
+    branch_id: 'b2',
+    platform: 'tiktok',
+    post_url: 'https://tiktok.com/@pk88/video/2',
+    author_name: 'Trịnh Văn Long',
+    created_at: new Date(Date.now() - 7200000).toISOString()
+  },
+];

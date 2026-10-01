@@ -28,3 +28,31 @@
 .glow-emerald {
   box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
 }
+
+.markdown-body {
+  @apply text-slate-300 text-sm leading-relaxed;
+}
+.markdown-body p {
+  @apply mb-4 last:mb-0;
+}
+.markdown-body h1, .markdown-body h2, .markdown-body h3, .markdown-body h4 {
+  @apply font-bold text-slate-100 mt-6 mb-2;
+}
+.markdown-body h1:first-child, .markdown-body h2:first-child, .markdown-body h3:first-child {
+  @apply mt-0;
+}
+.markdown-body h1 { @apply text-xl; }
+.markdown-body h2 { @apply text-lg; }
+.markdown-body h3 { @apply text-base; }
+.markdown-body ul {
+  @apply list-disc list-inside mb-4 space-y-1;
+}
+.markdown-body ol {
+  @apply list-decimal list-inside mb-4 space-y-1;
+}
+.markdown-body strong {
+  @apply font-bold text-slate-200;
+}
+.markdown-body blockquote {
+  @apply border-l-4 border-slate-600 pl-4 italic text-slate-400 mb-4;
+}
