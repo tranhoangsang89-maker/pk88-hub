@@ -52,6 +52,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
     { name: 'PK88 Bến Tre 2', revenue: 8500000, orders: 24, growth: '+2%' },
     { name: 'PK88 Trà Vinh', revenue: 7200000, orders: 20, growth: '-5%' },
     { name: 'PK88 Cần Thơ', revenue: 6400000, orders: 19, growth: '-28%' },
+    { name: 'PK88 Thủ Đức', revenue: 0, orders: 0, growth: '0%' },
   ];
 
   const totalRevenue = branchMetrics.reduce((sum, b) => sum + b.revenue, 0);
@@ -69,10 +70,10 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
 
   // Dữ liệu Tồn kho các mặt hàng chủ lực giữa các chi nhánh
   const inventoryData = [
-    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Bến Tre 1': 12, 'Bến Tre 2': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, 'Trà Vinh': 25 },
-    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Bến Tre 1': 8, 'Bến Tre 2': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, 'Trà Vinh': 10 },
-    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Bến Tre 1': 35, 'Bến Tre 2': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, 'Trà Vinh': 15 }, // Cần Thơ cảnh báo đỏ
-    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Bến Tre 1': 80, 'Bến Tre 2': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, 'Trà Vinh': 50 },
+    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Bến Tre 1': 12, 'Bến Tre 2': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, 'Trà Vinh': 25, 'Thủ Đức': 50 },
+    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Bến Tre 1': 8, 'Bến Tre 2': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, 'Trà Vinh': 10, 'Thủ Đức': 15 },
+    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Bến Tre 1': 35, 'Bến Tre 2': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, 'Trà Vinh': 15, 'Thủ Đức': 30 }, // Cần Thơ cảnh báo đỏ
+    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Bến Tre 1': 80, 'Bến Tre 2': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, 'Trà Vinh': 50, 'Thủ Đức': 75 },
   ];
 
   const formatCurrency = (value: number) => {
@@ -130,7 +131,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
               <CheckCircle className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">6 / 6 shop</div>
+          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">{branches.length} / {branches.length} shop</div>
           <div className="text-xs text-emerald-400 mt-2">All Online & Geofenced</div>
         </div>
 
@@ -216,6 +217,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
                 <Bar name="Vĩnh Long" dataKey="Vĩnh Long" fill="#14b8a6" radius={[4, 4, 0, 0]} />
                 <Bar name="Cần Thơ" dataKey="Cần Thơ" fill="#f43f5e" radius={[4, 4, 0, 0]} />
                 <Bar name="Trà Vinh" dataKey="Trà Vinh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                <Bar name="Thủ Đức" dataKey="Thủ Đức" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

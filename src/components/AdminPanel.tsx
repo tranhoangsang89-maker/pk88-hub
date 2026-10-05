@@ -187,7 +187,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
           }`}
         >
           <Server className="w-4 h-4" />
-          <span>2. Cấu Hình 6 Chi Nhánh & GPS</span>
+          <span>2. Cấu Hình {branches.length} Chi Nhánh & GPS</span>
         </button>
 
         <button
@@ -411,7 +411,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-rose-400" />
-                    Bảng Tổng Hợp Lương Phụ Kiện 88 (Toàn Chuỗi 6 Chi Nhánh)
+                    Bảng Tổng Hợp Lương Phụ Kiện 88 (Toàn Chuỗi {branches.length} Chi Nhánh)
                   </h3>
                   <p className="text-xs text-slate-400 mt-1">Cấu trúc lương đa vai trò (Bán hàng 22.7k/h, Kỹ thuật 30k/h, Quản lý & Admin lương tháng cố định).</p>
                 </div>
@@ -430,7 +430,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                     onChange={(e) => setSelectedBranch(e.target.value)}
                     className="w-full sm:w-64 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="ALL">🏢 Tất cả 6 Chi nhánh (Toàn Chuỗi)</option>
+                    <option value="ALL">🏢 Tất cả {branches.length} Chi nhánh (Toàn Chuỗi)</option>
                     {branches.map(b => (
                       <option key={b.id} value={b.id}>📍 {b.name}</option>
                     ))}
@@ -619,7 +619,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   className="w-full sm:w-56 p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                 >
-                  <option value="ALL">🏢 Tất cả 6 Chi nhánh</option>
+                  <option value="ALL">🏢 Tất cả {branches.length} Chi nhánh</option>
                   {branches.map(b => (
                     <option key={b.id} value={b.id}>📍 {b.name}</option>
                   ))}

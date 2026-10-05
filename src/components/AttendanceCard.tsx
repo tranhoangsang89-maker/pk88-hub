@@ -28,6 +28,14 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [showSuccessMsg, setShowSuccessMsg] = useState<boolean>(false);
   const [actionMessage, setActionMessage] = useState<string>('');
 
+  const isDevelopment = import.meta.env.DEV;
+  const canViewAllAttendance = currentStaff.role === 'admin' || currentStaff.role === 'founder';
+  const visibleAttendanceHistory = canViewAllAttendance
+    ? attendanceHistory
+    : attendanceHistory.filter(record =>
+        record.staffId === currentStaff.id || record.notes?.includes(`(${currentStaff.phone})`)
+      );
+
   const todayDateStr = new Date().toDateString();
   const todayRecords = attendanceHistory.filter(r => 
     (r.staffId === currentStaff.id || (r.notes && r.notes.includes(currentStaff.phone))) && 
@@ -37,12 +45,13 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const activeRecord = todayRecords.find(r => !r.checkOut);
   const isCurrentlyCheckedIn = !!activeRecord;
 
+  const ALLOWED_RADIUS = 35;
+  const hasRealGps = userCoords !== null;
   const currentLat = userCoords ? userCoords.lat : currentBranch.lat + (simulatedOffsetMeters / 111000);
   const currentLng = userCoords ? userCoords.lng : currentBranch.lng;
   const distance = getDistanceMeters(currentLat, currentLng, currentBranch.lat, currentBranch.lng);
-  const ALLOWED_RADIUS = 35;
-  const isValidGeofence = distance <= ALLOWED_RADIUS;
-  const hasRealGps = userCoords !== null;
+  const isValidGeofence = (hasRealGps || isDevelopment) && distance <= ALLOWED_RADIUS;
+  const isOutsideGeofence = hasRealGps && !isValidGeofence;
   const canCheckIn = isValidGeofence && hasRealGps;
 
   const handleGetLocation = () => {
@@ -55,7 +64,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           setLoadingLoc(false);
         },
         (err) => {
-          setLocError('Không thể lấy vị trí GPS thực tế. Đang dùng định vị mô phỏng shop.');
+          setLocError('Không thể lấy vị trí GPS thực tế. Hãy bật quyền vị trí và thử lại.');
           setLoadingLoc(false);
         },
         { enableHighAccuracy: true, timeout: 5000 }
@@ -247,34 +256,48 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       <div className={`rounded-xl p-4 border transition-all mb-5 ${
         isValidGeofence
           ? 'bg-emerald-950/20 border-emerald-500/30 glow-emerald'
-          : 'bg-rose-950/20 border-rose-500/30 glow-red'
+          : isOutsideGeofence
+            ? 'bg-rose-950/20 border-rose-500/30 glow-red'
+            : 'bg-slate-900/40 border-slate-800'
       }`}>
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <Navigation className={`w-4 h-4 ${isValidGeofence ? 'text-emerald-400 animate-spin-slow' : 'text-rose-400'}`} />
+            <Navigation className={`w-4 h-4 ${isValidGeofence ? 'text-emerald-400 animate-spin-slow' : isOutsideGeofence ? 'text-rose-400' : 'text-slate-500'}`} />
             <span className="text-xs font-semibold text-slate-300">Khoảng cách đến shop:</span>
           </div>
-          <div className={`text-lg font-extrabold font-mono ${isValidGeofence ? 'text-emerald-400' : 'text-rose-400'}`}>
-            {formatDistance(distance)}
+          <div className={`text-lg font-extrabold font-mono ${isValidGeofence ? 'text-emerald-400' : isOutsideGeofence ? 'text-rose-400' : 'text-slate-500'}`}>
+            {hasRealGps || isDevelopment ? formatDistance(distance) : '—'}
           </div>
         </div>
 
         <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
           <div className="flex items-center gap-1.5">
-            {isValidGeofence ? (
+            {isDevelopment && !hasRealGps && isValidGeofence ? (
+              <>
+                <CheckCircle2 className="w-4 h-4 text-amber-400" />
+                <span className="text-amber-300 font-medium">Mô phỏng trong phạm vi (DEV)</span>
+              </>
+            ) : isDevelopment && !hasRealGps ? (
+              <>
+                <XCircle className="w-4 h-4 text-rose-400" />
+                <span className="text-rose-300 font-medium">Mô phỏng ngoài bán kính 35m (DEV)</span>
+              </>
+            ) : isValidGeofence ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-300 font-medium">Hợp lệ (Đang ở trong shop)</span>
               </>
-            ) : (
+            ) : isOutsideGeofence ? (
               <>
                 <XCircle className="w-4 h-4 text-rose-400" />
                 <span className="text-rose-300 font-medium">Vượt quá bán kính 35m</span>
               </>
+            ) : (
+              <span className="text-slate-400 font-medium">Chưa xác định vị trí</span>
             )}
           </div>
           <div className="flex items-center gap-3">
-            {window.location.hostname === 'localhost' && (
+            {isDevelopment && (
               <button
                 onClick={() => setUserCoords({ lat: currentBranch.lat, lng: currentBranch.lng })}
                 className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md hover:bg-amber-500/30"
@@ -292,20 +315,28 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           </div>
         </div>
 
-        <div className="mt-3 pt-2 border-t border-slate-800/40">
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
-            <span>Mô phỏng khoảng cách (Test nhanh):</span>
-            <span className="font-mono text-slate-200 font-bold">{simulatedOffsetMeters}m</span>
+        {isDevelopment && (
+          <div className="mt-3 pt-2 border-t border-slate-800/40">
+            <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
+              <span>Mô phỏng khoảng cách (Test nhanh):</span>
+              <span className="font-mono text-slate-200 font-bold">{simulatedOffsetMeters}m</span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="100"
+              value={simulatedOffsetMeters}
+              onChange={(e) => setSimulatedOffsetMeters(Number(e.target.value))}
+              className="w-full accent-rose-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer"
+            />
           </div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={simulatedOffsetMeters}
-            onChange={(e) => setSimulatedOffsetMeters(Number(e.target.value))}
-            className="w-full accent-rose-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer"
-          />
-        </div>
+        )}
+        {!hasRealGps && locError && (
+          <p role="status" className="mt-3 text-xs text-amber-300">{locError}</p>
+        )}
+        {!hasRealGps && !isDevelopment && !locError && (
+          <p role="status" className="mt-3 text-xs text-slate-400">Chưa xác định vị trí. Hãy lấy GPS thực tế để kiểm tra khoảng cách.</p>
+        )}
       </div>
 
       {showSuccessMsg ? (
@@ -342,7 +373,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       <div className="mt-6 pt-4 border-t border-slate-800">
         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Lịch sử chấm công gần nhất</h4>
         <div className="space-y-2">
-          {attendanceHistory.slice(0, 5).map((item) => (
+          {visibleAttendanceHistory.slice(0, 5).map((item) => (
             <div key={item.id} className="flex items-center justify-between text-xs bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
@@ -357,6 +388,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
               <span className="font-mono text-emerald-400 font-semibold">{item.distanceMeters}m</span>
             </div>
           ))}
+          {visibleAttendanceHistory.length === 0 && (
+            <p className="text-xs text-slate-500 py-2">Chưa có lịch sử chấm công.</p>
+          )}
         </div>
       </div>
     </div>

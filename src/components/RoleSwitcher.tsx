@@ -14,7 +14,7 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ currentRole, onRoleC
       label: 'Founder (Ngô Hồng Thao)',
       icon: <ShieldCheck className="w-4 h-4 text-rose-400" />,
       color: 'bg-rose-500/10 text-rose-400 border-rose-500/30',
-      desc: 'Báo cáo điều hành 6 chi nhánh & Cảnh báo đỏ'
+      desc: 'Báo cáo điều hành toàn chuỗi & Cảnh báo đỏ'
     },
     {
       role: 'admin',
