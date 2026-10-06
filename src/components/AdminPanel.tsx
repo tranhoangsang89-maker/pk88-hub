@@ -695,8 +695,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                     const branch = branches.find(b => b.id === s.branchId);
 
                     const AVATARS: Record<string, string> = {
-                      s0: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-                      s1: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+                      s0: '/tranhoangsang-admin.png',
+                      s1: '/ngohongthao-founder.jpg',
                       s112: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
                       s111: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
                       s110: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80',

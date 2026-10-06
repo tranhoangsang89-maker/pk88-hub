@@ -65,7 +65,8 @@ export const MOCK_STAFF: Staff[] = [
     fullName: 'Ngô Hồng Thao (Founder)',
     phone: '0777888688',
     role: 'founder',
-    isActive: true
+    isActive: true,
+    avatarUrl: '/ngohongthao-founder.jpg'
   },
   {
     id: 's0',
@@ -73,7 +74,8 @@ export const MOCK_STAFF: Staff[] = [
     fullName: 'Trần Hoàng Sang (Admin & Automation)',
     phone: '0888003205',
     role: 'admin',
-    isActive: true
+    isActive: true,
+    avatarUrl: '/tranhoangsang-admin.png'
   },
 
   // --- CHI NHÁNH 1: BẾN TRE 1 (HQ) --- (11 Nhân sự)
