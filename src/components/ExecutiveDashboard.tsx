@@ -1,6 +1,6 @@
 import React from 'react';
-import { Branch, AttendanceRecord, MarketingPost } from '../types';
-import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck, Activity } from 'lucide-react';
+import { Branch, AttendanceRecord, MarketingPost, LeaveRequest } from '../types';
+import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck, Activity, Calendar, FileText, CheckCircle2, XCircle, Bot } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -14,13 +14,22 @@ import {
   Legend,
   ReferenceLine
 } from 'recharts';
+
 interface ExecutiveDashboardProps {
   branches: Branch[];
   attendanceLogs?: AttendanceRecord[];
   marketingPosts?: MarketingPost[];
+  leaveRequests?: LeaveRequest[];
+  onOpenAIHRModal?: () => void;
 }
 
-export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches, attendanceLogs = [], marketingPosts = [] }) => {
+export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ 
+  branches, 
+  attendanceLogs = [], 
+  marketingPosts = [],
+  leaveRequests = [],
+  onOpenAIHRModal
+}) => {
   const alerts = [
     {
       type: 'REVENUE_DROP',
@@ -91,7 +100,6 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
   const topBranchId = Object.entries(branchCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const topBranchName = branches.find(b => b.id === topBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'N/A';
   const missedBranches = branches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
-
 
   return (
     <div className="space-y-6">
@@ -260,40 +268,94 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ branches
         </div>
       </div>
 
-      {/* Real-Time Staff Attendance Stream from Supabase Cloud */}
-      <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-slate-900/90">
-        <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+      {/* Leave Requests Center (Replaced GPS Attendance Log) */}
+      <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-slate-900/90 space-y-4">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
-            <UserCheck className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-sm font-bold text-slate-100">Nhật Ký Chấm Công GPS Nhân Sự Real-Time (Supabase Cloud)</h3>
+            <div className="w-8 h-8 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center text-rose-400">
+              <Calendar className="w-4 h-4" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-slate-100 uppercase tracking-wide flex items-center gap-2">
+                <span>Danh Sách Đơn Xin Nghỉ Phép</span>
+                <span className="text-[10px] font-mono bg-rose-500/20 text-rose-300 border border-rose-500/30 px-2 py-0.5 rounded-full font-bold">
+                  AI HR ENGINE
+                </span>
+              </h3>
+              <p className="text-[11px] text-slate-400">Tự động kiểm soát tải ca trực, gợi ý nhân sự thay thế & đồng bộ bảng lương</p>
+            </div>
           </div>
-          <span className="text-xs font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-            LIVE SYNC ({attendanceLogs.length} Lượt)
-          </span>
+
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-mono bg-rose-500/10 text-rose-400 border border-rose-500/20 px-2.5 py-1 rounded-full font-bold">
+              DANH SÁCH ({leaveRequests.length} ĐƠN)
+            </span>
+            {onOpenAIHRModal && (
+              <button
+                onClick={onOpenAIHRModal}
+                className="px-3 py-1.5 bg-rose-500 hover:bg-rose-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-1.5"
+              >
+                <Bot className="w-3.5 h-3.5" />
+                <span>Mở AI HR</span>
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="space-y-2 max-h-60 overflow-y-auto">
-          {attendanceLogs.length > 0 ? (
-            attendanceLogs.map((log) => (
-              <div key={log.id} className="flex items-center justify-between p-3 rounded-xl bg-slate-950/80 border border-slate-800 text-xs">
-                <div className="flex items-center gap-3">
-                  <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                  <div>
-                    <span className="font-bold text-slate-200">{log.notes}</span>
-                    <div className="text-[11px] text-slate-500 font-mono">
-                      {new Date(log.checkIn).toLocaleString('vi-VN')}
+        <div className="space-y-2.5 max-h-72 overflow-y-auto">
+          {leaveRequests.length > 0 ? (
+            leaveRequests.map((req) => {
+              const branch = branches.find(b => b.id === req.branchId);
+              return (
+                <div key={req.id} className="p-3.5 rounded-xl bg-slate-950/80 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-extrabold text-slate-100 text-sm">{req.staffName}</span>
+                      <span className="text-[10px] bg-slate-800 text-slate-300 px-2 py-0.5 rounded font-mono uppercase font-bold">
+                        {req.role}
+                      </span>
+                      <span className="text-[10px] text-cyan-400 font-medium bg-cyan-500/10 border border-cyan-500/20 px-2 py-0.5 rounded-full">
+                        📍 {branch ? branch.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+                      </span>
+                    </div>
+
+                    <div className="text-slate-300 font-medium">
+                      Lý do: <span className="italic text-slate-200 font-semibold">"{req.reason}"</span>
+                    </div>
+
+                    <div className="flex items-center gap-3 text-[11px] text-slate-400 font-mono flex-wrap">
+                      <span>📅 Từ: <strong className="text-cyan-300">{req.startDate}</strong> đến <strong className="text-cyan-300">{req.endDate}</strong></span>
+                      <span>• Loại: <strong className="text-amber-300">{req.type === 'PAID_LEAVE' ? 'Nghỉ Phép Năm (Có Lương)' : req.type === 'SICK_LEAVE' ? 'Nghỉ Ốm Đột Xuất' : 'Nghỉ Không Lương'}</strong></span>
+                      {req.replacementStaffName && (
+                        <span>• Trực thay: <strong className="text-emerald-300">{req.replacementStaffName}</strong></span>
+                      )}
                     </div>
                   </div>
+
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2 shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-extrabold border uppercase flex items-center gap-1.5 ${
+                      req.status === 'APPROVED' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
+                      req.status === 'REJECTED' ? 'bg-rose-500/10 text-rose-400 border-rose-500/30' :
+                      'bg-amber-500/10 text-amber-400 border-amber-500/30 animate-pulse'
+                    }`}>
+                      {req.status === 'APPROVED' ? <CheckCircle2 className="w-3 h-3 text-emerald-400" /> :
+                       req.status === 'REJECTED' ? <XCircle className="w-3 h-3 text-rose-400" /> :
+                       <Clock className="w-3 h-3 text-amber-400" />}
+                      <span>{req.status === 'APPROVED' ? 'ĐÃ DUYỆT' : req.status === 'REJECTED' ? 'TỪ CHỐI' : 'CHỜ DUYỆT'}</span>
+                    </span>
+
+                    {req.aiRiskAssessment && (
+                      <div className="text-[10px] text-emerald-400 font-medium flex items-center gap-1">
+                        <Bot className="w-3 h-3 text-cyan-400" />
+                        <span className="truncate max-w-[200px]">{req.aiRiskAssessment}</span>
+                      </div>
+                    )}
+                  </div>
                 </div>
-                <div className="text-right">
-                  <span className="font-mono text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 text-[11px]">
-                    {log.distanceMeters}m (Hợp lệ)
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           ) : (
-            <div className="text-center py-6 text-slate-500 text-xs">Đang tải nhật ký chấm công từ Supabase...</div>
+            <div className="text-center py-6 text-slate-500 text-xs">Chưa có đơn xin nghỉ phép nào trong hệ thống.</div>
           )}
         </div>
       </div>

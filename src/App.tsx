@@ -634,7 +634,13 @@ export function App() {
             )}
 
             {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
-              <ExecutiveDashboard branches={branches} attendanceLogs={attendanceHistory} marketingPosts={marketingPosts} />
+              <ExecutiveDashboard 
+                branches={branches} 
+                attendanceLogs={attendanceHistory} 
+                marketingPosts={marketingPosts}
+                leaveRequests={leaveRequests}
+                onOpenAIHRModal={() => setShowAIHRModal(true)}
+              />
             )}
 
             {activeTab === 'attendance' && currentUser && (
