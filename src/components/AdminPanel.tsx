@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson } from '../types';
 import { supabase } from '../lib/supabase';
 import { MOCK_ATTENDANCE } from '../lib/mockData';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown } from 'lucide-react';
+import { StaffDetailModal } from './StaffDetailModal';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -21,6 +22,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
   const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
+  const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<Staff | null>(null);
+  const [staffViewMode, setStaffViewMode] = useState<'cards' | 'table'>('cards');
   
   // Store-in-a-box states
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
@@ -612,17 +615,49 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
           {/* Current Staff List */}
           <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pb-3 border-b border-slate-800">
-              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-400">
-                Danh Sách Nhân Sự Đang Hoạt Động ({localStaff.length} Người)
-              </h3>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-200 flex items-center gap-2">
+                  <Users className="w-4 h-4 text-cyan-400" />
+                  <span>Danh Sách Nhân Sự Đang Hoạt Động ({localStaff.length} Người)</span>
+                </h3>
+                <p className="text-[10px] text-slate-400 mt-0.5">Click vào ảnh hoặc nút "Xem Hồ Sơ" để xem biểu đồ năng lực 5 chiều & QR thưởng nóng Vietcombank.</p>
+              </div>
 
-              {/* Controls */}
-              <div className="flex flex-col sm:flex-row items-center gap-2 w-full sm:w-auto text-xs">
+              {/* Controls & View Mode Toggle */}
+              <div className="flex flex-wrap items-center gap-2 w-full md:w-auto text-xs">
+                {/* View Mode Switcher */}
+                <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
+                  <button
+                    onClick={() => setStaffViewMode('cards')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      staffViewMode === 'cards'
+                        ? 'bg-cyan-500 text-slate-950 shadow-md'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Chế độ Thẻ Chân Dung"
+                  >
+                    <LayoutGrid className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Thẻ Chân Dung</span>
+                  </button>
+                  <button
+                    onClick={() => setStaffViewMode('table')}
+                    className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                      staffViewMode === 'table'
+                        ? 'bg-cyan-500 text-slate-950 shadow-md'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                    title="Chế độ Bảng Danh Sách"
+                  >
+                    <List className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Bảng Danh Sách</span>
+                  </button>
+                </div>
+
                 <select
                   value={selectedBranch}
                   onChange={(e) => setSelectedBranch(e.target.value)}
-                  className="w-full sm:w-56 p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
+                  className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                 >
                   <option value="ALL">🏢 Tất cả {branches.length} Chi nhánh</option>
                   {branches.map(b => (
@@ -630,88 +665,219 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   ))}
                 </select>
 
-                <div className="relative w-full sm:w-56">
+                <div className="relative flex-1 sm:flex-none">
                   <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-3" />
                   <input
                     type="text"
                     placeholder="Tìm tên hoặc SĐT..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
+                    className="w-full sm:w-44 pl-8 pr-3 py-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 font-medium"
                   />
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
-              {[...localStaff]
-                .filter(s => {
-                  const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
-                  const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
-                  return matchBranch && matchSearch;
-                })
-                .sort((a, b) => {
-                  const map: Record<string, number> = { founder: 1, admin: 2, sales_head: 3, accountant: 4, marketing: 5, hr: 6, manager: 7, technician: 8, sales: 9 };
-                  return (map[a.role] || 99) - (map[b.role] || 99);
-                })
-                .map((s) => {
-                  const branch = branches.find(b => b.id === s.branchId);
+            {/* CARD VIEW MODE */}
+            {staffViewMode === 'cards' && (
+              <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 text-xs">
+                {[...localStaff]
+                  .filter(s => {
+                    const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+                    const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
+                    return matchBranch && matchSearch;
+                  })
+                  .sort((a, b) => {
+                    const map: Record<string, number> = { founder: 1, admin: 2, sales_head: 3, accountant: 4, marketing: 5, hr: 6, manager: 7, technician: 8, sales: 9 };
+                    return (map[a.role] || 99) - (map[b.role] || 99);
+                  })
+                  .map((s) => {
+                    const branch = branches.find(b => b.id === s.branchId);
 
-                  return (
-                    <div key={s.id} className={`p-3.5 rounded-xl border flex flex-col justify-between transition-all ${
-                      s.isActive ? 'bg-slate-950/80 border-slate-800' : 'bg-slate-950/40 border-rose-900/30 opacity-60'
-                    }`}>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <div>
-                          <div className="font-bold text-slate-200 flex items-center gap-1.5">
-                            <span>{s.fullName}</span>
-                            {!s.isActive && (
-                              <span className="text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.2 rounded font-bold">
-                                Đã nghỉ
-                              </span>
-                            )}
+                    const AVATARS: Record<string, string> = {
+                      s0: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
+                      s1: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=400&q=80',
+                      s112: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+                      s111: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80',
+                      s110: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=400&q=80',
+                      s109: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=400&q=80',
+                      s101: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=400&q=80',
+                    };
+
+                    const avatarImg = s.avatarUrl || AVATARS[s.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(s.fullName)}&background=0284c7&color=fff&size=200&bold=true`;
+
+                    return (
+                      <div 
+                        key={s.id} 
+                        className={`group relative rounded-xl sm:rounded-2xl border transition-all duration-300 hover:shadow-xl hover:shadow-cyan-500/10 overflow-hidden flex flex-col justify-between ${
+                          s.isActive 
+                            ? 'bg-gradient-to-b from-slate-900 to-slate-950 border-slate-800 hover:border-cyan-500/50' 
+                            : 'bg-slate-950/40 border-rose-900/30 opacity-60'
+                        }`}
+                      >
+                        {/* Portrait Image Header */}
+                        <div 
+                          className="relative h-28 sm:h-44 overflow-hidden cursor-pointer bg-slate-950"
+                          onClick={() => setSelectedStaffForDetail(s)}
+                        >
+                          <img 
+                            src={avatarImg} 
+                            alt={s.fullName}
+                            className="w-full h-full object-cover object-top group-hover:scale-105 transition-transform duration-500"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(s.fullName)}&background=0284c7&color=fff&size=200&bold=true`;
+                            }}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                          
+                          {/* Role Tag Overlay */}
+                          <div className="absolute top-1.5 sm:top-2.5 right-1.5 sm:right-2.5">
+                            <span className={`text-[8px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full font-mono uppercase font-extrabold border shadow-md backdrop-blur-md ${
+                              s.role === 'sales_head' ? 'bg-orange-500/80 text-white border-orange-400' :
+                              s.role === 'manager' ? 'bg-amber-500/80 text-slate-950 border-amber-300 font-black' :
+                              s.role === 'technician' ? 'bg-sky-500/80 text-slate-950 border-sky-300 font-black' :
+                              s.role === 'hr' ? 'bg-pink-500/80 text-white border-pink-400' :
+                              s.role === 'marketing' ? 'bg-indigo-500/80 text-white border-indigo-400' :
+                              s.role === 'accountant' ? 'bg-emerald-500/80 text-slate-950 border-emerald-300 font-black' :
+                              s.role === 'admin' || s.role === 'founder' ? 'bg-purple-600/90 text-white border-purple-400' :
+                              'bg-slate-900/90 text-slate-200 border-slate-700'
+                            }`}>
+                              {s.role === 'sales_head' ? 'TP. KINH DOANH' : s.role}
+                            </span>
                           </div>
-                          <div className="text-[11px] text-slate-500 font-mono mt-0.5">{s.phone}</div>
-                          <div className="text-[10px] text-cyan-400 mt-1 font-medium">
-                            📍 {branch ? branch.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+
+                          {/* Quick View Hover Hint */}
+                          <div className="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-cyan-300 font-bold text-[10px] sm:text-xs">
+                            <Eye className="w-3.5 h-3.5" /> Hồ Sơ & QR
+                          </div>
+
+                          <div className="absolute bottom-1.5 sm:bottom-2 left-2 sm:left-3 right-2 sm:right-3">
+                            <h4 className="text-xs sm:text-sm font-extrabold text-white truncate group-hover:text-cyan-300 transition-colors">
+                              {s.fullName}
+                            </h4>
+                            <div className="text-[9px] sm:text-[10px] text-cyan-400 font-medium truncate">
+                              📍 {branch ? branch.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+                            </div>
                           </div>
                         </div>
 
-                        <span className={`text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border shrink-0 ${
-                          s.role === 'sales_head' ? 'bg-orange-500/10 text-orange-400 border-orange-500/30' :
-                          s.role === 'manager' ? 'bg-amber-500/10 text-amber-400 border-amber-500/30' :
-                          s.role === 'technician' ? 'bg-sky-500/10 text-sky-400 border-sky-500/30' :
-                          s.role === 'hr' ? 'bg-pink-500/10 text-pink-400 border-pink-500/30' :
-                          s.role === 'marketing' ? 'bg-indigo-500/10 text-indigo-400 border-indigo-500/30' :
-                          s.role === 'accountant' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' :
-                          s.role === 'admin' || s.role === 'founder' ? 'bg-purple-500/10 text-purple-400 border-purple-500/30' :
-                          'bg-slate-800 text-slate-300 border-slate-700'
-                        }`}>
-                          {s.role === 'sales_head' ? 'TP. KINH DOANH' : s.role}
-                        </span>
-                      </div>
+                        {/* Card Footer Info */}
+                        <div className="p-2 sm:p-3 space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px]">
+                          <div className="flex items-center justify-between text-slate-400 font-mono text-[9px] sm:text-[10px]">
+                            <span className="truncate">SĐT: <strong className="text-slate-200">{s.phone}</strong></span>
+                            <span className="text-[8px] sm:text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 py-0.2 rounded font-bold shrink-0">
+                              {s.isActive ? 'Đang làm' : 'Đã nghỉ'}
+                            </span>
+                          </div>
 
-                      {/* Management Actions */}
-                      <div className="pt-2 border-t border-slate-900 flex items-center justify-between text-[10px]">
-                        <button
-                          onClick={() => handleToggleStaffStatus(s.id)}
-                          className={`font-semibold hover:underline cursor-pointer ${
-                            s.isActive ? 'text-emerald-400' : 'text-amber-400'
-                          }`}
-                        >
-                          {s.isActive ? '🟢 Đang làm việc' : '🔴 Đã nghỉ việc'}
-                        </button>
-                        <button
-                          onClick={() => handleDeleteStaff(s.id, s.fullName)}
-                          className="text-slate-500 hover:text-rose-400 transition-colors cursor-pointer"
-                        >
-                          Xóa
-                        </button>
+                          <div className="pt-1.5 sm:pt-2 border-t border-slate-800/80 flex items-center gap-1">
+                            <button
+                              onClick={() => setSelectedStaffForDetail(s)}
+                              className="flex-1 py-1 sm:py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
+                            >
+                              <Eye className="w-3 h-3 flex-shrink-0" />
+                              <span className="truncate">Xem Hồ Sơ</span>
+                            </button>
+
+                            <button
+                              onClick={() => handleToggleStaffStatus(s.id)}
+                              className={`p-1 sm:p-1.5 rounded-lg sm:rounded-xl border text-[9px] sm:text-[10px] font-bold cursor-pointer transition-colors ${
+                                s.isActive ? 'bg-slate-950 text-amber-400 border-slate-800 hover:border-amber-500/40' : 'bg-slate-950 text-emerald-400 border-slate-800 hover:border-emerald-500/40'
+                              }`}
+                              title={s.isActive ? 'Đổi sang Đã nghỉ việc' : 'Đổi sang Đang làm việc'}
+                            >
+                              {s.isActive ? 'Tắt' : 'Bật'}
+                            </button>
+
+                            <button
+                              onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                              className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-slate-950 text-slate-500 hover:text-rose-400 border border-slate-800 hover:border-rose-500/40 text-[9px] sm:text-[10px] transition-colors cursor-pointer"
+                              title="Xóa nhân sự"
+                            >
+                              Xóa
+                            </button>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-            </div>
+                    );
+                  })}
+              </div>
+            )}
+
+            {/* TABLE VIEW MODE */}
+            {staffViewMode === 'table' && (
+              <div className="overflow-x-auto rounded-xl border border-slate-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 font-bold uppercase text-[10px] border-b border-slate-800">
+                    <tr>
+                      <th className="p-3">Nhân Sự</th>
+                      <th className="p-3">Số Điện Thoại</th>
+                      <th className="p-3">Chi Nhánh</th>
+                      <th className="p-3 text-center">Vai Trò</th>
+                      <th className="p-3 text-center">Trạng Thái</th>
+                      <th className="p-3 text-right">Thao Tác</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60">
+                    {[...localStaff]
+                      .filter(s => {
+                        const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+                        const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
+                        return matchBranch && matchSearch;
+                      })
+                      .map((s) => {
+                        const branch = branches.find(b => b.id === s.branchId);
+
+                        return (
+                          <tr key={s.id} className="hover:bg-slate-800/40 transition-colors">
+                            <td className="p-3">
+                              <button 
+                                onClick={() => setSelectedStaffForDetail(s)}
+                                className="font-bold text-slate-200 hover:text-cyan-300 flex items-center gap-2 cursor-pointer text-left"
+                              >
+                                <span className="w-7 h-7 rounded-full bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-extrabold text-[10px]">
+                                  {s.fullName.slice(0, 2).toUpperCase()}
+                                </span>
+                                <span>{s.fullName}</span>
+                              </button>
+                            </td>
+                            <td className="p-3 font-mono text-slate-400">{s.phone}</td>
+                            <td className="p-3 text-cyan-400 font-medium">
+                              {branch ? branch.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className="text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border bg-slate-800 text-slate-300 border-slate-700">
+                                {s.role}
+                              </span>
+                            </td>
+                            <td className="p-3 text-center">
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                                s.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
+                              }`}>
+                                {s.isActive ? '🟢 Đang làm' : '🔴 Đã nghỉ'}
+                              </span>
+                            </td>
+                            <td className="p-3 text-right space-x-2">
+                              <button
+                                onClick={() => setSelectedStaffForDetail(s)}
+                                className="text-cyan-400 hover:underline font-bold text-[11px] cursor-pointer"
+                              >
+                                Hồ Sơ
+                              </button>
+                              <button
+                                onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                                className="text-slate-500 hover:text-rose-400 font-medium text-[11px] cursor-pointer"
+                              >
+                                Xóa
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1089,6 +1255,13 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
           </div>
         </div>
       )}
+
+      {/* Staff Detail Profile Modal */}
+      <StaffDetailModal
+        staff={selectedStaffForDetail}
+        branch={branches.find(b => b.id === selectedStaffForDetail?.branchId)}
+        onClose={() => setSelectedStaffForDetail(null)}
+      />
     </div>
   );
 };

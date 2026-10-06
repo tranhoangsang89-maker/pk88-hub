@@ -21,6 +21,14 @@ export interface Branch {
   isActive: boolean;
 }
 
+export interface CompetencyScores {
+  expertise: number;
+  discipline: number;
+  attitude: number;
+  kpi: number;
+  lms: number;
+}
+
 export interface Staff {
   id: string;
   branchId: string;
@@ -29,6 +37,10 @@ export interface Staff {
   role: UserRole;
   isActive: boolean;
   avatarUrl?: string;
+  code?: string;
+  joinDate?: string;
+  email?: string;
+  competencyScores?: CompetencyScores;
 }
 
 export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH';
