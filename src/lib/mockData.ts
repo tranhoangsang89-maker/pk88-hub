@@ -256,3 +256,54 @@ export const MOCK_MARKETING_POSTS = [
     created_at: new Date(Date.now() - 7200000).toISOString()
   },
 ];
+
+export const MOCK_LEAVE_REQUESTS: any[] = [
+  {
+    id: 'leave-1',
+    staffId: 's-tech-1',
+    staffName: 'Trần Văn Nam',
+    phone: '0901234567',
+    branchId: 'b1',
+    role: 'technician',
+    startDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
+    reason: 'Xin nghỉ đưa người nhà đi khám bệnh tại TP.HCM',
+    type: 'PAID_LEAVE',
+    status: 'PENDING',
+    createdAt: new Date().toISOString(),
+    aiRiskAssessment: '🟢 An toàn: Bến Tre 1 còn 2 thợ sửa máy ca này, đảm bảo vận hành.'
+  },
+  {
+    id: 'leave-2',
+    staffId: 's-sales-2',
+    staffName: 'Lê Thị Mỹ',
+    phone: '0912345678',
+    branchId: 'b3',
+    role: 'sales',
+    startDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+    endDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
+    reason: 'Sốt cao xin nghỉ bệnh 1 ngày',
+    type: 'SICK_LEAVE',
+    status: 'APPROVED',
+    approvedBy: 'Trần Hoàng Sang (ADMIN)',
+    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
+    aiRiskAssessment: '🟡 Cảnh báo nhẹ: Đã được Manager duyệt ca thế.'
+  },
+  {
+    id: 'leave-3',
+    staffId: 's-sales-5',
+    staffName: 'Nguyễn Văn Hải',
+    phone: '0933445566',
+    branchId: 'b5',
+    role: 'sales',
+    startDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    endDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
+    reason: 'Xin nghỉ việc riêng đi chơi tự túc',
+    type: 'UNPAID_LEAVE',
+    status: 'REJECTED',
+    rejectedBy: 'Phạm Thị Mỹ (MANAGER - Mỹ Tho)',
+    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
+    aiRiskAssessment: '🔴 Rủi ro cao: Ngày này chi nhánh Cần Thơ có sự kiện chạy khuyến mãi Flash Sale.'
+  }
+];
+

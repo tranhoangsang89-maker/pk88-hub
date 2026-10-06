@@ -199,11 +199,18 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
       <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 mb-4 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center font-bold text-rose-400">
+          <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400">
             {currentStaff.fullName.charAt(0)}
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-200">{currentStaff.fullName}</div>
+            <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
+              <span>{currentStaff.fullName}</span>
+              {currentStaff?.role === 'founder' && (
+                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
+                  CHỦ DOANH NGHIỆP
+                </span>
+              )}
+            </div>
             <div className="text-[11px] text-slate-400">{currentStaff.phone}</div>
           </div>
         </div>
@@ -212,6 +219,16 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <div className="text-xs font-bold text-slate-200">{ALLOWED_RADIUS} mét</div>
         </div>
       </div>
+
+      {currentStaff?.role === 'founder' && (
+        <div className="mb-4 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
+          <span className="text-base">👑</span>
+          <div>
+            <div className="font-bold">Đặc quyền Ban Giám Đốc / Founder:</div>
+            <div className="text-[11px] text-amber-200/80">Bạn là Chủ sở hữu Phụ Kiện 88 - Hệ thống tự động miễn nghĩa vụ chấm công GPS & thử việc.</div>
+          </div>
+        </div>
+      )}
 
       {!isCurrentlyCheckedIn && !showSuccessMsg && (
         <div className="mb-5 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">

@@ -106,3 +106,26 @@ export interface MarketingPost {
   author_name: string;
   created_at: string;
 }
+
+export type LeaveType = 'PAID_LEAVE' | 'UNPAID_LEAVE' | 'SICK_LEAVE';
+export type LeaveStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface LeaveRequest {
+  id: string;
+  staffId: string;
+  staffName: string;
+  phone?: string;
+  branchId: string;
+  role: UserRole;
+  startDate: string; // YYYY-MM-DD
+  endDate: string; // YYYY-MM-DD
+  reason: string;
+  type: LeaveType;
+  status: LeaveStatus;
+  approvedBy?: string;
+  rejectedBy?: string;
+  createdAt: string;
+  replacementStaffName?: string;
+  aiRiskAssessment?: string;
+}
+

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson } from '../types';
 import { supabase } from '../lib/supabase';
 import { MOCK_ATTENDANCE } from '../lib/mockData';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag } from 'lucide-react';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -163,92 +163,97 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
         </div>
       </div>
 
-      {/* Admin Subtabs */}
-      <div className="flex items-center gap-2 border-b border-slate-800 pb-2 overflow-x-auto">
+      {/* Admin Subtabs (2-Row Layout: 4 tabs on row 1, 3 tabs on row 2) */}
+      <div className="bg-slate-900/90 border border-slate-800/90 p-2 rounded-2xl space-y-2 shadow-inner">
+        {/* Row 1: 4 Tabs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <button
+            onClick={() => setActiveSubTab('payroll')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'payroll'
+                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">1. Chấm Công & Tính Lương</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('payroll')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'payroll'
-              ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <Calculator className="w-4 h-4" />
-          <span>1. Bảng Chấm Công & Tính Lương</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('staff')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'staff'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">2. Quản Lý Nhân Sự</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('branches')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'branches'
-              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <Server className="w-4 h-4" />
-          <span>2. Cấu Hình {branches.length} Chi Nhánh & GPS</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('branches')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'branches'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Server className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">3. Cấu Hình 7 Chi Nhánh</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('staff')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'staff'
-              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <ShieldCheck className="w-4 h-4" />
-          <span>2. Thêm & Quản Lý Nhân Sự Mới</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('webhooks')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'webhooks'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Radio className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">4. Webhook & POS</span>
+          </button>
+        </div>
 
-        <button
-          onClick={() => setActiveSubTab('webhooks')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'webhooks'
-              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <Radio className="w-4 h-4" />
-          <span>3. Kết Nối Webhook & POS (KiotViet/n8n)</span>
-        </button>
+        {/* Row 2: 3 Tabs */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button
+            onClick={() => setActiveSubTab('ai')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'ai'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">5. Tham Số AI Engine</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('ai')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'ai'
-              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <Settings2 className="w-4 h-4" />
-          <span>4. Tham Số AI Engine (Chị 8 & Bé 8)</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('logs')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'logs'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">6. System Logs</span>
+          </button>
 
-        <button
-          onClick={() => setActiveSubTab('logs')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'logs'
-              ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <Terminal className="w-4 h-4" />
-          <span>5. System Logs & Webhook Sync</span>
-        </button>
-
-        <button
-          onClick={() => setActiveSubTab('lms')}
-          className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-            activeSubTab === 'lms'
-              ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-              : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-          }`}
-        >
-          <GraduationCap className="w-4 h-4" />
-          <span>6. Tiến Độ Đào Tạo LMS</span>
-        </button>
+          <button
+            onClick={() => setActiveSubTab('lms')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'lms'
+                ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">7. Đào Tạo LMS 60 Ngày</span>
+          </button>
+        </div>
       </div>
 
       {/* Subtab Content */}
@@ -865,6 +870,25 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
               </div>
               <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
                 <span>Loại: Creative Content Generator</span>
+                <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
+              </div>
+            </div>
+
+            {/* 5. Trợ Lý AI HR (Chị 8 Hành Chính - Duyệt Phép Tự Động) */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800/90 hover:border-rose-500/40 transition-all flex flex-col justify-between space-y-3 md:col-span-2">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>
+                    5. Trợ Lý AI HR (Chị 8 Hành Chính & Duyệt Phép Tự Động)
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-mono text-[10px] font-bold">NEW • ACTIVE</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">Bóc tách tin nhắn xin nghỉ tự nhiên, đánh giá rủi ro thiếu nhân sự ca trực & đồng bộ tự động vào Bảng Chấm Công/Lương.</p>
+                <div className="mt-2 text-[11px] text-rose-400/90">Phân hệ: Quản Lý Nhân Sự & Xin Nghỉ Phép Tự Động (AI HR Drawer/Modal)</div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
+                <span>Loại: HR & Automated Leave Approval Agent</span>
                 <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
               </div>
             </div>

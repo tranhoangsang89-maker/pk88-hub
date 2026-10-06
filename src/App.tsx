@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff } from './types';
-import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_ATTENDANCE, MOCK_REPAIR_TICKETS } from './lib/mockData';
+import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff, LeaveRequest, LeaveStatus } from './types';
+import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_ATTENDANCE, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS } from './lib/mockData';
 import { AttendanceCard } from './components/AttendanceCard';
 import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { RepairTicketView } from './components/RepairTicketView';
@@ -10,8 +10,9 @@ import { LoginModal } from './components/LoginModal';
 import { TrainingLMS } from './components/TrainingLMS';
 import { MarketingDashboard } from './components/MarketingDashboard';
 import { MarketingModal } from './components/MarketingModal';
+import { AIHRModal } from './components/AIHRModal';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 
 export function App() {
@@ -24,7 +25,10 @@ export function App() {
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
+  const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(MOCK_LEAVE_REQUESTS);
   const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
+
   const activeBranches = branches.filter(b => b.isActive);
   
   // Marketing Posts State (Fallback to Mock Data)
@@ -337,6 +341,24 @@ export function App() {
     }
   };
 
+  const handleLeaveRequestSubmit = (newReq: LeaveRequest) => {
+    setLeaveRequests(prev => [newReq, ...prev]);
+  };
+
+  const handleUpdateLeaveStatus = (reqId: string, status: LeaveStatus, handlerName: string) => {
+    setLeaveRequests(prev => prev.map(r => {
+      if (r.id === reqId) {
+        return {
+          ...r,
+          status,
+          approvedBy: status === 'APPROVED' ? handlerName : r.approvedBy,
+          rejectedBy: status === 'REJECTED' ? handlerName : r.rejectedBy
+        };
+      }
+      return r;
+    }));
+  };
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Login Modal Popup */}
@@ -360,6 +382,21 @@ export function App() {
           onSubmit={handleMarketingSubmit}
         />
       )}
+
+      {/* AI HR Modal */}
+      {currentUser && (
+        <AIHRModal
+          isOpen={showAIHRModal}
+          onClose={() => setShowAIHRModal(false)}
+          currentUser={currentUser}
+          branches={branches}
+          staffList={MOCK_STAFF}
+          leaveRequests={leaveRequests}
+          onSubmitLeaveRequest={handleLeaveRequestSubmit}
+          onUpdateLeaveStatus={handleUpdateLeaveStatus}
+        />
+      )}
+
 
       {/* Main Header Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-md">
@@ -486,84 +523,98 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Navigation Tabs for Logged-In Users */}
+        {/* Navigation Tabs for Logged-In Users (2 Rows: 4 tabs on Row 1, 3 tabs on Row 2) */}
         {!isCustomerMode && currentUser && (
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3 overflow-x-auto">
-            {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+          <div className="bg-slate-900/90 border border-slate-800/90 p-2.5 rounded-2xl space-y-2 shadow-lg">
+            {/* Row 1: 4 Tabs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+                <button
+                  onClick={() => setActiveTab('admin')}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'admin'
+                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
+                      : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                  }`}
+                >
+                  <Cpu className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">Quản Trị System Admin</span>
+                </button>
+              )}
+
+              {(currentUser.role === 'founder' || currentUser.role === 'admin') && (
+                <button
+                  onClick={() => setActiveTab('dashboard')}
+                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                    activeTab === 'dashboard'
+                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                      : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                  }`}
+                >
+                  <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
+                  <span className="truncate">Executive Dashboard</span>
+                </button>
+              )}
+
               <button
-                onClick={() => setActiveTab('admin')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'admin'
-                    ? 'bg-cyan-500 text-slate-950 shadow-lg shadow-cyan-500/20 font-extrabold'
-                    : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                onClick={() => setActiveTab('attendance')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'attendance'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                 }`}
               >
-                <Cpu className="w-4 h-4" />
-                <span>Quản Trị Hệ Thống (System Admin)</span>
+                <Clock className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Chấm Công GPS Geofence</span>
               </button>
-            )}
 
-            {(currentUser.role === 'founder' || currentUser.role === 'admin') && (
               <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'dashboard'
-                    ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
-                    : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                onClick={() => setActiveTab('marketing')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'marketing'
+                    ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                 }`}
               >
-                <LayoutDashboard className="w-4 h-4" />
-                <span>Executive Dashboard (Toàn Chuỗi)</span>
+                <Megaphone className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Hiệu Suất Marketing</span>
               </button>
-            )}
+            </div>
 
-            <button
-              onClick={() => setActiveTab('attendance')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'attendance'
-                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
-              <Clock className="w-4 h-4" />
-              <span>Chấm Công GPS Geofence</span>
-            </button>
+            {/* Row 2: 3 Tabs */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <button
+                onClick={() => setActiveTab('tickets')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'tickets'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                }`}
+              >
+                <TicketCheck className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('marketing')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                activeTab === 'marketing'
-                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/20 font-extrabold'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
-              <Megaphone className="w-4 h-4" />
-              <span>📢 Hiệu Suất Marketing</span>
-            </button>
+              <button
+                onClick={() => setActiveTab('training')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'training'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-extrabold'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                }`}
+              >
+                <GraduationCap className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Đào Tạo LMS 60 Ngày</span>
+              </button>
 
-            <button
-              onClick={() => setActiveTab('tickets')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'tickets'
-                  ? 'bg-amber-500 text-slate-950 shadow-lg shadow-amber-500/20 font-extrabold'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
-              <TicketCheck className="w-4 h-4" />
-              <span>Phiếu Dịch Vụ & Sửa Chữa (QR)</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('training')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                activeTab === 'training'
-                  ? 'bg-emerald-500 text-slate-950 shadow-lg shadow-emerald-500/20 font-extrabold'
-                  : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
-              }`}
-            >
-              <GraduationCap className="w-4 h-4" />
-              <span>Đào Tạo & Khảo Thí (LMS)</span>
-            </button>
+              <button
+                onClick={() => setShowAIHRModal(true)}
+                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 shadow-sm"
+              >
+                <UserCheck className="w-4 h-4 text-rose-400 animate-pulse flex-shrink-0" />
+                <span className="truncate">Xin & Duyệt Phép (AI HR)</span>
+              </button>
+            </div>
           </div>
         )}
 

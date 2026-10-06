@@ -309,12 +309,16 @@ Câu hỏi của nhân viên: ${userMessage}`;
           <div className="mt-4">
             <div className="flex justify-between text-[10px] text-slate-400 font-bold mb-1">
               <span>Tiến độ hoàn thành</span>
-              <span className="text-emerald-400">{Math.round((progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100)}%</span>
+              {currentUser?.role === 'founder' ? (
+                <span className="text-amber-400 font-bold">👑 BAN GIÁM ĐỐC / OWNER</span>
+              ) : (
+                <span className="text-emerald-400">{Math.round((progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100)}%</span>
+              )}
             </div>
             <div className="w-full bg-slate-800 rounded-full h-1.5 mb-4">
               <div 
                 className="bg-emerald-500 h-1.5 rounded-full transition-all duration-1000" 
-                style={{ width: `${(progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100}%` }}
+                style={{ width: `${currentUser?.role === 'founder' ? 100 : (progress.filter(p => p.status === 'COMPLETED').length / (lessons.length || 1)) * 100}%` }}
               ></div>
             </div>
             

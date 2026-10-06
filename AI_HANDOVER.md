@@ -56,14 +56,19 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 - Đưa tệp `pk88-og-meta-tags.jpg` vào `public/pk88-og-meta-tags.jpg`.
 - Cấu hình đầy đủ các thẻ Meta Tags (`og:image`, `og:title`, `og:description`, `twitter:image`...) trong `index.html`. Mỗi khi share link web trên Zalo, Facebook, Telegram đều hiển thị banner cực kỳ chuyên nghiệp.
 
-### G. Hệ Sinh Thái Trợ Lý Ảo (4 AI Agents - gemini-flash-lite-latest) - UPDATED (06/10/2026)
+### G. Hệ Sinh Thái Trợ Lý Ảo (5 AI Agents - gemini-flash-lite-latest) - UPDATED (06/10/2026)
 - **Mô Hình Sử Dụng:** Toàn bộ AI Agent đều gọi mô hình `gemini-flash-lite-latest` từ Gemini API.
 - **Cấu Trúc Đa API (Multi-API Support):** Xử lý chuỗi `VITE_GEMINI_API_KEY` xoay vòng linh hoạt chống nghẽn API (Round-Robin Random).
-- **Danh sách 4 AI Agents trên Portal:**
+- **Danh sách 5 AI Agents trên Portal:**
   1. **Chatbot Chị 8 & Bé 8 (CSKH & Bán Hàng):** Floating Widget góc màn hình nhúng từ `https://chatbot-pk88.vercel.app/`.
   2. **Chatbot Đào Tạo AI (Trợ Lý LMS 60 Ngày):** Tích hợp trong `TrainingLMS.tsx`, giải đáp nội quy, quy trình & bài học LMS.
   3. **Sư Phụ Kỹ Thuật AI (Master Technician Bậc 8/8):** Tích hợp trong `AITechnicianModal.tsx`, tư vấn pan bệnh phần cứng & camera OCR đọc ảnh màn vỡ / bo mạch hỏng.
   4. **AI Content Studio (Chị 8 Marketing):** Tích hợp trong `AIContentStudioModal.tsx`, sáng tạo nội dung PR, Facebook, Zalo, TikTok.
+  5. **Trợ Lý AI HR (Chị 8 Hành Chính & Duyệt Phép Tự Động):** Tích hợp trong `AIHRModal.tsx`, hỗ trợ bóc tách tin nhắn xin nghỉ tự nhiên, đánh giá rủi ro thiếu nhân sự ca trực & cho phép Manager/HR duyệt đơn trực tiếp. Cấu hình đặc thù:
+     - **Founder (Anh Ngô Hồng Thao):** Miễn chấm công GPS, miễn nộp đơn xin nghỉ, nhận diện chủ sở hữu.
+     - **Admin (Anh Trần Hoàng Sang - System Creator):** Nhận diện tác giả sáng tạo ra AI HR, xưng hô tôn kính "Sếp Sang/Boss", hỗ trợ điều hành hệ thống.
+     - **Tự động khởi tạo đơn phép & Ghi nhớ ngữ cảnh đa lượt (Multi-turn Chat Memory):** Đóng gói toàn bộ `formattedHistory` trong mỗi lần gọi API Gemini. AI HR tự động ghi nhớ các thông tin nhân viên đã nói ở tin nhắn trước (lý do "đi đám cưới ở Huế", ngày "17-18/10") để tổng hợp vào đơn phép chính xác mà không hỏi đi hỏi lại.
+     - **Ma trận duyệt phép & Phân quyền chi nhánh:** Manager chỉ duyệt nhân sự Sales/Kỹ thuật CÙNG CHI NHÁNH; Manager trở lên nộp đơn phải qua HR & Founder duyệt. Log rõ thông tin người bấm Duyệt / Từ chối đơn.
 
 ---
 
