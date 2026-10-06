@@ -779,22 +779,94 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
       {activeSubTab === 'ai' && (
         <div className="glass-card rounded-2xl p-5 border border-slate-800 space-y-4 text-xs">
-          <h3 className="text-sm font-bold text-slate-100">Cấu Hình Mô Hình AI Engine (Gemini 1.5 Flash & Pro)</h3>
-          <div className="space-y-3">
-            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div>
+              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                <Cpu className="w-4 h-4 text-cyan-400" />
+                <span>Cấu Hình Mô Hình AI Engine (Gemini Flash Lite Latest)</span>
+              </h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Hệ thống xoay vòng API Key tự động (Round-Robin Multi-API Key Support)</p>
+            </div>
+            <span className="px-2.5 py-1 bg-cyan-500/10 text-cyan-400 rounded-lg border border-cyan-500/30 font-mono text-[11px] font-bold">
+              LLM: gemini-flash-lite-latest
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+            {/* 1. Chatbot Chị 8 & Bé 8 */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800/90 hover:border-cyan-500/40 transition-all flex flex-col justify-between space-y-3">
               <div>
-                <div className="font-bold text-slate-200">Chatbot Chị 8 (Tư Vấn Bán Hàng)</div>
-                <div className="text-slate-400 text-[11px]">URL Live: https://chatbot-pk88.vercel.app/</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
+                    1. Chatbot Chị 8 & Bé 8 (Tư Vấn Bán Hàng & CSKH)
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-mono text-[10px] font-bold">ACTIVE</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">Widget độc lập được nhúng góc màn hình qua Vercel Host.</p>
+                <div className="mt-2 text-[11px] font-mono text-cyan-400/90 truncate">URL: https://chatbot-pk88.vercel.app/</div>
               </div>
-              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 font-mono">ACTIVE</span>
+              <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
+                <span>Loại: Floating Widget</span>
+                <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
+              </div>
             </div>
 
-            <div className="bg-slate-900 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between">
+            {/* 2. Chatbot Đào Tạo AI */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800/90 hover:border-emerald-500/40 transition-all flex flex-col justify-between space-y-3">
               <div>
-                <div className="font-bold text-slate-200">AI Invoice OCR Agent (Đọc Hóa Đơn NCC MISA)</div>
-                <div className="text-slate-400 text-[11px]">Model: Gemini 1.5 Vision OCR API</div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+                    2. Chatbot Đào Tạo AI (Trợ Lý Nội Bộ LMS 60 Ngày)
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-mono text-[10px] font-bold">ACTIVE</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">Hỏi đáp trực tiếp quy trình, luật thử việc và giải bài trắc nghiệm LMS.</p>
+                <div className="mt-2 text-[11px] text-emerald-400/90">Phân hệ: Đào Tạo & Khảo Thí (LMS)</div>
               </div>
-              <span className="px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 font-mono">ACTIVE</span>
+              <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
+                <span>Loại: Internal LMS Assistant</span>
+                <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
+              </div>
+            </div>
+
+            {/* 3. Sư Phụ Kỹ Thuật AI */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800/90 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+                    3. Sư Phụ Kỹ Thuật AI (Chẩn Đoán Pan Bệnh & OCR)
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-mono text-[10px] font-bold">ACTIVE</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">Tư vấn sửa mainboard, cảnh báo an toàn & đọc hình ảnh vết nứt/hỏng qua camera OCR.</p>
+                <div className="mt-2 text-[11px] text-amber-400/90">Phân hệ: Phiếu Dịch Vụ & Sửa Chữa (QR)</div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
+                <span>Loại: Multimodal Vision & Tech Assistant</span>
+                <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
+              </div>
+            </div>
+
+            {/* 4. AI Content Studio */}
+            <div className="bg-slate-900 p-4 rounded-xl border border-slate-800/90 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-3">
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold text-slate-100 text-xs flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-purple-400"></span>
+                    4. AI Content Studio (Chị 8 Marketing)
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-500/10 text-emerald-400 rounded border border-emerald-500/20 font-mono text-[10px] font-bold">ACTIVE</span>
+                </div>
+                <p className="text-slate-400 text-[11px]">Sáng tạo bài viết PR, caption Facebook/Zalo/TikTok & kịch bản video ngắn.</p>
+                <div className="mt-2 text-[11px] text-purple-400/90">Phân hệ: Hiệu Suất Marketing</div>
+              </div>
+              <div className="pt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex justify-between">
+                <span>Loại: Creative Content Generator</span>
+                <span className="font-mono text-slate-400">gemini-flash-lite-latest</span>
+              </div>
             </div>
           </div>
         </div>

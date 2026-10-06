@@ -1,55 +1,112 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 29/09/2026 (Phiên 2)*
+*Ngày cập nhật mới nhất: 30/09/2026 (Phiên 3 & 4)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
-## 1. TỔNG QUAN DỰ ÁN
-- **Tên dự án:** PK88 Automation Portal
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự và theo dõi doanh thu thời gian thực cho chuỗi Phụ Kiện 88 (6 chi nhánh).
-- **Tech Stack:** React (TypeScript), Vite, Tailwind CSS, Supabase (PostgreSQL), Lucide React.
-- **Triển khai (Deployment):** Đang chạy live trên Vercel qua Github (`pk88-hub`).
+---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (ĐẾN HIỆN TẠI)
-- **UI/UX:** Thiết kế theo phong cách Glassmorphism, Dark Mode đẹp mắt, hiện đại với đầy đủ các màn hình (Login, Dashboard, Chấm công, Phiếu sửa chữa, Quản trị Admin).
-- **Auth Flow:** Đã cài đặt màn hình khóa `LoginModal.tsx`. Chỉ cho phép sử dụng web khi đã đăng nhập.
-- **Chấm công GPS (Core Feature):** 
-  - Tính toán khoảng cách tọa độ (Geofencing 35m).
-  - Tích hợp ghi nhận trực tiếp vào **Supabase**.
-  - **[QUAN TRỌNG] Đã fix lỗi Foreign Key (`staff_id`)**: Ban đầu, các nhân viên mock ở Frontend không tồn tại trong bảng `staff` của Supabase, dẫn đến lỗi insert ngầm. Logic hiện tại trong `AttendanceCard.tsx` đã được viết lại: *Tự động dò tìm nhân viên theo số điện thoại, nếu chưa có trong DB thì tự động tạo record `staff` mới rồi mới tiến hành insert `attendance`*. Mọi tài khoản giờ đây đều có thể chấm công và hiển thị đồng bộ.
-- **Executive Dashboard:** Lấy dữ liệu attendance live từ Supabase để hiển thị danh sách check-in realtime cho Founder.
-- **AI Chatbot (Chị 8 & Bé 8):** Đã hoàn thiện và nhúng trực tiếp vào website dưới dạng Floating Widget (`AIChatDrawer.tsx`).
-- **Phân Hệ Đào Tạo (LMS) - NEW (29/09):**
-  - Xây dựng 60 bài học tương ứng 60 ngày thử việc (`PK88_Insert_All_Lessons_V2.sql`).
-  - Áp dụng luật **1 bài/ngày**: Khóa bài học tiếp theo cho đến khi qua ngày hôm sau (`TrainingLMS.tsx`).
-  - Thiết kế bộ 180 câu hỏi trắc nghiệm kiểm tra chéo (`PK88_Insert_Quizzes_V3.sql`).
-  - Quản lý theo dõi tiến độ nhân viên phân chia theo Chi Nhánh trên `AdminPanel.tsx`.
-  - Đã fix lỗi xung đột UUID `staff_id` (ép kiểu sang TEXT) để lưu `staff_progress` mượt mà.
-- **Quản lý Phiếu Sửa Chữa (Repair Tickets):** Đã hoàn thiện, kết nối trực tiếp với bảng `repair_tickets` trên Supabase (Thêm mới/Cập nhật trạng thái đều dùng dữ liệu thật).
-- **[Cập nhật mới - 30/09/2026 - Phiên 3]:**
-  - **Multi-Role Payroll Engine (Bảng Lương Đa Vai Trò):** Cập nhật hệ số lương cơ bản `22.700đ/giờ` cho Sales, `30.000đ/giờ` cho Kỹ thuật, Lương cố định tháng cho Khối Văn Phòng (HR 12tr, Marketing 14tr, Kế toán 13.5tr, TP. Kinh doanh 15tr, Founder 0đ).
-  - **Chuẩn hóa 50+ Nhân Sự (6 Chi Nhánh):** Khởi tạo bộ 48 nhân sự giả lập + 4 nhân sự HQ phân bổ đều cho 6 chi nhánh với đầy đủ nhật ký chấm công mẫu.
-  - **Bộ Lọc Chi Nhánh, Tìm Kiếm & Sắp Xếp Cấp Bậc (Hierarchy Sorting):** Tích hợp bộ lọc 6 chi nhánh, thanh tìm kiếm tên/SĐT và tự động sắp xếp danh sách theo thứ bậc quản trị (Founder -> Admin -> TP Kinh Doanh -> Kế toán -> Marketing -> HR -> Quản lý -> Kỹ thuật -> Sales).
+## 1. TỔNG QUAN DỰ ÁN
+- **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự 50+ người (6 chi nhánh), tính lương tự động đa vai trò và hệ thống LMS đào tạo nội bộ 60 ngày.
+- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React.
+- **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
+- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
+
+---
+
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (ĐẾN PHIÊN 30/09/2026)
+
+### A. Giao Diện & Trải Nghiệm Người Dùng (UI/UX)
+- Thiết kế phong cách Glassmorphism, Dark Mode đẹp mắt, hiện đại.
+- Màn hình khóa đăng nhập (`LoginModal.tsx`) bảo vệ hệ thống.
+
+### B. Chấm Công GPS Geofencing (Core Feature)
+- Kiểm tra bán kính 35m từ tọa độ từng cửa hàng.
+- Tự động dò tìm nhân viên theo Số Điện Thoại (`phone`), tự tạo record `staff` nếu chưa có để tránh lỗi Foreign Key `staff_id`.
+
+### C. Quản Lý Nhân Sự & Bảng Lương Đa Vai Trò (Multi-Role Payroll Engine) - NEW (30/09)
+- **Hệ số lương đa dạng theo vị trí:**
+  - `sales`: `22.700 đ/giờ` (Theo giờ làm check-in GPS)
+  - `technician`: `30.000 đ/giờ` (Theo giờ làm check-in GPS)
+  - `manager`: `8.500.000 đ/tháng` (Lương cố định tháng)
+  - `hr` (HC-NS): `12.000.000 đ/tháng` (Lương cố định)
+  - `accountant` (Kế toán trưởng): `13.500.000 đ/tháng` (Lương cố định)
+  - `marketing` (Marketing): `14.000.000 đ/tháng` (Lương cố định)
+  - `sales_head` (TP. Kinh doanh): `15.000.000 đ/tháng (+ KPI Chuỗi)` (Lương cứng + KPI)
+  - `admin` (Chuyên viên Công nghệ - anh Trần Hoàng Sang): `19.000.000 đ/tháng (Chính thức)` (Lương thử việc 16tr)
+  - `founder` (Ngô Hồng Thao): `0 đ` (`Chủ sở hữu - Không nhận lương`)
+- **Tập dữ liệu 50+ Nhân Sự:** Khởi tạo bộ 48 nhân sự giả lập + 4 nhân sự HQ chia đều cho 6 chi nhánh (mỗi chi nhánh 8 người: 1 Manager, 2 Technicians, 5 Sales + Khối HQ Bến Tre 1).
+- **Bộ Lọc & Tìm Kiếm:**
+  - Bộ lọc Dropdown theo 6 Chi nhánh.
+  - Thanh tìm kiếm realtime theo Tên hoặc Số điện thoại.
+  - Form Thêm Nhân sự Mới đầy đủ 8 vai trò + Dropdown chọn Chi nhánh công tác.
+  - Quản lý trạng thái 🟢 `Đang làm việc` / 🔴 `Đã nghỉ việc` (Soft Delete / Deactivate) + Nút Xóa nhân viên.
+- **Sắp Xếp Cấp Bậc Quản Trị (Hierarchy Priority Sorting):**
+  - Danh sách nhân sự và bảng lương tự động sắp xếp theo thứ bậc: `Founder` -> `Admin` -> `TP. Kinh Doanh` -> `Kế Toán` -> `Marketing` -> `HR` -> `Quản Lý` -> `Kỹ Thuật` -> `Bán Hàng`.
+
+### D. Hệ Thống Đào Tạo Nội Bộ (LMS 60 Ngày)
+- 60 bài học tương ứng 60 ngày thử việc (Luật 1 bài/ngày).
+- 180 câu hỏi trắc nghiệm kiểm tra chéo.
+- Bảng điều khiển LMS Analytics Dashboard (`recharts`) theo dõi tiến độ, vinh danh Top Học Bá & Cảnh báo đứng im.
+
+### E. Quản Lý Phiếu Sửa Chữa (Repair Tickets)
+- Kết nối trực tiếp với bảng `repair_tickets` trên Supabase (Thêm mới / Cập nhật trạng thái realtime).
+
+### F. Chuẩn Hóa Open Graph Meta Tags (SEO Sharing Banner) - NEW (30/09)
+- Đưa tệp `pk88-og-meta-tags.jpg` vào `public/pk88-og-meta-tags.jpg`.
+- Cấu hình đầy đủ các thẻ Meta Tags (`og:image`, `og:title`, `og:description`, `twitter:image`...) trong `index.html`. Mỗi khi share link web trên Zalo, Facebook, Telegram đều hiển thị banner cực kỳ chuyên nghiệp.
+
+### G. Hệ Sinh Thái Trợ Lý Ảo (4 AI Agents - gemini-flash-lite-latest) - UPDATED (06/10/2026)
+- **Mô Hình Sử Dụng:** Toàn bộ AI Agent đều gọi mô hình `gemini-flash-lite-latest` từ Gemini API.
+- **Cấu Trúc Đa API (Multi-API Support):** Xử lý chuỗi `VITE_GEMINI_API_KEY` xoay vòng linh hoạt chống nghẽn API (Round-Robin Random).
+- **Danh sách 4 AI Agents trên Portal:**
+  1. **Chatbot Chị 8 & Bé 8 (CSKH & Bán Hàng):** Floating Widget góc màn hình nhúng từ `https://chatbot-pk88.vercel.app/`.
+  2. **Chatbot Đào Tạo AI (Trợ Lý LMS 60 Ngày):** Tích hợp trong `TrainingLMS.tsx`, giải đáp nội quy, quy trình & bài học LMS.
+  3. **Sư Phụ Kỹ Thuật AI (Master Technician Bậc 8/8):** Tích hợp trong `AITechnicianModal.tsx`, tư vấn pan bệnh phần cứng & camera OCR đọc ảnh màn vỡ / bo mạch hỏng.
+  4. **AI Content Studio (Chị 8 Marketing):** Tích hợp trong `AIContentStudioModal.tsx`, sáng tạo nội dung PR, Facebook, Zalo, TikTok.
+
+---
 
 ## 3. CƠ SỞ DỮ LIỆU (SUPABASE)
-Các bảng hiện có và đang được sử dụng chính:
-- **`branches`**: Danh sách chi nhánh (id, name, lat, lng...)
-- **`staff`**: Danh sách nhân sự (id, full_name, phone, role, is_active)
-- **`attendance`**: Nhật ký chấm công.
-- **`courses`, `lessons`, `quizzes`, `staff_progress`:** Lưu trữ toàn bộ dữ liệu hệ thống đào tạo nội bộ. Lưu ý: `staff_progress` đã được loại bỏ Foreign Key Constraint cho `staff_id` và ép sang kiểu `TEXT` để phục vụ Frontend Login Fake.
+Các bảng chính:
+- **`branches`**: Danh sách 6 chi nhánh (id, code, name, lat, lng...)
+- **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active)
+- **`attendance`**: Nhật ký chấm công (id, staff_id, branch_id, check_in, check_out, work_hours...)
+- **`courses`, `lessons`, `quizzes`, `staff_progress`:** Cơ sở dữ liệu hệ thống đào tạo LMS 60 ngày.
 
-## 4. CÁC TÍNH NĂNG CẦN PHÁT TRIỂN TIẾP THEO (NEXT STEPS)
-AI Agent tiếp theo vui lòng tham khảo các ý tưởng sau hoặc làm theo yêu cầu trực tiếp của User:
-1. **Migration lên Production (Chuyển đổi dữ liệu thật):** 
-   - Tích hợp **Supabase Auth** để loại bỏ hoàn toàn cơ chế Đăng nhập giả lập bằng Modal (MOCK_STAFF).
-   - Viết trang Quản lý Nhân sự (Staff Management) để thao tác thêm/xóa/sửa nhân sự trực tiếp lên bảng `staff` ở Cloud Database.
-   - Khi đã có dữ liệu thật (50+ nhân viên), cần bổ sung chức năng **Filter theo Chi nhánh** và **Tìm kiếm tên** vào Dashboard để tránh quá tải UI.
-2. **Tích hợp Webhook KiotViet & n8n:** Phần giao diện Admin Panel đã có sẵn các cấu hình, cần viết logic nhận/gửi dữ liệu thực tế nếu User cung cấp API.
-3. **Gamification trong Đào tạo:** Bổ sung hệ thống cấp Huy hiệu (Badges) và Điểm kinh nghiệm (XP) cho LMS.
+---
 
-## 5. LƯU Ý ĐẶC BIỆT DÀNH CHO AI AGENT KẾ TIẾP
-- Hệ thống hiện tại đang sử dụng song song `MOCK_STAFF` (dùng để login nhanh qua Frontend) và `staff` thật trên Supabase. Khi xử lý logic liên quan đến ID nhân viên, **hãy luôn dùng số điện thoại (`phone`) làm định danh chính** để đồng bộ hoặc truy vấn dữ liệu từ Supabase, tránh lỗi lệch UUID.
-- Tại màn hình LMS Dashboard (`LMSDashboard.tsx`), vì chưa có Auth thật nên dữ liệu đang mapping bằng danh sách `MOCK_STAFF`. **TUYỆT ĐỐI** không đổi luồng chọc thẳng vào bảng `staff` trên Cloud lúc này để tránh làm gãy biểu đồ.
-- Luôn nhắc User commit và push code lên Github (`pk88-hub`) để Vercel tự động deploy sau mỗi lần thay đổi mã nguồn quan trọng.
-- KHÔNG chỉnh sửa các logic đã hoạt động trơn tru trong `AttendanceCard.tsx` trừ khi có yêu cầu thay đổi luồng nghiệp vụ rõ ràng.
+## 4. LƯU Ý ĐẶC BIỆT DÀNH CHO AI AGENT KẾ TIẾP
+1. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase để tránh lỗi sai lệch UUID giữa Mock Data và DB thật.
+2. **Sắp Xếp Cấp Bậc:** Khi hiển thị bất kỳ danh sách nhân sự nào, hãy duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) để thứ bậc nhân sự cấp cao luôn nằm ở trên cùng.
+3. **MOCK_ATTENDANCE Integration:** Trong `AdminPanel.tsx`, mảng `combinedLogs = [...attendanceLogs, ...MOCK_ATTENDANCE]` giúp giữ giờ làm giả lập cho 50+ nhân sự mock khi DB Cloud chưa có đủ dữ liệu live.
+4. **Hệ sinh thái AI Agent:** Tuyệt đối không dùng 1 API Key cố định. Phải code lấy chuỗi `VITE_GEMINI_API_KEY`, cắt bằng `.split(',')` và `Math.random()` để lấy Key ngẫu nhiên.
+5. **Deploy Vercel:** Nhắc User commit & push tất cả thay đổi trong `src/`, `public/` và `index.html` lên GitHub repository `pk88-hub` để Vercel tự động deploy bản live mới.
+
+---
+
+## 5. CÁC TÍNH NĂNG ĐỀ XUẤT NÂNG CẤP TRONG TƯƠNG LAI (BACKLOG)
+Để phát triển PK88 Automation Portal thành hệ thống ERP/Quản trị toàn diện, dưới đây là các tính năng được đề xuất để các AI Agent sau tham khảo triển khai:
+
+1. **Nhóm Quản lý Vận hành & Cửa hàng (Core Operations):**
+   - **Quản lý Kho & Tồn kho:** Theo dõi linh kiện/phụ kiện theo chi nhánh (Real-time), cảnh báo sắp hết hàng, luân chuyển hàng hóa.
+   - **Quản lý Khách hàng & Bảo hành (CRM):** Lưu lịch sử mua bán/sửa chữa qua SĐT, theo dõi thời hạn bảo hành tự động, tích lũy điểm thưởng.
+   - **Quản lý Doanh thu & Chi phí:** Báo cáo doanh thu bán lẻ/sửa chữa, quản lý dòng tiền (Cashflow) tại từng cửa hàng.
+
+2. **Nhóm Nâng cấp Quản trị Nhân sự (HR & Admin):**
+   - **Xin phép & Duyệt nghỉ (Leave Management):** Gửi yêu cầu xin nghỉ trên portal, tự động đồng bộ qua bảng lương sau khi duyệt.
+   - **Quản lý KPI & Hiệu suất:** Mở rộng KPI cho kỹ thuật viên (số máy sửa) và sales (doanh số bán).
+   - **Báo cáo Bất thường:** Cảnh báo tự động nếu đi trễ, về sớm hoặc check-in sai vị trí GPS nhiều lần.
+
+3. **Nhóm Nâng cấp Hệ sinh thái AI & Đào tạo (LMS):**
+   - **Bot Thông báo (Telegram/Zalo):** Tự động bắn tin về group cửa hàng (phiếu mới, quên check-in, doanh thu cuối ngày).
+   - **AI Data Analyst:** Chat với dữ liệu ("Hôm nay chi nhánh Bến Tre doanh thu bao nhiêu?").
+   - **Lộ trình thăng tiến (Career Path):** Mở khóa khóa học nâng cao thăng bậc sau 60 ngày thử việc.
+
+4. **Nhóm Trải nghiệm Người dùng (UX/UI):**
+   - **PWA (Progressive Web App):** Cài đặt thành app trên màn hình điện thoại (iOS/Android).
+   - **Xuất dữ liệu:** Export báo cáo, bảng lương, danh sách nhân sự ra PDF/Excel.
+
+---
 
 Chúc AI Agent tiếp theo hoàn thành xuất sắc nhiệm vụ! 🚀
