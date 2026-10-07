@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 30/09/2026 (Phiên 3 & 4)*
+*Ngày cập nhật mới nhất: 07/10/2026 (Phiên Chuẩn Hóa Bộ Não AI gemini-flash-lite-latest, Sửa Scroll Mobile & Nâng Cấp Năng Lực 5D Đa Vai Trò)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,111 +7,94 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự 50+ người (6 chi nhánh), tính lương tự động đa vai trò và hệ thống LMS đào tạo nội bộ 60 ngày.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự 50+ người (7 chi nhánh), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR và hệ thống LMS đào tạo nội bộ 60 ngày.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React.
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (ĐẾN PHIÊN 30/09/2026)
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 07/10/2026)
 
-### A. Giao Diện & Trải Nghiệm Người Dùng (UI/UX)
-- Thiết kế phong cách Glassmorphism, Dark Mode đẹp mắt, hiện đại.
-- Màn hình khóa đăng nhập (`LoginModal.tsx`) bảo vệ hệ thống.
+### A. Chuẩn Hóa 100% Hệ Sinh Thái AI - Duy Nhất 1 Bộ Não `gemini-flash-lite-latest` (NEW - 07/10)
+- **Đồng bộ Model AI Engine:** Tất cả 4 công cụ/Trợ lý AI chính trong hệ thống đều được khóa sử dụng **DUY NHẤT 1 bộ não AI**: `gemini-flash-lite-latest` (Loại bỏ toàn bộ các model fallback như `gemini-2.0-flash-lite` hay `gemini-1.5-flash` để tránh lỗi nghẽn hoặc không tương thích):
+  1. 🛠️ **AI Kỹ Thuật PK88 (Master Tech Bậc 8/8):** [`AITechnicianModal.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/AITechnicianModal.tsx)
+  2. 🎨 **Xưởng Sáng Tạo Nội Dung AI (Chị 8 Marketing):** [`AIContentStudioModal.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/AIContentStudioModal.tsx)
+  3. 🎓 **Trợ Lý Đào Tạo AI (LMS 60 Ngày):** [`TrainingLMS.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/TrainingLMS.tsx)
+  4. 📋 **Trợ Lý AI HR (Chị 8 Hành Chính & Duyệt Phép):** [`AIHRModal.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/AIHRModal.tsx)
+- **Cơ chế Xoay Vòng API Key (Key Rotation & Load Balancing):**
+  - Tự động cắt chuỗi `VITE_GEMINI_API_KEY` chứa nhiều key phân tách bằng dấu phẩy.
+  - Xoay vòng ngẫu nhiên và tự động thử lượt Key tiếp theo nếu gặp sự cố kết nối hoặc chạm quota.
 
-### B. Chấm Công GPS Geofencing (Core Feature)
-- Kiểm tra bán kính 35m từ tọa độ từng cửa hàng.
-- Tự động dò tìm nhân viên theo Số Điện Thoại (`phone`), tự tạo record `staff` nếu chưa có để tránh lỗi Foreign Key `staff_id`.
+### B. Sửa Triệt Để Lỗi Cuộn Trang & Khóa Màn Hình Trên Mobile Cho AI Kỹ Thuật (NEW - 07/10)
+- **Khắc phục sự cố Mobile:** Đã sửa lỗi màn hình bị dính cứng/khóa cuộn trên điện thoại trong [`AITechnicianModal.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/AITechnicianModal.tsx):
+  - Chuyển đổi khung chứa từ `h-[90vh] overflow-hidden` cố định sang dạng co giãn linh hoạt (`flex-col md:flex-row overflow-y-auto md:overflow-hidden`).
+  - **Tự động cuộn thông minh (Auto-scroll):** Khi bấm *"Chẩn Đoán Bệnh"*, giao diện trên điện thoại tự động trượt mượt xuống phần Kết quả & Hướng dẫn sửa chữa (`outputPanelRef.current?.scrollIntoView({ behavior: 'smooth' })`).
 
-### C. Quản Lý Nhân Sự & Bảng Lương Đa Vai Trò (Multi-Role Payroll Engine) - NEW (30/09)
-- **Hệ số lương đa dạng theo vị trí:**
-  - `sales`: `22.700 đ/giờ` (Theo giờ làm check-in GPS)
-  - `technician`: `30.000 đ/giờ` (Theo giờ làm check-in GPS)
-  - `manager`: `8.500.000 đ/tháng` (Lương cố định tháng)
-  - `hr` (HC-NS): `12.000.000 đ/tháng` (Lương cố định)
-  - `accountant` (Kế toán trưởng): `13.500.000 đ/tháng` (Lương cố định)
-  - `marketing` (Marketing): `14.000.000 đ/tháng` (Lương cố định)
-  - `sales_head` (TP. Kinh doanh): `15.000.000 đ/tháng (+ KPI Chuỗi)` (Lương cứng + KPI)
-  - `admin` (Chuyên viên Công nghệ - anh Trần Hoàng Sang): `19.000.000 đ/tháng (Chính thức)` (Lương thử việc 16tr)
-  - `founder` (Ngô Hồng Thao): `0 đ` (`Chủ sở hữu - Không nhận lương`)
-- **Tập dữ liệu 50+ Nhân Sự:** Khởi tạo bộ 48 nhân sự giả lập + 4 nhân sự HQ chia đều cho 6 chi nhánh (mỗi chi nhánh 8 người: 1 Manager, 2 Technicians, 5 Sales + Khối HQ Bến Tre 1).
-- **Bộ Lọc & Tìm Kiếm:**
-  - Bộ lọc Dropdown theo 6 Chi nhánh.
-  - Thanh tìm kiếm realtime theo Tên hoặc Số điện thoại.
-  - Form Thêm Nhân sự Mới đầy đủ 8 vai trò + Dropdown chọn Chi nhánh công tác.
-  - Quản lý trạng thái 🟢 `Đang làm việc` / 🔴 `Đã nghỉ việc` (Soft Delete / Deactivate) + Nút Xóa nhân viên.
-- **Sắp Xếp Cấp Bậc Quản Trị (Hierarchy Priority Sorting):**
-  - Danh sách nhân sự và bảng lương tự động sắp xếp theo thứ bậc: `Founder` -> `Admin` -> `TP. Kinh Doanh` -> `Kế Toán` -> `Marketing` -> `HR` -> `Quản Lý` -> `Kỹ Thuật` -> `Bán Hàng`.
+### C. Đánh Giá Năng Lực 5 Chiều Đa Vai Trò (Role-Specific 5D Competency Mapping) & Trình Chỉnh Sửa Trực Tiếp (NEW - 07/10)
+- **Bộ Tiêu Chí 5D Riêng Cho 9 Vị Trí:** Thay vì dùng chung tiêu chí bán hàng/sửa máy cho mọi người, hệ thống đã bản đồ hóa 5 chỉ số phù hợp với đúng vai trò:
+  - *Founder / Admin:* Quản Trị Chiến Lược, Vận Hành Tự Động Hóa, Quản Lý Tài Chính, Văn Hóa & Nhân Sự, Đổi Mới Công Nghệ.
+  - *TP. Kinh Doanh:* KPI Doanh Số Chuỗi, Quản Lý Chi Nhánh, Chiến Lược Marketing, Đào Tạo Đội Ngũ, Kỷ Luật Vận Hành.
+  - *Kế Toán:* Chính Xác Sổ Sách, Quản Lý Thu Chi, Báo Cáo Tài Chính, Kỷ Luật GPS, Bảo Mật Dữ Liệu.
+  - *Marketing:* Hiệu Quả Campaign, Sáng Tạo Content/Video, Chi Phí ADS/ROI, Tương Tác Khách Hàng, Tiến Độ LMS.
+  - *HR (HC-NS):* Tuyển Dụng & Hội Nhập, Quy Trình Nhân Sự, Đào Tạo LMS, Giải Quyết Khiếu Nại, Kỷ Luật Vận Hành.
+  - *Quản Lý Chi Nhánh (Manager):* Doanh Số Cửa Hàng, Quản Lý Nhân Sự, Thái Độ Phục Vụ, Quản Lý Kho Hàng, Kỷ Luật GPS.
+  - *Kỹ Thuật Viên (Technician):* Kỹ Thuật Sửa Chữa, Tỷ Lệ Bảo Hành, Kỷ Luật GPS, Thái Độ Khách Hàng, Tiến Độ LMS.
+  - *Nhân Viên Bán Hàng (Sales):* Doanh Số Bán Lẻ, Thái Độ Phục Vụ, Kỷ Luật GPS, Kiến Thức Sản Phẩm, Tiến Độ LMS.
+- **Trình Chỉnh Sửa Chỉ Số Trực Tiếp (Live Score Editor):** Cho phép Founder/Admin chỉnh sửa điểm năng lực 5D trực tiếp ngay trên giao diện Web App tại Modal Hồ sơ nhân sự ([`StaffDetailModal.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/StaffDetailModal.tsx)).
 
-### D. Hệ Thống Đào Tạo Nội Bộ (LMS 60 Ngày)
-- 60 bài học tương ứng 60 ngày thử việc (Luật 1 bài/ngày).
-- 180 câu hỏi trắc nghiệm kiểm tra chéo.
-- Bảng điều khiển LMS Analytics Dashboard (`recharts`) theo dõi tiến độ, vinh danh Top Học Bá & Cảnh báo đứng im.
+### D. Danh Sách Đồng Nghiệp Chi Nhánh (Branch Staff Directory Tab) - NEW (07/10)
+- **Tạo mới Component [`BranchStaffDirectory.tsx`](file:///c:/Users/ADMIN/Desktop/pk88-automation/src/components/BranchStaffDirectory.tsx):**
+  - Bổ sung Tab chính `👥 Đồng Nghiệp Chi Nhánh` trên thanh Menu trên cho nhân viên Sales và Kỹ thuật viên.
+  - Cho phép nhân sự xem danh sách đồng nghiệp cùng chi nhánh, số điện thoại, chức vụ, trạng thái ca trực.
+  - Xóa bỏ bảng danh sách đồng nghiệp trùng lặp bên dưới phần chấm công `AttendanceCard.tsx` để giao diện gọn gàng.
 
-### E. Quản Lý Phiếu Sửa Chữa (Repair Tickets)
-- Kết nối trực tiếp với bảng `repair_tickets` trên Supabase (Thêm mới / Cập nhật trạng thái realtime).
+### E. Giao Diện Bố Cục Điều Hướng 2 Hàng Cân Đối (2-Row Grid Layout Navigation)
+- Chuyển đổi toàn bộ 7 tab chính ở **App Header (`App.tsx`)** và 7 tab con trong **Admin Panel (`AdminPanel.tsx`)** sang **Bố cục Grid 2 Hàng Cân Đối** giúp hiển thị sắc nét trên cả PC, Tablet và Mobile, loại bỏ thanh cuộn ngang.
 
-### F. Chuẩn Hóa Open Graph Meta Tags (SEO Sharing Banner) - NEW (30/09)
-- Đưa tệp `pk88-og-meta-tags.jpg` vào `public/pk88-og-meta-tags.jpg`.
-- Cấu hình đầy đủ các thẻ Meta Tags (`og:image`, `og:title`, `og:description`, `twitter:image`...) trong `index.html`. Mỗi khi share link web trên Zalo, Facebook, Telegram đều hiển thị banner cực kỳ chuyên nghiệp.
+### F. Thẻ Nhân Sự Chân Dung & Profile Detail Modal
+- Tích hợp ảnh chân dung chuẩn chính chủ cho **Admin Trần Hoàng Sang** (`/tranhoangsang-admin.png`) và **Founder Ngô Hồng Thao** (`/ngohongthao-founder.jpg`).
+- Mã VietQR Code Thưởng Nóng trực tiếp qua Internet Banking.
 
-### G. Hệ Sinh Thái Trợ Lý Ảo (5 AI Agents - gemini-flash-lite-latest) - UPDATED (06/10/2026)
-- **Mô Hình Sử Dụng:** Toàn bộ AI Agent đều gọi mô hình `gemini-flash-lite-latest` từ Gemini API.
-- **Cấu Trúc Đa API (Multi-API Support):** Xử lý chuỗi `VITE_GEMINI_API_KEY` xoay vòng linh hoạt chống nghẽn API (Round-Robin Random).
-- **Danh sách 5 AI Agents trên Portal:**
-  1. **Chatbot Chị 8 & Bé 8 (CSKH & Bán Hàng):** Floating Widget góc màn hình nhúng từ `https://chatbot-pk88.vercel.app/`.
-  2. **Chatbot Đào Tạo AI (Trợ Lý LMS 60 Ngày):** Tích hợp trong `TrainingLMS.tsx`, giải đáp nội quy, quy trình & bài học LMS.
-  3. **Sư Phụ Kỹ Thuật AI (Master Technician Bậc 8/8):** Tích hợp trong `AITechnicianModal.tsx`, tư vấn pan bệnh phần cứng & camera OCR đọc ảnh màn vỡ / bo mạch hỏng.
-  4. **AI Content Studio (Chị 8 Marketing):** Tích hợp trong `AIContentStudioModal.tsx`, sáng tạo nội dung PR, Facebook, Zalo, TikTok.
-  5. **Trợ Lý AI HR (Chị 8 Hành Chính & Duyệt Phép Tự Động):** Tích hợp trong `AIHRModal.tsx`, hỗ trợ bóc tách tin nhắn xin nghỉ tự nhiên, đánh giá rủi ro thiếu nhân sự ca trực & cho phép Manager/HR duyệt đơn trực tiếp. Cấu hình đặc thù:
-     - **Founder (Anh Ngô Hồng Thao):** Miễn chấm công GPS, miễn nộp đơn xin nghỉ, nhận diện chủ sở hữu.
-     - **Admin (Anh Trần Hoàng Sang - System Creator):** Nhận diện tác giả sáng tạo ra AI HR, xưng hô tôn kính "Sếp Sang/Boss", hỗ trợ điều hành hệ thống.
-     - **Tự động khởi tạo đơn phép & Ghi nhớ ngữ cảnh đa lượt (Multi-turn Chat Memory):** Đóng gói toàn bộ `formattedHistory` trong mỗi lần gọi API Gemini. AI HR tự động ghi nhớ các thông tin nhân viên đã nói ở tin nhắn trước (lý do "đi đám cưới ở Huế", ngày "17-18/10") để tổng hợp vào đơn phép chính xác mà không hỏi đi hỏi lại.
-     - **Ma trận duyệt phép & Phân quyền chi nhánh:** Manager chỉ duyệt nhân sự Sales/Kỹ thuật CÙNG CHI NHÁNH; Manager trở lên nộp đơn phải qua HR & Founder duyệt. Log rõ thông tin người bấm Duyệt / Từ chối đơn.
+### G. Hệ Thống Chấm Công GPS Geofencing (Core Feature)
+- Kiểm tra bán kính 35m từ tọa độ 7 cửa hàng, tự động dò tìm nhân viên theo Số Điện Thoại (`phone`).
+
+### H. Quản Lý Nhân Sự & Bảng Lương Đa Vai Trò (Multi-Role Payroll Engine)
+- Hệ số lương đa dạng theo vị trí (Sales: 22.7k/h, Technician: 30k/h, Manager: 8.5M, HR: 12M, Accountant: 13.5M, Marketing: 14M, Sales Head: 15M, Admin: 19M, Founder: 0đ).
 
 ---
 
-## 3. CƠ SỞ DỮ LIỆU (SUPABASE)
-Các bảng chính:
-- **`branches`**: Danh sách 6 chi nhánh (id, code, name, lat, lng...)
-- **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active)
+## 3. QUY TRÌNH DEPLOY GITHUB & VERCEL (IMPORTANT)
+1. **Cách Upload Lên GitHub Web:**
+   - Kéo thả 2 thư mục chính: **`src`** (chứa toàn bộ mã nguồn React) và **`public`** (chứa ảnh đại diện thật).
+   - Nếu Vercel deploy từ bản build sẵn, kéo thả thêm thư mục **`dist`**.
+2. **Cơ chế Vercel:** Vercel kết nối tự động với GitHub repo `pk88-hub`. Khi có commit mới, Vercel sẽ tự động thực thi `npm run build` và deploy bản live mới nhất trên `https://pk88-hub.vercel.app/`.
+
+---
+
+## 4. CƠ SỞ DỮ LIỆU (SUPABASE)
+- **`branches`**: Danh sách chi nhánh (id, code, name, lat, lng...)
+- **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active, avatar_url)
 - **`attendance`**: Nhật ký chấm công (id, staff_id, branch_id, check_in, check_out, work_hours...)
-- **`courses`, `lessons`, `quizzes`, `staff_progress`:** Cơ sở dữ liệu hệ thống đào tạo LMS 60 ngày.
+- **`courses`, `lessons`, `quizzes`, `staff_progress`:** CSDL hệ thống đào tạo LMS 60 ngày.
 
 ---
 
-## 4. LƯU Ý ĐẶC BIỆT DÀNH CHO AI AGENT KẾ TIẾP
-1. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase để tránh lỗi sai lệch UUID giữa Mock Data và DB thật.
-2. **Sắp Xếp Cấp Bậc:** Khi hiển thị bất kỳ danh sách nhân sự nào, hãy duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) để thứ bậc nhân sự cấp cao luôn nằm ở trên cùng.
-3. **MOCK_ATTENDANCE Integration:** Trong `AdminPanel.tsx`, mảng `combinedLogs = [...attendanceLogs, ...MOCK_ATTENDANCE]` giúp giữ giờ làm giả lập cho 50+ nhân sự mock khi DB Cloud chưa có đủ dữ liệu live.
-4. **Hệ sinh thái AI Agent:** Tuyệt đối không dùng 1 API Key cố định. Phải code lấy chuỗi `VITE_GEMINI_API_KEY`, cắt bằng `.split(',')` và `Math.random()` để lấy Key ngẫu nhiên.
-5. **Deploy Vercel:** Nhắc User commit & push tất cả thay đổi trong `src/`, `public/` và `index.html` lên GitHub repository `pk88-hub` để Vercel tự động deploy bản live mới.
+## 5. LƯU Ý ĐẶC BIỆT DÀNH CHO AI AGENT KẾ TIẾP
+1. **Model AI duy nhất:** Mọi nâng cấp liên quan đến AI Agent bắt buộc giữ nguyên tên model `gemini-flash-lite-latest`.
+2. **Quản Lý Ảnh Avatar:** Avatar mặc định ưu tiên đọc `staff.avatarUrl`, sau đó fallback sang `AVATAR_FALLBACKS[staff.id]` trong `StaffDetailModal.tsx` / `AdminPanel.tsx`.
+3. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase.
+4. **Hierarchy Priority Sorting:** Duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) ở mọi màn hình hiển thị danh sách nhân sự.
 
 ---
 
-## 5. CÁC TÍNH NĂNG ĐỀ XUẤT NÂNG CẤP TRONG TƯƠNG LAI (BACKLOG)
-Để phát triển PK88 Automation Portal thành hệ thống ERP/Quản trị toàn diện, dưới đây là các tính năng được đề xuất để các AI Agent sau tham khảo triển khai:
-
-1. **Nhóm Quản lý Vận hành & Cửa hàng (Core Operations):**
-   - **Quản lý Kho & Tồn kho:** Theo dõi linh kiện/phụ kiện theo chi nhánh (Real-time), cảnh báo sắp hết hàng, luân chuyển hàng hóa.
-   - **Quản lý Khách hàng & Bảo hành (CRM):** Lưu lịch sử mua bán/sửa chữa qua SĐT, theo dõi thời hạn bảo hành tự động, tích lũy điểm thưởng.
-   - **Quản lý Doanh thu & Chi phí:** Báo cáo doanh thu bán lẻ/sửa chữa, quản lý dòng tiền (Cashflow) tại từng cửa hàng.
-
-2. **Nhóm Nâng cấp Quản trị Nhân sự (HR & Admin):**
-   - **Xin phép & Duyệt nghỉ (Leave Management):** Gửi yêu cầu xin nghỉ trên portal, tự động đồng bộ qua bảng lương sau khi duyệt.
-   - **Quản lý KPI & Hiệu suất:** Mở rộng KPI cho kỹ thuật viên (số máy sửa) và sales (doanh số bán).
-   - **Báo cáo Bất thường:** Cảnh báo tự động nếu đi trễ, về sớm hoặc check-in sai vị trí GPS nhiều lần.
-
-3. **Nhóm Nâng cấp Hệ sinh thái AI & Đào tạo (LMS):**
-   - **Bot Thông báo (Telegram/Zalo):** Tự động bắn tin về group cửa hàng (phiếu mới, quên check-in, doanh thu cuối ngày).
-   - **AI Data Analyst:** Chat với dữ liệu ("Hôm nay chi nhánh Bến Tre doanh thu bao nhiêu?").
-   - **Lộ trình thăng tiến (Career Path):** Mở khóa khóa học nâng cao thăng bậc sau 60 ngày thử việc.
-
-4. **Nhóm Trải nghiệm Người dùng (UX/UI):**
-   - **PWA (Progressive Web App):** Cài đặt thành app trên màn hình điện thoại (iOS/Android).
-   - **Xuất dữ liệu:** Export báo cáo, bảng lương, danh sách nhân sự ra PDF/Excel.
+## 6. CÁC TÍNH NĂNG ĐỀ XUẤT NÂNG CẤP TRONG TƯƠNG LAI (BACKLOG)
+1. **Quản lý Kho & Tồn kho:** Theo dõi linh kiện/phụ kiện theo chi nhánh (Real-time), cảnh báo sắp hết hàng.
+2. **Quản lý Khách hàng & Bảo hành (CRM):** Lưu lịch sử mua bán/sửa chữa qua SĐT, theo dõi thời hạn bảo hành tự động.
+3. **Bot Thông báo Telegram/Zalo:** Tự động bắn tin nhắn thông báo ca trực, phiếu sửa chữa mới, đơn xin nghỉ phép đã duyệt.
+4. **PWA (Progressive Web App):** Hỗ trợ cài đặt thành app độc lập trên màn hình điện thoại (iOS/Android).
 
 ---
 
-Chúc AI Agent tiếp theo hoàn thành xuất sắc nhiệm vụ! 🚀
+*Hồ sơ bàn giao đã hoàn tất đầy đủ. Chúc AI Agent tiếp theo hợp tác vui vẻ cùng anh Trần Hoàng Sang & Founder Ngô Hồng Thao để đưa Phụ Kiện 88 phát triển rực rỡ!* 🚀
+
