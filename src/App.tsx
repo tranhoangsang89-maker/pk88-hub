@@ -11,15 +11,16 @@ import { TrainingLMS } from './components/TrainingLMS';
 import { MarketingDashboard } from './components/MarketingDashboard';
 import { MarketingModal } from './components/MarketingModal';
 import { AIHRModal } from './components/AIHRModal';
+import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'tickets' | 'training' | 'marketing'>('attendance');
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'staff_directory' | 'tickets' | 'training' | 'marketing'>('attendance');
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
@@ -523,7 +524,7 @@ export function App() {
 
       {/* Main Content Area */}
       <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Navigation Tabs for Logged-In Users (2 Rows: 4 tabs on Row 1, 3 tabs on Row 2) */}
+        {/* Navigation Tabs for Logged-In Users (2 Rows: 4 tabs on Row 1, balanced per Role) */}
         {!isCustomerMode && currentUser && (
           <div className="bg-slate-900/90 border border-slate-800/90 p-2.5 rounded-2xl space-y-2 shadow-lg">
             {/* Row 1: 4 Tabs */}
@@ -569,31 +570,75 @@ export function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('marketing')}
+                onClick={() => setActiveTab('staff_directory')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'marketing'
-                    ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
+                  activeTab === 'staff_directory'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
                     : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                 }`}
               >
-                <Megaphone className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Hiệu Suất Marketing</span>
+                <Users className="w-4 h-4 flex-shrink-0 text-cyan-400" />
+                <span className="truncate">Đồng Nghiệp Chi Nhánh</span>
               </button>
+
+              {!(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('tickets')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'tickets'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <TicketCheck className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('marketing')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'marketing'
+                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <Megaphone className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Hiệu Suất Marketing</span>
+                  </button>
+                </>
+              )}
             </div>
 
-            {/* Row 2: 3 Tabs */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-              <button
-                onClick={() => setActiveTab('tickets')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'tickets'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <TicketCheck className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
-              </button>
+            {/* Row 2 */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-2">
+              {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+                <>
+                  <button
+                    onClick={() => setActiveTab('tickets')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'tickets'
+                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <TicketCheck className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('marketing')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'marketing'
+                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <Megaphone className="w-4 h-4 flex-shrink-0" />
+                    <span className="truncate">Hiệu Suất Marketing</span>
+                  </button>
+                </>
+              )}
 
               <button
                 onClick={() => setActiveTab('training')}
@@ -652,6 +697,14 @@ export function App() {
                   attendanceHistory={attendanceHistory}
                 />
               </div>
+            )}
+
+            {activeTab === 'staff_directory' && currentUser && (
+              <BranchStaffDirectory
+                currentBranch={selectedBranch}
+                currentUser={currentUser}
+                staffList={MOCK_STAFF}
+              />
             )}
 
             {activeTab === 'tickets' && currentUser && (

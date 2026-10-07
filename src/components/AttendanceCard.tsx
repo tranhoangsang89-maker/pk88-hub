@@ -41,7 +41,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     (r.staffId === currentStaff.id || (r.notes && r.notes.includes(currentStaff.phone))) && 
     new Date(r.checkIn).toDateString() === todayDateStr
   );
-  // Record has no checkOut
   const activeRecord = todayRecords.find(r => !r.checkOut);
   const isCurrentlyCheckedIn = !!activeRecord;
 
@@ -82,7 +81,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
     if (isCurrentlyCheckedIn && activeRecord) {
-      // CHECK-OUT LOGIC
       const checkInTime = new Date(activeRecord.checkIn);
       const diffMs = now.getTime() - checkInTime.getTime();
       const workHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
@@ -93,7 +91,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       setActionMessage(`Đã Tan Ca thành công! Số giờ làm: ${workHours}h`);
       
       try {
-        // Try to update Supabase
         const { error } = await supabase.from('attendance')
           .update({
             check_out: nowIso,
@@ -115,7 +112,6 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       });
       
     } else {
-      // CHECK-IN LOGIC
       const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - Check-in ${selectedShift} Hợp lệ (${currentBranch.name})`;
 
       const newRecord: AttendanceRecord = {
@@ -147,12 +143,12 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         const { data: sData } = await supabase.from('staff').select('id').eq('phone', currentStaff.phone).single();
         if (sData) dbStaffId = sData.id;
         else {
-          const { data: newStaff, error: staffErr } = await supabase.from('staff').insert([{ full_name: currentStaff.fullName, phone: currentStaff.phone, role: currentStaff.role }]).select().single();
+          const { data: newStaff } = await supabase.from('staff').insert([{ full_name: currentStaff.fullName, phone: currentStaff.phone, role: currentStaff.role }]).select().single();
           if (newStaff) dbStaffId = newStaff.id;
         }
 
         if (dbBranchId && dbStaffId) {
-          const { error: insertErr } = await supabase.from('attendance').insert([{
+          await supabase.from('attendance').insert([{
             staff_id: dbStaffId,
             branch_id: dbBranchId,
             check_in: nowIso,
@@ -163,177 +159,122 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
             is_verified: true,
             notes: noteText
           }]);
-          if (insertErr) console.error('Supabase Insert Error:', insertErr);
         }
-      } catch (err) {
-        console.error('Supabase Sync error:', err);
+      } catch (e) {
+        console.error('Supabase attendance insert:', e);
       }
-      
+
       onCheckInSuccess(newRecord);
     }
-    
-    // Hide success message after 3 seconds
-    setTimeout(() => {
-      setShowSuccessMsg(false);
-    }, 3000);
   };
 
   return (
-    <div className="glass-card rounded-2xl p-5 border border-slate-800 shadow-2xl relative overflow-hidden">
-      <div className="absolute -top-12 -right-12 w-40 h-40 bg-rose-500/10 rounded-full blur-3xl pointer-events-none"></div>
-
-      <div className="flex items-center justify-between pb-4 mb-4 border-b border-slate-800/80">
-        <div>
-          <div className="flex items-center gap-2">
-            <h3 className="text-base font-bold text-slate-100">Chấm Công Định Vị GPS</h3>
-            <span className="text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-full">
-              Geofencing 35m
-            </span>
+    <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-slate-900/90 shadow-xl space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+        <div className="flex items-center gap-2">
+          <MapPin className="w-5 h-5 text-amber-500 animate-pulse" />
+          <div>
+            <h3 className="text-base font-extrabold text-slate-100">Chấm Công Định Vị GPS</h3>
+            <p className="text-xs text-slate-400">Xác thực tọa độ cửa hàng {currentBranch.name}</p>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">Xác thực tọa độ cửa hàng {currentBranch.name}</p>
         </div>
-        <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center border border-slate-700/60 text-slate-300">
-          <MapPin className="w-5 h-5 text-rose-500" />
-        </div>
+        <span className="text-[10px] font-mono bg-cyan-500/10 text-cyan-400 border border-cyan-500/30 px-2.5 py-1 rounded-full font-bold">
+          Geofencing 35m
+        </span>
       </div>
 
-      <div className="bg-slate-900/60 rounded-xl p-3 border border-slate-800 mb-4 flex items-center justify-between">
+      {/* Current Staff Context Banner */}
+      <div className="bg-slate-950/80 border border-slate-800 rounded-xl p-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center font-bold text-amber-400">
+          <div className="w-10 h-10 rounded-full bg-amber-500/20 border border-amber-500/40 text-amber-400 flex items-center justify-center font-bold text-sm">
             {currentStaff.fullName.charAt(0)}
           </div>
           <div>
-            <div className="text-xs font-semibold text-slate-200 flex items-center gap-1.5">
-              <span>{currentStaff.fullName}</span>
-              {currentStaff?.role === 'founder' && (
-                <span className="text-[10px] bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full font-bold">
-                  CHỦ DOANH NGHIỆP
-                </span>
-              )}
-            </div>
-            <div className="text-[11px] text-slate-400">{currentStaff.phone}</div>
+            <div className="text-xs font-extrabold text-slate-200">{currentStaff.fullName}</div>
+            <div className="text-[10px] text-slate-400 font-mono">{currentStaff.phone}</div>
           </div>
         </div>
+
         <div className="text-right">
-          <span className="text-[11px] font-mono text-slate-400">Bán kính tối đa</span>
-          <div className="text-xs font-bold text-slate-200">{ALLOWED_RADIUS} mét</div>
+          <div className="text-[10px] text-slate-400 uppercase font-semibold">Bán kính tối đa</div>
+          <div className="text-xs font-mono font-bold text-cyan-400">{ALLOWED_RADIUS} mét</div>
         </div>
       </div>
 
-      {currentStaff?.role === 'founder' && (
-        <div className="mb-4 p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
-          <span className="text-base">👑</span>
-          <div>
-            <div className="font-bold">Đặc quyền Ban Giám Đốc / Founder:</div>
-            <div className="text-[11px] text-amber-200/80">Bạn là Chủ sở hữu Phụ Kiện 88 - Hệ thống tự động miễn nghĩa vụ chấm công GPS & thử việc.</div>
-          </div>
-        </div>
-      )}
+      {/* Shift Selection */}
+      <div className="space-y-1.5">
+        <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider block">
+          1. CHỌN CA LÀM VIỆC CỦA BẠN
+        </label>
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={() => setSelectedShift('CA_SANG')}
+            className={`p-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              selectedShift === 'CA_SANG'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
+                : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <div>Ca Sáng (07:00 - 15:00)</div>
+          </button>
 
-      {!isCurrentlyCheckedIn && !showSuccessMsg && (
-        <div className="mb-5 bg-slate-900/40 p-3 rounded-xl border border-slate-800/60">
-          <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-2">1. Chọn ca làm việc của bạn</label>
-          <div className="grid grid-cols-2 gap-2">
-            {isOffice ? (
-              <button
-                type="button"
-                className={`col-span-2 py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
-                  selectedShift === 'HANH_CHINH' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                }`}
-                onClick={() => setSelectedShift('HANH_CHINH')}
-              >
-                Giờ Hành Chính (08:00 - 17:00)
-              </button>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
-                    selectedShift === 'CA_SANG' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                  }`}
-                  onClick={() => setSelectedShift('CA_SANG')}
-                >
-                  Ca Sáng (07:00 - 15:00)
-                </button>
-                <button
-                  type="button"
-                  className={`py-2 px-3 rounded-lg text-xs font-bold transition-all border ${
-                    selectedShift === 'CA_CHIEU' ? 'bg-rose-500/20 text-rose-400 border-rose-500/50' : 'bg-slate-800 text-slate-400 border-slate-700 hover:bg-slate-700'
-                  }`}
-                  onClick={() => setSelectedShift('CA_CHIEU')}
-                >
-                  Ca Chiều (14:00 - 22:00)
-                </button>
-              </>
-            )}
-          </div>
+          <button
+            onClick={() => setSelectedShift('CA_CHIEU')}
+            className={`p-3 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+              selectedShift === 'CA_CHIEU'
+                ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md'
+                : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'
+            }`}
+          >
+            <div>Ca Chiều (14:00 - 22:00)</div>
+          </button>
         </div>
-      )}
+      </div>
 
-      <div className={`rounded-xl p-4 border transition-all mb-5 ${
-        isValidGeofence
-          ? 'bg-emerald-950/20 border-emerald-500/30 glow-emerald'
-          : isOutsideGeofence
-            ? 'bg-rose-950/20 border-rose-500/30 glow-red'
-            : 'bg-slate-900/40 border-slate-800'
-      }`}>
-        <div className="flex items-start justify-between">
-          <div className="flex items-center gap-2">
-            <Navigation className={`w-4 h-4 ${isValidGeofence ? 'text-emerald-400 animate-spin-slow' : isOutsideGeofence ? 'text-rose-400' : 'text-slate-500'}`} />
-            <span className="text-xs font-semibold text-slate-300">Khoảng cách đến shop:</span>
-          </div>
-          <div className={`text-lg font-extrabold font-mono ${isValidGeofence ? 'text-emerald-400' : isOutsideGeofence ? 'text-rose-400' : 'text-slate-500'}`}>
-            {hasRealGps || isDevelopment ? formatDistance(distance) : '—'}
-          </div>
+      {/* Distance Indicator Box */}
+      <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3.5 space-y-2">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-slate-300 flex items-center gap-1.5 font-bold">
+            <Navigation className="w-4 h-4 text-cyan-400" />
+            <span>Khoảng cách đến shop:</span>
+          </span>
+          <span className={`font-mono text-sm font-black ${isValidGeofence ? 'text-emerald-400' : 'text-rose-400'}`}>
+            {formatDistance(distance)}
+          </span>
         </div>
 
-        <div className="mt-3 pt-3 border-t border-slate-800/60 flex items-center justify-between text-xs">
+        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/60">
           <div className="flex items-center gap-1.5">
-            {isDevelopment && !hasRealGps && isValidGeofence ? (
+            {!hasRealGps ? (
               <>
-                <CheckCircle2 className="w-4 h-4 text-amber-400" />
-                <span className="text-amber-300 font-medium">Mô phỏng trong phạm vi (DEV)</span>
-              </>
-            ) : isDevelopment && !hasRealGps ? (
-              <>
-                <XCircle className="w-4 h-4 text-rose-400" />
-                <span className="text-rose-300 font-medium">Mô phỏng ngoài bán kính 35m (DEV)</span>
+                <Clock className="w-4 h-4 text-amber-400" />
+                <span className="text-amber-300 font-medium">Mô phỏng khoảng cách (DEV)</span>
               </>
             ) : isValidGeofence ? (
               <>
                 <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                 <span className="text-emerald-300 font-medium">Hợp lệ (Đang ở trong shop)</span>
               </>
-            ) : isOutsideGeofence ? (
+            ) : (
               <>
                 <XCircle className="w-4 h-4 text-rose-400" />
                 <span className="text-rose-300 font-medium">Vượt quá bán kính 35m</span>
               </>
-            ) : (
-              <span className="text-slate-400 font-medium">Chưa xác định vị trí</span>
             )}
           </div>
-          <div className="flex items-center gap-3">
-            {isDevelopment && (
-              <button
-                onClick={() => setUserCoords({ lat: currentBranch.lat, lng: currentBranch.lng })}
-                className="text-[10px] font-bold bg-amber-500/20 text-amber-400 px-2 py-1 rounded-md hover:bg-amber-500/30"
-              >
-                Mock GPS (Dev)
-              </button>
-            )}
-            <button
-              onClick={handleGetLocation}
-              disabled={loadingLoc}
-              className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600 cursor-pointer"
-            >
-              {loadingLoc ? 'Đang cập nhật...' : 'Lấy GPS thực tế'}
-            </button>
-          </div>
+
+          <button
+            onClick={handleGetLocation}
+            disabled={loadingLoc}
+            className="text-[11px] font-medium text-slate-400 hover:text-slate-200 underline decoration-slate-600 cursor-pointer"
+          >
+            {loadingLoc ? 'Đang cập nhật...' : 'Lấy GPS thực tế'}
+          </button>
         </div>
 
         {isDevelopment && (
-          <div className="mt-3 pt-2 border-t border-slate-800/40">
+          <div className="mt-2 pt-2 border-t border-slate-800/40">
             <div className="flex items-center justify-between text-[11px] text-slate-400 mb-1">
               <span>Mô phỏng khoảng cách (Test nhanh):</span>
               <span className="font-mono text-slate-200 font-bold">{simulatedOffsetMeters}m</span>
@@ -344,18 +285,13 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
               max="100"
               value={simulatedOffsetMeters}
               onChange={(e) => setSimulatedOffsetMeters(Number(e.target.value))}
-              className="w-full accent-rose-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer"
+              className="w-full accent-amber-500 bg-slate-800 h-1.5 rounded-lg cursor-pointer"
             />
           </div>
         )}
-        {!hasRealGps && locError && (
-          <p role="status" className="mt-3 text-xs text-amber-300">{locError}</p>
-        )}
-        {!hasRealGps && !isDevelopment && !locError && (
-          <p role="status" className="mt-3 text-xs text-slate-400">Chưa xác định vị trí. Hãy lấy GPS thực tế để kiểm tra khoảng cách.</p>
-        )}
       </div>
 
+      {/* Action Button */}
       {showSuccessMsg ? (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-xl p-3.5 text-center">
           <div className="flex items-center justify-center gap-2 text-emerald-400 font-bold text-sm mb-1">
@@ -387,11 +323,12 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </button>
       )}
 
-      <div className="mt-6 pt-4 border-t border-slate-800">
+      {/* Personal Attendance History */}
+      <div className="mt-4 pt-3 border-t border-slate-800">
         <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">Lịch sử chấm công gần nhất</h4>
         <div className="space-y-2">
-          {visibleAttendanceHistory.slice(0, 5).map((item) => (
-            <div key={item.id} className="flex items-center justify-between text-xs bg-slate-900/40 p-2.5 rounded-lg border border-slate-800">
+          {visibleAttendanceHistory.slice(0, 4).map((item) => (
+            <div key={item.id} className="flex items-center justify-between text-xs bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-400"></div>
                 <div className="flex flex-col">

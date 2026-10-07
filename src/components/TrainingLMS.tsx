@@ -201,17 +201,13 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
     setIsChatLoading(true);
 
     try {
-      // Hỗ trợ xoay vòng API Key (nếu VITE_GEMINI_API_KEY là danh sách phân tách bằng dấu phẩy)
-      const apiKeysString = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKeysString) {
+      const apiKeysString = import.meta.env.VITE_GEMINI_API_KEY || '';
+      const apiKeys = apiKeysString.split(',').map((k: string) => k.trim()).filter(Boolean);
+      if (apiKeys.length === 0) {
         setChatMessages(prev => [...prev, { role: 'ai', text: 'Thiếu cấu hình VITE_GEMINI_API_KEY. Vui lòng liên hệ Admin.' }]);
         setIsChatLoading(false);
         return;
       }
-      
-      const apiKeys = apiKeysString.split(',').map((k: string) => k.trim()).filter(Boolean);
-      // Chọn ngẫu nhiên 1 key trong danh sách để chia đều tải (Load Balancing)
-      const apiKey = apiKeys[Math.floor(Math.random() * apiKeys.length)];
 
       const allLessonsText = lessons.map(l => `Bài Ngày ${l.dayNumber} - ${l.title}:\n${l.content}`).join('\n\n');
 
@@ -241,20 +237,42 @@ Dựa vào thông tin trên, hãy trả lời câu hỏi của nhân viên một
 
 Câu hỏi của nhân viên: ${userMessage}`;
 
-      const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.3 } // Low temp for more factual answers
-        })
-      });
+      const MODEL_NAME = 'gemini-flash-lite-latest';
+      let successText = '';
+      let lastError = '';
 
-      const data = await response.json();
-      if (data.candidates && data.candidates[0].content.parts[0].text) {
-        setChatMessages(prev => [...prev, { role: 'ai', text: data.candidates[0].content.parts[0].text }]);
+      const shuffledKeys = [...apiKeys].sort(() => Math.random() - 0.5);
+      for (const apiKey of shuffledKeys) {
+        try {
+          const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [{ parts: [{ text: prompt }] }],
+              generationConfig: { temperature: 0.3 }
+            })
+          });
+
+          if (response.ok) {
+            const data = await response.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              successText = text;
+              break;
+            }
+          } else {
+            const errJson = await response.json().catch(() => ({}));
+            lastError = errJson?.error?.message || `HTTP ${response.status}`;
+          }
+        } catch (err: any) {
+          lastError = err.message || 'Lỗi mạng';
+        }
+      }
+
+      if (successText) {
+        setChatMessages(prev => [...prev, { role: 'ai', text: successText }]);
       } else {
-        setChatMessages(prev => [...prev, { role: 'ai', text: 'Hệ thống AI đang bảo trì hoặc phản hồi bị lỗi.' }]);
+        setChatMessages(prev => [...prev, { role: 'ai', text: `⚠️ Không thể kết nối với Trợ Lý Đào Tạo AI (${lastError}). Vui lòng thử lại sau.` }]);
       }
     } catch (err) {
       console.error(err);

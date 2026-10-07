@@ -1261,6 +1261,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
         staff={selectedStaffForDetail}
         branch={branches.find(b => b.id === selectedStaffForDetail?.branchId)}
         onClose={() => setSelectedStaffForDetail(null)}
+        onUpdateScores={(staffId, updatedScores) => {
+          setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, competencyScores: updatedScores } : s));
+          setSelectedStaffForDetail(prev => prev && prev.id === staffId ? { ...prev, competencyScores: updatedScores } : prev);
+        }}
       />
     </div>
   );

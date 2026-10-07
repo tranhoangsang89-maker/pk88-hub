@@ -255,19 +255,43 @@ QUY TẮC BẮT BUỘC VỀ TRÍ NHỚ NỐI NỐI NGỮ CẢNH (CHAT CONTEXT PE
 2. TUYỆT ĐỐI KHÔNG ĐƯỢC HỎI LẠI những thông tin mà nhân viên ĐÃ NÓI TRONG CÁC TIN NHẮN TRƯỚC (Ví dụ: Ngày xin nghỉ phép, Lý do đi đâu/làm gì, Người trực thay).
 3. Khi khởi tạo khối JSON "CREATE_LEAVE_REQUEST", phải tự động GOM TẤT CẢ THÔNG TIN nhân viên đã cung cấp từ đầu phiên chat đến giờ (ví dụ: ngày nghỉ 17, 18/10, lý do "đi ăn đám cưới ở Huế"). KHÔNG ĐƯỢC để lý do là "Chờ bổ sung lý do" khi nhân viên đã từng nói lý do ở các tin nhắn trước đó!`;
 
-      const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            { role: 'user', parts: [{ text: userPromptWithHistory }] }
-          ]
-        })
-      });
+      const MODEL_NAME = 'gemini-flash-lite-latest';
+      let reply = '';
+      let lastError = '';
 
-      const data = await res.json();
-      let reply = data.candidates?.[0]?.content?.parts?.[0]?.text || 'Xin lỗi, AI HR đang bận. Vui lòng thử lại!';
+      const shuffledKeys = [...allKeys].sort(() => Math.random() - 0.5);
+      for (const apiKey of shuffledKeys) {
+        try {
+          const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+          const res = await fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                { role: 'user', parts: [{ text: userPromptWithHistory }] }
+              ]
+            })
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+            if (text) {
+              reply = text;
+              break;
+            }
+          } else {
+            const errJson = await res.json().catch(() => ({}));
+            lastError = errJson?.error?.message || `HTTP status ${res.status}`;
+          }
+        } catch (err: any) {
+          lastError = err.message || 'Network error';
+        }
+      }
+
+      if (!reply) {
+        reply = `Xin lỗi, không thể kết nối tới AI HR (${lastError || 'Lỗi hệ thống'}). Vui lòng thử lại!`;
+      }
 
       // Inspect if response contains CREATE_LEAVE_REQUEST JSON block
       const jsonMatch = reply.match(/```json\s*([\s\S]*?)\s*```/);

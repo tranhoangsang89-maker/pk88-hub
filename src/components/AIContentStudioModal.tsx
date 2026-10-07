@@ -65,9 +65,8 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
     setLoading(true);
     setResult('');
     
-    const allKeys = (import.meta.env.VITE_GEMINI_API_KEY || '').split(',').map((k: string) => k.trim());
-    const apiKey = allKeys[Math.floor(Math.random() * allKeys.length)] || 'AIzaSy_MOCK_KEY_FOR_BUILD';
-    const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${apiKey}`;
+    const envKeys = import.meta.env.VITE_GEMINI_API_KEY || '';
+    const allKeys = envKeys.split(',').map((k: string) => k.trim()).filter(Boolean);
 
     const currentDate = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
     const systemInstruction = `[THÔNG TIN HỆ THỐNG]: Hôm nay là ${currentDate}. Hãy ghi nhớ mốc thời gian này để viết content bắt trend, phù hợp với thời điểm hiện tại.
@@ -95,40 +94,62 @@ Yêu cầu định dạng [Bài viết Fanpage/Zalo + Gợi ý ảnh]:
 
 Viết bằng tiếng Việt, định dạng Markdown rõ ràng, sáng tạo, thực tế, đúng phong cách yêu cầu. Không thêm phần giới thiệu dông dài.`;
 
-    try {
-      if (!import.meta.env.VITE_GEMINI_API_KEY) {
-        console.warn("VITE_GEMINI_API_KEY is not set. Using mocked response for demo.");
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        setResult(`**[DEMO MODE - CHƯA CẤU HÌNH API KEY]**\n\nNội dung được tạo ra bởi AI dựa trên: ${product}, phong cách: ${style}.\n\nVui lòng thêm \`VITE_GEMINI_API_KEY\` vào file \`.env\` để sử dụng tính năng này thật sự.`);
-        setLoading(false);
-        return;
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: systemInstruction }] }],
-          generationConfig: { temperature: 0.7, maxOutputTokens: 1024 }
-        })
-      });
-
-      if (!res.ok) {
-        throw new Error(`Lỗi API: ${res.statusText}`);
-      }
-
-      const data = await res.json();
-      if (data.candidates && data.candidates[0].content.parts[0].text) {
-        setResult(data.candidates[0].content.parts[0].text);
-      } else {
-        setResult('Không thể tạo nội dung. Vui lòng thử lại.');
-      }
-    } catch (error: any) {
-      console.error(error);
-      setResult(`Đã xảy ra lỗi khi gọi AI: ${error.message}`);
-    } finally {
+    if (allKeys.length === 0) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      setResult(`**[DEMO MODE - CHƯA CẤU HÌNH API KEY]**\n\nNội dung được tạo ra bởi AI dựa trên: ${product}, phong cách: ${style}.\n\nVui lòng thêm \`VITE_GEMINI_API_KEY\` vào file \`.env\` để sử dụng tính năng này thật sự.`);
       setLoading(false);
+      return;
     }
+
+    const MODEL_NAME = 'gemini-flash-lite-latest';
+    let lastError = '';
+    let successText = '';
+
+    const requestPayload = {
+      system_instruction: {
+        parts: [{ text: systemInstruction }]
+      },
+      contents: [{ parts: [{ text: `Tạo nội dung marketing cho sản phẩm: ${product}` }] }],
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024
+      }
+    };
+
+    // Shuffle and rotate API keys using strictly gemini-flash-lite-latest
+    const shuffledKeys = [...allKeys].sort(() => Math.random() - 0.5);
+    for (const apiKey of shuffledKeys) {
+      try {
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${apiKey}`;
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestPayload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (text) {
+            successText = text;
+            break;
+          }
+        } else {
+          const errJson = await res.json().catch(() => ({}));
+          lastError = errJson?.error?.message || `HTTP ${res.status}`;
+        }
+      } catch (err: any) {
+        lastError = err.message || 'Network error';
+      }
+    }
+
+    if (successText) {
+      setResult(successText);
+    } else {
+      setResult(`⚠️ Không thể tạo nội dung với AI Studio (${lastError}). Vui lòng kiểm tra VITE_GEMINI_API_KEY.`);
+    }
+
+    setLoading(false);
   };
 
   const copyToClipboard = () => {
