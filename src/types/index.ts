@@ -1,4 +1,4 @@
-export type UserRole = 'founder' | 'admin' | 'manager' | 'technician' | 'sales' | 'customer' | 'hr' | 'marketing' | 'accountant' | 'sales_head';
+export type UserRole = 'founder' | 'admin' | 'manager' | 'technician' | 'sales' | 'customer' | 'hr' | 'marketing' | 'accountant' | 'sales_head' | 'media' | 'warehouse_accountant';
 
 export interface Product {
   id: string;
@@ -39,6 +39,7 @@ export interface Staff {
   avatarUrl?: string;
   code?: string;
   joinDate?: string;
+  birthDate?: string;
   email?: string;
   competencyScores?: CompetencyScores;
 }

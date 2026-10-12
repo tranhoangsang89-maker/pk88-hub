@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Branch, Staff, UserRole, CompetencyScores } from '../types';
-import { Users, Search, Filter, Phone, ShieldCheck, Star, Building2, ChevronRight, UserCheck, Sparkles } from 'lucide-react';
+import { Users, Search, Filter, Phone, ShieldCheck, Star, Building2, ChevronRight, UserCheck, Sparkles, Gift } from 'lucide-react';
 import { StaffDetailModal } from './StaffDetailModal';
 
 interface BranchStaffDirectoryProps {
@@ -22,22 +22,39 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
 
   // Filter staff by selected branch
   const branchStaff = staffList.filter(s => {
-    if (s.branchId === currentBranch.id) return true;
+    // 1. Direct match by branch ID
+    if (s.branchId && s.branchId === currentBranch.id) return true;
     
-    // Fallback matching by branch code / prefix
-    if (currentBranch.code === 'PK88_BENTRE_1' && (s.id.startsWith('s1') || s.id === 's0' || s.id === 's112' || s.id === 's111' || s.id === 's110' || s.id === 's109')) return true;
-    if (currentBranch.code === 'PK88_BENTRE_2' && s.id.startsWith('s2')) return true;
-    if (currentBranch.code === 'PK88_MYTHO' && s.id.startsWith('s3')) return true;
-    if (currentBranch.code === 'PK88_VINHLONG' && s.id.startsWith('s4')) return true;
-    if (currentBranch.code === 'PK88_CANTHO' && s.id.startsWith('s5')) return true;
-    if (currentBranch.code === 'PK88_TRAVINH' && s.id.startsWith('s6')) return true;
+    // 2. Match by Branch Code & Employee code prefixes
+    if (currentBranch.code === 'PK88_VANPHONG') {
+      if (s.code === 'PK88-FOUNDER' || s.code === 'PK88-ADMIN') return true;
+      if (s.code && ['PK88-034', 'PK88-035', 'PK88-036', 'PK88-037', 'PK88-038'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_PHUKHUONG' || currentBranch.code === 'PK88_BENTRE_1') {
+      if (s.code && ['PK88-001', 'PK88-002', 'PK88-003', 'PK88-004', 'PK88-005', 'PK88-006', 'PK88-007', 'PK88-008', 'PK88-009'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_DONGKHOI' || currentBranch.code === 'PK88_BENTRE_2') {
+      if (s.code && ['PK88-010', 'PK88-011', 'PK88-012', 'PK88-013'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_VINHLONG') {
+      if (s.code && ['PK88-014', 'PK88-015', 'PK88-016', 'PK88-017', 'PK88-018'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_MYTHO') {
+      if (s.code && ['PK88-019', 'PK88-020', 'PK88-021', 'PK88-022', 'PK88-023', 'PK88-024'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_CANTHO') {
+      if (s.code && ['PK88-025', 'PK88-026', 'PK88-027', 'PK88-028', 'PK88-029', 'PK88-030'].includes(s.code)) return true;
+    }
+    if (currentBranch.code === 'PK88_THUDUC') {
+      if (s.code && ['PK88-031', 'PK88-032', 'PK88-033'].includes(s.code)) return true;
+    }
     
     return false;
   });
 
   // Hierarchy Sorting
   const ROLE_PRIORITY: Record<string, number> = {
-    founder: 1, admin: 2, sales_head: 3, accountant: 4, marketing: 5, hr: 6, manager: 7, technician: 8, sales: 9
+    founder: 1, admin: 2, sales_head: 3, accountant: 4, warehouse_accountant: 4, marketing: 5, media: 5, hr: 6, manager: 7, technician: 8, sales: 9
   };
 
   const sortedStaff = [...branchStaff].sort((a, b) => {
@@ -49,7 +66,10 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
   // Filter by search & role
   const filteredStaff = sortedStaff.filter(s => {
     const matchesSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
-    const matchesRole = roleFilter === 'ALL' || s.role === roleFilter;
+    const matchesRole = roleFilter === 'ALL' || 
+      s.role === roleFilter ||
+      (roleFilter === 'accountant' && (s.role === 'accountant' || s.role === 'warehouse_accountant')) ||
+      (roleFilter === 'marketing' && (s.role === 'marketing' || s.role === 'media'));
     return matchesSearch && matchesRole;
   });
 
@@ -80,8 +100,8 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
           {/* Quick Stats Badges */}
           <div className="flex items-center gap-2 text-xs">
             <div className="bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800 flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-300">Tổ chức: <strong className="text-emerald-400">7 Chi Nhánh</strong></span>
+              <ShieldCheck className={`w-4 h-4 ${currentBranch.isActive ? 'text-emerald-400' : 'text-rose-400'}`} />
+              <span className="text-slate-300">Trạng thái: <strong className={currentBranch.isActive ? 'text-emerald-400' : 'text-rose-400'}>{currentBranch.isActive ? 'Đang Hoạt Động' : 'Tạm Đóng (Offline)'}</strong></span>
             </div>
           </div>
         </div>
@@ -114,7 +134,8 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
             { key: 'sales', label: 'Bán hàng' },
             { key: 'hr', label: 'HC - NS' },
             { key: 'accountant', label: 'Kế toán' },
-            { key: 'marketing', label: 'Marketing' }
+            { key: 'marketing', label: 'Marketing' },
+            { key: 'media', label: 'Media' }
           ].map(f => (
             <button
               key={f.key}
@@ -141,7 +162,9 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
             staffMember.role === 'admin' ? 'Admin System' :
             staffMember.role === 'sales_head' ? 'TP. Kinh Doanh' :
             staffMember.role === 'accountant' ? 'Kế Toán Trưởng' :
+            staffMember.role === 'warehouse_accountant' ? 'Kế Toán Kho' :
             staffMember.role === 'marketing' ? 'Chuyên Viên Marketing' :
+            staffMember.role === 'media' ? 'Chuyên Viên Media' :
             staffMember.role === 'hr' ? 'Chuyên Viên HC - NS' :
             staffMember.role === 'manager' ? 'Quản Lý Chi Nhánh' :
             staffMember.role === 'technician' ? 'Kỹ Thuật Viên' : 'Nhân Viên Bán Hàng';
@@ -150,7 +173,9 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
             staffMember.role === 'founder' || staffMember.role === 'admin' ? 'from-purple-500 to-indigo-600 border-purple-400 text-purple-200' :
             staffMember.role === 'sales_head' ? 'from-amber-500 to-orange-600 border-amber-400 text-amber-200' :
             staffMember.role === 'accountant' ? 'from-emerald-500 to-teal-600 border-emerald-400 text-emerald-200' :
+            staffMember.role === 'warehouse_accountant' ? 'from-teal-500 to-emerald-600 border-teal-400 text-teal-200' :
             staffMember.role === 'marketing' ? 'from-pink-500 to-rose-600 border-pink-400 text-pink-200' :
+            staffMember.role === 'media' ? 'from-fuchsia-500 to-rose-500 border-fuchsia-400 text-fuchsia-200' :
             staffMember.role === 'hr' ? 'from-sky-500 to-cyan-600 border-sky-400 text-sky-200' :
             staffMember.role === 'technician' ? 'from-blue-500 to-cyan-600 border-blue-400 text-blue-200' :
             'from-cyan-500 to-blue-600 border-cyan-400 text-cyan-200';
@@ -162,6 +187,21 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
              (staffMember.competencyScores?.kpi || 88) +
              (staffMember.competencyScores?.lms || 94)) / 5
           );
+
+          const isBday = (() => {
+            if (!staffMember.birthDate) return false;
+            let d: number | null = null, m: number | null = null;
+            if (staffMember.birthDate.includes('-')) {
+              const p = staffMember.birthDate.split('-');
+              if (p.length === 3) { m = parseInt(p[1], 10); d = parseInt(p[2], 10); }
+            } else if (staffMember.birthDate.includes('/')) {
+              const p = staffMember.birthDate.split('/');
+              if (p.length === 3) { m = parseInt(p[1], 10); d = parseInt(p[0], 10); }
+            }
+            if (!d || !m) return false;
+            const now = new Date();
+            return d === now.getDate() && m === (now.getMonth() + 1);
+          })();
 
           return (
             <div
@@ -195,11 +235,19 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
                       {roleDisplay}
                     </span>
 
-                    {isMe && (
-                      <span className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full text-[9px] font-black uppercase">
-                        BẠN
-                      </span>
-                    )}
+                    <div className="flex items-center gap-1">
+                      {isBday && (
+                        <span className="flex items-center gap-1 px-2 py-0.5 bg-gradient-to-r from-pink-500/30 to-purple-500/30 text-pink-300 border border-pink-500/50 rounded-full text-[9px] font-black animate-pulse shadow-sm shadow-pink-500/20" title="Sinh nhật hôm nay!">
+                          <Gift className="w-3 h-3 text-pink-400 fill-pink-400/40 animate-bounce" /> 🎂
+                        </span>
+                      )}
+
+                      {isMe && (
+                        <span className="px-2 py-0.5 bg-amber-500 text-slate-950 rounded-full text-[9px] font-black uppercase">
+                          BẠN
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <h3 className="text-sm font-extrabold text-white truncate group-hover:text-cyan-300 transition-colors">
@@ -251,8 +299,12 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
       <StaffDetailModal
         staff={selectedColleague}
         branch={currentBranch}
+        canEdit={currentUser?.role === 'founder' || currentUser?.role === 'admin'}
         onClose={() => setSelectedColleague(null)}
         onUpdateScores={onUpdateScores}
+        onUpdateStaff={(updatedStaff) => {
+          setSelectedColleague(updatedStaff);
+        }}
       />
     </div>
   );

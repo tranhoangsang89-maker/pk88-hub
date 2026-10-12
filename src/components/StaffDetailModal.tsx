@@ -2,17 +2,22 @@ import React, { useState, useEffect } from 'react';
 import { Staff, Branch, UserRole, CompetencyScores } from '../types';
 import { 
   X, Phone, Mail, Calendar, Award, CheckCircle2, ShieldCheck, 
-  MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw
+  MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw,
+  Gift, Cake, PartyPopper
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 
 interface StaffDetailModalProps {
   staff: Staff | null;
   branch?: Branch;
+  branches?: Branch[];
   totalHours?: number;
   totalSalary?: number;
   onClose: () => void;
   onUpdateScores?: (staffId: string, updatedScores: CompetencyScores) => void;
+  onUpdateStaff?: (updatedStaff: Staff) => void;
+  canEdit?: boolean;
+  initialEditMode?: boolean;
 }
 
 // Curated high quality avatar placeholders for demonstration
@@ -93,11 +98,31 @@ export const ROLE_COMPETENCY_CONFIG: Record<UserRole, {
       { key: 'lms', label: '5. Kỷ Luật Đúng Hạn Campaign & Đo Lường ROI', color: 'text-sky-400', progressGradient: 'from-sky-500 to-indigo-500' },
     ]
   },
+  media: {
+    title: 'Đánh Giá Năng Lực Chuyên Viên Media',
+    dimensions: [
+      { key: 'expertise', label: '1. Kỹ Thuật Quay Phim, Chụp Ảnh & Edit Video', color: 'text-cyan-400', progressGradient: 'from-cyan-500 to-blue-500' },
+      { key: 'discipline', label: '2. Tiến Độ Sản Xuất Media & Lịch Đăng Bài Chuỗi', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
+      { key: 'attitude', label: '3. Sáng Tạo Ý Tưởng Viral & Bắt Trend Phụ Kiện', color: 'text-amber-400', progressGradient: 'from-amber-500 to-orange-400' },
+      { key: 'kpi', label: '4. Hiệu Quả Lượng View, Tương Tác & Chất Lượng Video', color: 'text-purple-400', progressGradient: 'from-purple-500 to-pink-500' },
+      { key: 'lms', label: '5. Tiến Độ LMS 60 Ngày & Kỷ Luật Công Việc', color: 'text-sky-400', progressGradient: 'from-sky-500 to-indigo-500' },
+    ]
+  },
+  warehouse_accountant: {
+    title: 'Đánh Giá Năng Lực Kế Toán Kho',
+    dimensions: [
+      { key: 'expertise', label: '1. Độ Chính Xác Nhập - Xuất - Tồn Kho & Kiểm Kê', color: 'text-cyan-400', progressGradient: 'from-cyan-500 to-blue-500' },
+      { key: 'discipline', label: '2. Kiểm Soát Luân Chuyển Hàng Giữa Các Chi Nhánh', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
+      { key: 'attitude', label: '3. Quyết Toán Chứng Từ Nhập Hàng Đúng Hạn', color: 'text-amber-400', progressGradient: 'from-amber-500 to-orange-400' },
+      { key: 'kpi', label: '4. Giảm Thiểu Thất Thoát, Lỗi Hàng & Tồn Kho Ảo', color: 'text-purple-400', progressGradient: 'from-purple-500 to-pink-500' },
+      { key: 'lms', label: '5. Kỷ Luật Báo Cáo Tồn Kho & Bảng Cân Đối Kho', color: 'text-sky-400', progressGradient: 'from-sky-500 to-indigo-500' },
+    ]
+  },
   sales_head: {
     title: 'Đánh Giá Năng Lực Trưởng Phòng Kinh Doanh',
     dimensions: [
       { key: 'expertise', label: '1. Chiến Lược Bán Hàng & Mở Rộng Thị Trường', color: 'text-cyan-400', progressGradient: 'from-cyan-500 to-blue-500' },
-      { key: 'discipline', label: '2. KPI Tổng Doanh Số 7 Chi Nhánh', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
+      { key: 'discipline', label: '2. KPI Tổng Doanh Số Toàn Chuỗi Chi Nhánh', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
       { key: 'attitude', label: '3. Thúc Đẩy, Truyền Cảm Hứng & Đào Tạo Sales', color: 'text-amber-400', progressGradient: 'from-amber-500 to-orange-400' },
       { key: 'kpi', label: '4. Nghiên Cứu Sản Phẩm Mới & Chính Sách Giá', color: 'text-purple-400', progressGradient: 'from-purple-500 to-pink-500' },
       { key: 'lms', label: '5. Kỷ Luật Điều Hành & Đạt Mục Tiêu Chuỗi', color: 'text-sky-400', progressGradient: 'from-sky-500 to-indigo-500' },
@@ -138,10 +163,14 @@ export const ROLE_COMPETENCY_CONFIG: Record<UserRole, {
 export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   staff,
   branch,
+  branches = [],
   totalHours = 176.0,
   totalSalary = 0,
   onClose,
-  onUpdateScores
+  onUpdateScores,
+  onUpdateStaff,
+  canEdit = true,
+  initialEditMode = false
 }) => {
   if (!staff) return null;
 
@@ -161,13 +190,34 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
 
+  // Profile Edit State
+  const [isEditingProfile, setIsEditingProfile] = useState<boolean>(initialEditMode);
+  const [editFullName, setEditFullName] = useState<string>('');
+  const [editPhone, setEditPhone] = useState<string>('');
+  const [editBranchId, setEditBranchId] = useState<string>('');
+  const [editRole, setEditRole] = useState<UserRole>('sales');
+  const [editJoinDate, setEditJoinDate] = useState<string>('');
+  const [editBirthDate, setEditBirthDate] = useState<string>('');
+  const [editEmail, setEditEmail] = useState<string>('');
+  const [editIsActive, setEditIsActive] = useState<boolean>(true);
+  const [savingProfile, setSavingProfile] = useState<boolean>(false);
+
   // Sync state if staff changes
   useEffect(() => {
     if (staff) {
       setScores(staff.competencyScores || initialScores);
       setIsEditing(false);
+      setIsEditingProfile(initialEditMode);
+      setEditFullName(staff.fullName || '');
+      setEditPhone(staff.phone || '');
+      setEditBranchId(staff.branchId || (branch ? branch.id : ''));
+      setEditRole(staff.role || 'sales');
+      setEditJoinDate(staff.joinDate || '');
+      setEditBirthDate(staff.birthDate || '');
+      setEditEmail(staff.email || '');
+      setEditIsActive(staff.isActive !== undefined ? staff.isActive : true);
     }
-  }, [staff]);
+  }, [staff, initialEditMode]);
 
   // Derive display values
   const staffCode = staff.code || `PK88-NV${staff.id.replace(/\D/g, '').padStart(3, '0')}`;
@@ -177,7 +227,9 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     staff.role === 'admin' ? 'Admin & System Automation' :
     staff.role === 'sales_head' ? 'Trưởng Phòng Kinh Doanh' :
     staff.role === 'accountant' ? 'Kế Toán Trưởng' :
+    staff.role === 'warehouse_accountant' ? 'Kế Toán Kho' :
     staff.role === 'marketing' ? 'Chuyên Viên Marketing' :
+    staff.role === 'media' ? 'Chuyên Viên Media' :
     staff.role === 'hr' ? 'Chuyên Viên HC - NS' :
     staff.role === 'manager' ? 'Quản Lý Chi Nhánh' :
     staff.role === 'technician' ? 'Kỹ Thuật Viên Sửa Chữa' : 'Nhân Viên Bán Hàng Tại Quầy';
@@ -186,7 +238,9 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     staff.role === 'founder' || staff.role === 'admin' ? 'from-purple-500 to-indigo-600 border-purple-400 text-purple-200' :
     staff.role === 'sales_head' ? 'from-amber-500 to-orange-600 border-amber-400 text-amber-200' :
     staff.role === 'accountant' ? 'from-emerald-500 to-teal-600 border-emerald-400 text-emerald-200' :
+    staff.role === 'warehouse_accountant' ? 'from-teal-500 to-emerald-600 border-teal-400 text-teal-200' :
     staff.role === 'marketing' ? 'from-pink-500 to-rose-600 border-pink-400 text-pink-200' :
+    staff.role === 'media' ? 'from-fuchsia-500 to-rose-500 border-fuchsia-400 text-fuchsia-200' :
     staff.role === 'hr' ? 'from-sky-500 to-cyan-600 border-sky-400 text-sky-200' :
     staff.role === 'technician' ? 'from-blue-500 to-cyan-600 border-blue-400 text-blue-200' :
     'from-cyan-500 to-blue-600 border-cyan-400 text-cyan-200';
@@ -243,6 +297,123 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     }
   };
 
+  const handleSaveProfile = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!staff) return;
+
+    if (!editFullName.trim()) {
+      alert('⚠️ Vui lòng nhập họ & tên đầy đủ của nhân sự!');
+      return;
+    }
+    if (!editPhone.trim()) {
+      alert('⚠️ Vui lòng nhập số điện thoại của nhân sự!');
+      return;
+    }
+
+    setSavingProfile(true);
+    try {
+      // 1. Live update to Supabase 'staff' table
+      const { error } = await supabase
+        .from('staff')
+        .update({
+          full_name: editFullName.trim(),
+          phone: editPhone.trim(),
+          branch_id: editBranchId || staff.branchId,
+          role: editRole,
+          is_active: editIsActive
+        })
+        .eq('id', staff.id);
+
+      if (error) {
+        console.warn('Update by id returned error, trying phone fallback:', error);
+        await supabase
+          .from('staff')
+          .update({
+            full_name: editFullName.trim(),
+            phone: editPhone.trim(),
+            branch_id: editBranchId || staff.branchId,
+            role: editRole,
+            is_active: editIsActive
+          })
+          .eq('phone', staff.phone);
+      }
+
+      // 2. Updated Staff Object
+      const updatedStaff: Staff = {
+        ...staff,
+        fullName: editFullName.trim(),
+        phone: editPhone.trim(),
+        branchId: editBranchId || staff.branchId,
+        role: editRole,
+        isActive: editIsActive,
+        joinDate: editJoinDate.trim() || undefined,
+        birthDate: editBirthDate.trim() || undefined,
+        email: editEmail.trim() || undefined
+      };
+
+      // 3. Save to localStorage overrides so birthDate, joinDate, email persist across reloads
+      const overridesStr = localStorage.getItem('pk88_staff_overrides');
+      const overrides = overridesStr ? JSON.parse(overridesStr) : {};
+      overrides[staff.id] = updatedStaff;
+      overrides[updatedStaff.phone] = updatedStaff;
+      if (staff.phone !== updatedStaff.phone) {
+        delete overrides[staff.phone];
+      }
+      localStorage.setItem('pk88_staff_overrides', JSON.stringify(overrides));
+
+      // 4. Update parent states
+      if (onUpdateStaff) {
+        onUpdateStaff(updatedStaff);
+      }
+
+      setIsEditingProfile(false);
+      alert(`✅ Đã lưu cập nhật nhân sự "${updatedStaff.fullName}" thành công lên Supabase Cloud!`);
+    } catch (err: any) {
+      console.error('Error saving staff:', err);
+      alert(`⚠️ Không thể lưu lên Supabase: ${err.message || err}`);
+    } finally {
+      setSavingProfile(false);
+    }
+  };
+
+  // Check Birthday Information
+  const birthdayInfo = (() => {
+    if (!staff.birthDate) return { isToday: false, formatted: 'Chưa cập nhật' };
+    
+    let birthDay: number | null = null;
+    let birthMonth: number | null = null;
+    let birthYear: number | null = null;
+
+    if (staff.birthDate.includes('-')) {
+      const parts = staff.birthDate.split('-');
+      if (parts.length === 3) {
+        birthYear = parseInt(parts[0], 10);
+        birthMonth = parseInt(parts[1], 10);
+        birthDay = parseInt(parts[2], 10);
+      }
+    } else if (staff.birthDate.includes('/')) {
+      const parts = staff.birthDate.split('/');
+      if (parts.length === 3) {
+        birthDay = parseInt(parts[0], 10);
+        birthMonth = parseInt(parts[1], 10);
+        birthYear = parseInt(parts[2], 10);
+      }
+    }
+
+    if (!birthDay || !birthMonth) {
+      return { isToday: false, formatted: staff.birthDate };
+    }
+
+    const today = new Date();
+    const currentDay = today.getDate();
+    const currentMonth = today.getMonth() + 1; // 1-indexed
+
+    const isToday = (birthDay === currentDay && birthMonth === currentMonth);
+    const formatted = `${String(birthDay).padStart(2, '0')}/${String(birthMonth).padStart(2, '0')}${birthYear ? `/${birthYear}` : ''}`;
+
+    return { isToday, formatted };
+  })();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/80 backdrop-blur-md animate-fade-in overflow-y-auto">
       <div 
@@ -288,6 +459,13 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
               />
               <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
               
+              {birthdayInfo.isToday && (
+                <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white shadow-xl shadow-pink-500/40 border border-pink-300/40 animate-pulse">
+                  <Gift className="w-4 h-4 text-white fill-white/20 animate-bounce" />
+                  <span className="text-[11px] font-black tracking-wide uppercase drop-shadow">Hôm nay sinh nhật! 🎂🎁</span>
+                </div>
+              )}
+              
               <div className="absolute bottom-3 left-3 right-3">
                 <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-gradient-to-r ${roleColor} shadow-md uppercase tracking-wider mb-1`}>
                   {roleDisplay}
@@ -296,62 +474,254 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Quick Metadata Card */}
-            <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
-              <div className="flex items-center justify-between text-slate-300 pb-2 border-b border-slate-800/60">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Chi nhánh:
-                </span>
-                <span className="font-bold text-cyan-300 text-right text-[11px] truncate max-w-[160px]">
-                  {branchName.replace('Phụ Kiện 88 - ', '')}
-                </span>
-              </div>
+            {/* Profile Edit Form OR Quick Metadata Card */}
+            {isEditingProfile ? (
+              <form onSubmit={handleSaveProfile} className="bg-slate-950 border border-cyan-500/40 rounded-2xl p-4 space-y-3 text-xs shadow-xl shadow-cyan-500/10">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                  <span className="font-extrabold text-cyan-300 flex items-center gap-1.5 uppercase text-[11px]">
+                    <Edit3 className="w-3.5 h-3.5" /> Sửa Thông Tin Nhân Sự
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
+                    Lưu Supabase Cloud
+                  </span>
+                </div>
 
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-emerald-400" /> Điện thoại:
-                </span>
-                <a href={`tel:${staff.phone}`} className="font-mono font-bold text-emerald-400 hover:underline">
-                  {staff.phone}
+                {/* Full name */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1">Họ & Tên đầy đủ:</label>
+                  <input
+                    type="text"
+                    value={editFullName}
+                    onChange={(e) => setEditFullName(e.target.value)}
+                    placeholder="VD: Trần Thị Ngọc Diệu"
+                    required
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-bold focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1">Số điện thoại đăng nhập:</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    placeholder="VD: 0938123456"
+                    required
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono font-bold focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Branch */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1">Chi nhánh công tác:</label>
+                  <select
+                    value={editBranchId}
+                    onChange={(e) => setEditBranchId(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-cyan-300 font-bold focus:outline-none focus:border-cyan-400"
+                  >
+                    {branches && branches.length > 0 ? (
+                      branches.map(b => (
+                        <option key={b.id} value={b.id}>
+                          {b.name.replace('Phụ Kiện 88 - ', '')} {b.isActive ? '' : '(TẠM ĐÓNG)'}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={staff.branchId}>{branchName}</option>
+                    )}
+                  </select>
+                </div>
+
+                {/* Role */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1">Vị trí / Chức danh:</label>
+                  <select
+                    value={editRole}
+                    onChange={(e) => setEditRole(e.target.value as UserRole)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-amber-300 font-bold focus:outline-none focus:border-cyan-400"
+                  >
+                    <option value="sales">Nhân Viên Bán Hàng Tại Quầy</option>
+                    <option value="technician">Kỹ Thuật Viên Sửa Chữa</option>
+                    <option value="manager">Quản Lý Chi Nhánh / CHT</option>
+                    <option value="warehouse_accountant">Kế Toán Kho</option>
+                    <option value="media">Chuyên Viên Media</option>
+                    <option value="accountant">Kế Toán Trưởng</option>
+                    <option value="hr">Chuyên Viên HC - NS</option>
+                    <option value="marketing">Chuyên Viên Marketing</option>
+                    <option value="sales_head">Trưởng Phòng Kinh Doanh</option>
+                    <option value="admin">Admin & System Automation</option>
+                    <option value="founder">Chủ Sở Hữu / Founder</option>
+                  </select>
+                </div>
+
+                {/* Birth Date */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1 flex items-center gap-1">
+                    <Cake className="w-3.5 h-3.5 text-pink-400" /> Ngày sinh nhật:
+                  </label>
+                  <input
+                    type="date"
+                    value={editBirthDate}
+                    onChange={(e) => setEditBirthDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Join Date */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" /> Ngày vào làm:
+                  </label>
+                  <input
+                    type="date"
+                    value={editJoinDate}
+                    onChange={(e) => setEditJoinDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-medium focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Email */}
+                <div>
+                  <label className="text-slate-400 text-[11px] font-semibold block mb-1 flex items-center gap-1">
+                    <Mail className="w-3.5 h-3.5 text-sky-400" /> Email làm việc:
+                  </label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    placeholder="email@phukien88.vn"
+                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white font-mono text-[11px] focus:outline-none focus:border-cyan-400"
+                  />
+                </div>
+
+                {/* Active Status */}
+                <div className="flex items-center justify-between pt-1">
+                  <span className="text-slate-400 text-[11px] font-semibold">Trạng thái làm việc:</span>
+                  <button
+                    type="button"
+                    onClick={() => setEditIsActive(!editIsActive)}
+                    className={`px-3 py-1 rounded-full text-[11px] font-bold border transition-all cursor-pointer ${
+                      editIsActive
+                        ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                        : 'bg-rose-500/20 text-rose-400 border-rose-500/40'
+                    }`}
+                  >
+                    {editIsActive ? '🟢 Đang làm việc' : '🔴 Đã nghỉ việc'}
+                  </button>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-2 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(false)}
+                    className="flex-1 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs transition-all cursor-pointer"
+                  >
+                    Hủy Bỏ
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingProfile}
+                    className="flex-1 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-cyan-500/20 transition-all cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{savingProfile ? 'Đang Lưu...' : 'Lưu Supabase'}</span>
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <>
+                {/* Quick Metadata Card */}
+                <div className="bg-slate-950/70 border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between text-slate-300 pb-2 border-b border-slate-800/60">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Chi nhánh:
+                    </span>
+                    <span className="font-bold text-cyan-300 text-right text-[11px] truncate max-w-[160px]">
+                      {branchName.replace('Phụ Kiện 88 - ', '')}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <Phone className="w-3.5 h-3.5 text-emerald-400" /> Điện thoại:
+                    </span>
+                    <a href={`tel:${staff.phone}`} className="font-mono font-bold text-emerald-400 hover:underline">
+                      {staff.phone}
+                    </a>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <Mail className="w-3.5 h-3.5 text-sky-400" /> Email làm việc:
+                    </span>
+                    <span className="font-mono text-[11px] text-slate-300">
+                      {staff.email || `${staff.id}@phukien88.vn`}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between text-slate-300">
+                    <span className="text-slate-400 flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-amber-400" /> Ngày vào làm:
+                    </span>
+                    <span className="font-semibold text-slate-200">
+                      {staff.joinDate || '01/03/2024'}
+                    </span>
+                  </div>
+
+                  <div className={`flex items-center justify-between pt-2 border-t transition-all ${
+                    birthdayInfo.isToday 
+                      ? 'border-pink-500/40 bg-gradient-to-r from-pink-500/15 via-rose-500/10 to-amber-500/15 -mx-2 px-2.5 py-2 rounded-xl ring-1 ring-pink-500/30' 
+                      : 'border-slate-800/60'
+                  }`}>
+                    <span className={`flex items-center gap-1.5 ${birthdayInfo.isToday ? 'text-pink-300 font-extrabold text-[11px]' : 'text-slate-400'}`}>
+                      <Cake className={`w-3.5 h-3.5 ${birthdayInfo.isToday ? 'text-pink-400 animate-bounce' : 'text-pink-400/80'}`} /> Ngày sinh:
+                    </span>
+                    
+                    {birthdayInfo.isToday ? (
+                      <div className="flex items-center gap-1.5 bg-gradient-to-r from-pink-600/30 via-rose-600/30 to-amber-500/30 border border-pink-400/60 px-2.5 py-1 rounded-full shadow-lg shadow-pink-500/25">
+                        <span className="relative flex h-2 w-2">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-pink-400 opacity-75"></span>
+                          <span className="relative inline-flex rounded-full h-2 w-2 bg-pink-500"></span>
+                        </span>
+                        <Gift className="w-4 h-4 text-pink-300 fill-pink-500/40 animate-bounce" />
+                        <span className="font-black text-xs text-pink-200">
+                          {birthdayInfo.formatted}
+                        </span>
+                        <span className="text-[9px] bg-gradient-to-r from-pink-500 to-rose-500 text-white font-black px-1.5 py-0.5 rounded-full uppercase tracking-wider shadow-sm flex items-center gap-1">
+                          <PartyPopper className="w-2.5 h-2.5" /> HÔM NAY 🎁
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="font-semibold text-slate-200 text-xs">
+                        {birthdayInfo.formatted}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Edit Button for Founder / Admin */}
+                {canEdit !== false && (
+                  <button
+                    type="button"
+                    onClick={() => setIsEditingProfile(true)}
+                    className="w-full py-2.5 px-4 rounded-xl bg-cyan-500/15 hover:bg-cyan-500/25 border border-cyan-500/40 hover:border-cyan-400 text-cyan-300 font-extrabold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer shadow-sm shadow-cyan-500/10"
+                  >
+                    <Edit3 className="w-4 h-4 text-cyan-400" />
+                    <span>CHỈNH SỬA THÔNG TIN NHÂN SỰ</span>
+                  </button>
+                )}
+
+                {/* Quick Action Button */}
+                <a
+                  href={`tel:${staff.phone}`}
+                  className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                >
+                  <Phone className="w-4 h-4 fill-slate-950" />
+                  <span>GỌI ĐIỆN HOẶC ZALO NHANH</span>
                 </a>
-              </div>
-
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-sky-400" /> Email làm việc:
-                </span>
-                <span className="font-mono text-[11px] text-slate-300">
-                  {staff.email || `${staff.id}@phukien88.vn`}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between text-slate-300">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <Calendar className="w-3.5 h-3.5 text-amber-400" /> Ngày vào làm:
-                </span>
-                <span className="font-semibold text-slate-200">
-                  {staff.joinDate || '01/03/2024'}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800/60">
-                <span className="text-slate-400 flex items-center gap-1.5">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" /> Trạng thái hồ sơ:
-                </span>
-                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 px-2 py-0.5 rounded-full text-[10px] font-bold">
-                  ĐỦ HỒ SƠ
-                </span>
-              </div>
-            </div>
-
-            {/* Quick Action Button */}
-            <a
-              href={`tel:${staff.phone}`}
-              className="w-full py-3 px-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-            >
-              <Phone className="w-4 h-4 fill-slate-950" />
-              <span>GỌI ĐIỆN HOẶC ZALO NHANH</span>
-            </a>
+              </>
+            )}
           </div>
 
           {/* Right Column: Role-Tailored Competency Radar & Rewards QR (7 cols) */}

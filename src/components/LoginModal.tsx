@@ -6,9 +6,10 @@ import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle 
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
   onGuestLookup?: () => void;
+  staffList?: Staff[];
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup, staffList = MOCK_STAFF }) => {
   const [phone, setPhone] = useState('0888003205'); // Default Admin Sang phone for fast testing
   const [password, setPassword] = useState('123456');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -18,10 +19,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     setErrorMsg(null);
 
     // Find staff by phone number
-    const foundStaff = MOCK_STAFF.find((s) => s.phone.trim() === phone.trim());
+    const listToSearch = staffList && staffList.length > 0 ? staffList : MOCK_STAFF;
+    const foundStaff = listToSearch.find((s) => s.phone.trim() === phone.trim());
 
     if (!foundStaff) {
       setErrorMsg('Số điện thoại không tồn tại trên hệ thống Phụ Kiện 88.');
+      return;
+    }
+
+    if (!foundStaff.isActive) {
+      setErrorMsg('Tài khoản nhân sự này hiện đã thôi việc hoặc đang tạm khóa.');
       return;
     }
 
@@ -34,10 +41,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
   };
 
   const quickLogins = [
-    { label: 'Ngô Hồng Thao (Founder)', phone: '0777888688', role: 'Founder' },
+    { label: 'Ngô Hồng Thao (Founder)', phone: '0777888688', role: 'Chủ Doanh Nghiệp' },
     { label: 'Trần Hoàng Sang (Admin)', phone: '0888003205', role: 'Admin System' },
-    { label: 'Nguyễn Văn Minh (Quản lý)', phone: '0912345678', role: 'Quản Lý Shop' },
-    { label: 'Phạm Thị Mỹ (Bán hàng)', phone: '0977112233', role: 'Nhân Viên Quầy' },
+    { label: 'Thùy Dương (CHT Phú Khương)', phone: '0939998322', role: 'Quản Lý Cửa Hàng' },
+    { label: 'Trung Hiếu (Kỹ Thuật Trưởng)', phone: '0939118793', role: 'Kỹ Thuật Sửa Chữa' },
+    { label: 'Bích Trâm (Kế Toán VP)', phone: '0985059514', role: 'Kế Toán Trưởng' },
+    { label: 'Tiểu My (Bán Hàng)', phone: '0392399534', role: 'Nhân Viên Quầy' },
   ];
 
   return (

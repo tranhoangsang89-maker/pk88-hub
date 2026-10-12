@@ -54,17 +54,46 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     }
   ];
 
-  const branchMetrics = [
-    { name: 'PK88 Mỹ Tho', revenue: 14500000, orders: 42, growth: '+15%' },
-    { name: 'PK88 Bến Tre 1', revenue: 12200000, orders: 38, growth: '+8%' },
-    { name: 'PK88 Vĩnh Long', revenue: 9800000, orders: 27, growth: '+4%' },
-    { name: 'PK88 Bến Tre 2', revenue: 8500000, orders: 24, growth: '+2%' },
-    { name: 'PK88 Trà Vinh', revenue: 7200000, orders: 20, growth: '-5%' },
-    { name: 'PK88 Cần Thơ', revenue: 6400000, orders: 19, growth: '-28%' },
-    { name: 'PK88 Thủ Đức', revenue: 0, orders: 0, growth: '0%' },
-  ];
+  const activeBranches = branches.filter(b => b.isActive);
+  const inactiveBranches = branches.filter(b => !b.isActive);
+  const closedBranchNames = inactiveBranches.map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ');
+
+  // Dữ liệu hiệu suất bán hàng chuẩn hóa theo từng mã chi nhánh (các shop tạm đóng sẽ có doanh thu 0đ)
+  const defaultPerformance: Record<string, { revenue: number; orders: number; growth: string }> = {
+    'PK88_MYTHO': { revenue: 14500000, orders: 42, growth: '+15%' },
+    'PK88_PHUKHUONG': { revenue: 12200000, orders: 38, growth: '+8%' },
+    'PK88_BENTRE_1': { revenue: 12200000, orders: 38, growth: '+8%' },
+    'PK88_VINHLONG': { revenue: 9800000, orders: 27, growth: '+4%' },
+    'PK88_DONGKHOI': { revenue: 8500000, orders: 24, growth: '+2%' },
+    'PK88_BENTRE_2': { revenue: 8500000, orders: 24, growth: '+2%' },
+    'PK88_CANTHO': { revenue: 6400000, orders: 19, growth: '-28%' },
+    'PK88_THUDUC': { revenue: 0, orders: 0, growth: '0%' },
+    'PK88_VANPHONG': { revenue: 0, orders: 0, growth: '0%' },
+    'PK88_TRAVINH': { revenue: 0, orders: 0, growth: '0%' },
+  };
+
+  const branchMetrics = branches.map(b => {
+    const isOnline = b.isActive;
+    const shortName = b.name.replace('Phụ Kiện 88 - ', 'PK88 ');
+    const perf = isOnline ? (defaultPerformance[b.code] || { revenue: 0, orders: 0, growth: '0%' }) : { revenue: 0, orders: 0, growth: '0%' };
+    return {
+      id: b.id,
+      code: b.code,
+      name: shortName,
+      isActive: isOnline,
+      revenue: perf.revenue,
+      orders: perf.orders,
+      growth: perf.growth
+    };
+  }).sort((a, b) => {
+    if (a.isActive && !b.isActive) return -1;
+    if (!a.isActive && b.isActive) return 1;
+    return b.revenue - a.revenue;
+  });
 
   const totalRevenue = branchMetrics.reduce((sum, b) => sum + b.revenue, 0);
+  const totalOrders = branchMetrics.reduce((sum, b) => sum + b.orders, 0);
+  const avgOrdersPerShop = activeBranches.length > 0 ? (totalOrders / activeBranches.length).toFixed(1) : '0';
 
   // Dữ liệu biểu đồ Doanh thu & Lợi nhuận (7 ngày qua)
   const revenueData = [
@@ -74,22 +103,23 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     { date: '24/09', revenue: 35000000, profit: 12500000 },
     { date: '25/09', revenue: 39000000, profit: 14000000 },
     { date: '26/09', revenue: 34000000, profit: 11500000 },
-    { date: '27/09', revenue: 42900000, profit: 14670000 },
+    { date: '27/09', revenue: totalRevenue, profit: Math.round(totalRevenue * 0.342) },
   ];
 
   // Dữ liệu Tồn kho các mặt hàng chủ lực giữa các chi nhánh
+  const isTrvActive = branches.find(b => b.code === 'PK88_TRAVINH')?.isActive;
   const inventoryData = [
-    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Bến Tre 1': 12, 'Bến Tre 2': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, 'Trà Vinh': 25, 'Thủ Đức': 50 },
-    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Bến Tre 1': 8, 'Bến Tre 2': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, 'Trà Vinh': 10, 'Thủ Đức': 15 },
-    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Bến Tre 1': 35, 'Bến Tre 2': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, 'Trà Vinh': 15, 'Thủ Đức': 30 }, // Cần Thơ cảnh báo đỏ
-    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Bến Tre 1': 80, 'Bến Tre 2': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, 'Trà Vinh': 50, 'Thủ Đức': 75 },
+    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Phú Khương': 12, 'Đồng Khởi': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, ...(isTrvActive ? { 'Trà Vinh': 25 } : {}), 'Thủ Đức': 50 },
+    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Phú Khương': 8, 'Đồng Khởi': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, ...(isTrvActive ? { 'Trà Vinh': 10 } : {}), 'Thủ Đức': 15 },
+    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Phú Khương': 35, 'Đồng Khởi': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, ...(isTrvActive ? { 'Trà Vinh': 15 } : {}), 'Thủ Đức': 30 },
+    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Phú Khương': 80, 'Đồng Khởi': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, ...(isTrvActive ? { 'Trà Vinh': 50 } : {}), 'Thủ Đức': 75 },
   ];
 
   const formatCurrency = (value: number) => {
     return `${(value / 1000000).toFixed(1)}M`;
   };
 
-  // Calculate Marketing Stats for AI Copilot
+  // Calculate Marketing Stats for AI Copilot (chỉ tính các shop đang hoạt động)
   const today = new Date().toISOString().split('T')[0];
   const todayPosts = marketingPosts.filter(p => p.created_at.startsWith(today));
   const branchCounts = todayPosts.reduce((acc, p) => {
@@ -99,7 +129,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   
   const topBranchId = Object.entries(branchCounts).sort((a, b) => b[1] - a[1])[0]?.[0];
   const topBranchName = branches.find(b => b.id === topBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'N/A';
-  const missedBranches = branches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
+  const missedBranches = activeBranches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
 
   return (
     <div className="space-y-6">
@@ -128,8 +158,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <Smartphone className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">126 đơn</div>
-          <div className="text-xs text-slate-400 mt-2">Trung bình 31.5 đơn/shop</div>
+          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">{totalOrders} đơn</div>
+          <div className="text-xs text-slate-400 mt-2">Trung bình {avgOrdersPerShop} đơn/shop hoạt động</div>
         </div>
 
         <div className="glass-card rounded-2xl p-4 border border-slate-800">
@@ -139,8 +169,16 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <CheckCircle className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">{branches.length} / {branches.length} shop</div>
-          <div className="text-xs text-emerald-400 mt-2">All Online & Geofenced</div>
+          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
+            {activeBranches.length} / {branches.length} shop
+          </div>
+          {inactiveBranches.length > 0 ? (
+            <div className="text-xs text-amber-400 font-bold mt-2 flex items-center gap-1">
+              <span>⚠️ {inactiveBranches.length} shop tạm đóng ({closedBranchNames})</span>
+            </div>
+          ) : (
+            <div className="text-xs text-emerald-400 mt-2">100% Online & Geofenced</div>
+          )}
         </div>
 
         <div className="glass-card rounded-2xl p-4 border border-rose-500/30 bg-rose-950/10">
@@ -220,11 +258,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
                 <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" label={{ position: 'top', value: 'Safety Stock (10)', fill: '#f43f5e', fontSize: 10 }} />
                 <Bar name="Mỹ Tho" dataKey="Mỹ Tho" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar name="Bến Tre 1" dataKey="Bến Tre 1" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar name="Bến Tre 2" dataKey="Bến Tre 2" fill="#d946ef" radius={[4, 4, 0, 0]} />
+                <Bar name="Phú Khương" dataKey="Phú Khương" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
+                <Bar name="Đồng Khởi" dataKey="Đồng Khởi" fill="#d946ef" radius={[4, 4, 0, 0]} />
                 <Bar name="Vĩnh Long" dataKey="Vĩnh Long" fill="#14b8a6" radius={[4, 4, 0, 0]} />
                 <Bar name="Cần Thơ" dataKey="Cần Thơ" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                <Bar name="Trà Vinh" dataKey="Trà Vinh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                {isTrvActive && (
+                  <Bar name="Trà Vinh" dataKey="Trà Vinh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                )}
                 <Bar name="Thủ Đức" dataKey="Thủ Đức" fill="#6366f1" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
@@ -370,20 +410,31 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </h3>
           <div className="space-y-3">
             {branchMetrics.map((b, i) => (
-              <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-slate-900/50 border border-slate-800">
+              <div key={b.id || i} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${b.isActive ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-950/40 border-slate-900/60 opacity-60'}`}>
                 <div className="flex items-center gap-3">
-                  <span className="w-6 h-6 rounded-full bg-slate-800 font-bold text-xs flex items-center justify-center text-slate-400">
-                    #{i + 1}
+                  <span className={`w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center ${b.isActive ? 'bg-slate-800 text-slate-400' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'}`}>
+                    {b.isActive ? `#${i + 1}` : '✕'}
                   </span>
                   <div>
-                    <div className="text-xs font-bold text-slate-200">{b.name}</div>
-                    <div className="text-[11px] text-slate-400">{b.orders} đơn hàng thành công</div>
+                    <div className="text-xs font-bold text-slate-200 flex items-center gap-2">
+                      <span>{b.name}</span>
+                      {!b.isActive && (
+                        <span className="text-[9px] bg-rose-500/20 text-rose-400 border border-rose-500/30 px-1.5 py-0.5 rounded font-mono font-bold">
+                          TẠM ĐÓNG
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-[11px] text-slate-400">
+                      {b.isActive ? `${b.orders} đơn hàng thành công` : 'Cửa hàng đang tạm dừng hoạt động'}
+                    </div>
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-xs font-bold font-mono text-slate-100">{b.revenue.toLocaleString('vi-VN')} đ</div>
-                  <span className={`text-[11px] font-semibold ${b.growth.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {b.growth}
+                  <div className={`text-xs font-bold font-mono ${b.isActive ? 'text-slate-100' : 'text-slate-500'}`}>
+                    {b.revenue.toLocaleString('vi-VN')} đ
+                  </div>
+                  <span className={`text-[11px] font-semibold ${!b.isActive ? 'text-rose-400/80 font-mono text-[10px]' : b.growth.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {b.isActive ? b.growth : 'Offline'}
                   </span>
                 </div>
               </div>

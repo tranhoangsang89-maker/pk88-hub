@@ -29,6 +29,7 @@ export function App() {
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(MOCK_LEAVE_REQUESTS);
   const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
+  const [staffList, setStaffList] = useState<Staff[]>(MOCK_STAFF);
 
   const activeBranches = branches.filter(b => b.isActive);
   
@@ -180,8 +181,51 @@ export function App() {
     }
   };
 
+  const fetchStaff = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('staff')
+        .select('*')
+        .order('full_name', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching staff from Supabase:', error);
+      } else if (data && data.length > 0) {
+        const localOverridesStr = localStorage.getItem('pk88_staff_overrides');
+        const localOverrides = localOverridesStr ? JSON.parse(localOverridesStr) : {};
+
+        const formatted: Staff[] = data.map((item: any) => {
+          const match = MOCK_STAFF.find(m => m.phone.trim() === item.phone.trim()) || MOCK_STAFF.find(m => m.id === item.id);
+          const override = localOverrides[item.id] || localOverrides[item.phone];
+
+          return {
+            id: item.id,
+            branchId: item.branch_id || override?.branchId || match?.branchId || '2b150536-0b47-4e32-912b-b5ede701bfa6',
+            fullName: item.full_name || override?.fullName || match?.fullName,
+            phone: item.phone || override?.phone || match?.phone,
+            role: item.role || override?.role || match?.role,
+            isActive: item.is_active !== undefined ? item.is_active : (override?.isActive !== undefined ? override.isActive : true),
+            avatarUrl: override?.avatarUrl || match?.avatarUrl,
+            code: override?.code || match?.code,
+            email: override?.email || match?.email,
+            joinDate: override?.joinDate || match?.joinDate,
+            birthDate: item.birth_date || override?.birthDate || match?.birthDate
+          };
+        });
+        setStaffList(formatted);
+      }
+    } catch (err) {
+      console.error('Fetch staff exception:', err);
+    }
+  };
+
+  const handleUpdateStaff = (updatedStaff: Staff) => {
+    setStaffList(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+  };
+
   useEffect(() => {
     fetchBranches();
+    fetchStaff();
     fetchRealAttendance();
     fetchTickets();
     fetchMarketingPosts();
@@ -366,6 +410,7 @@ export function App() {
       {(showLoginModal || (!currentUser && !isCustomerMode)) && (
         <LoginModal 
           onLoginSuccess={handleLoginSuccess} 
+          staffList={staffList}
           onGuestLookup={() => {
             setIsCustomerMode(true);
             setShowLoginModal(false);
@@ -391,7 +436,7 @@ export function App() {
           onClose={() => setShowAIHRModal(false)}
           currentUser={currentUser}
           branches={branches}
-          staffList={MOCK_STAFF}
+          staffList={staffList}
           leaveRequests={leaveRequests}
           onSubmitLeaveRequest={handleLeaveRequestSubmit}
           onUpdateLeaveStatus={handleUpdateLeaveStatus}
@@ -671,10 +716,12 @@ export function App() {
             {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder') && (
               <AdminPanel 
                 branches={branches} 
-                staffList={MOCK_STAFF} 
+                staffList={staffList} 
                 attendanceLogs={attendanceHistory}
                 onAddBranch={handleAddBranch}
                 onToggleBranchStatus={handleToggleBranchStatus}
+                onRefreshStaff={fetchStaff}
+                onUpdateStaff={handleUpdateStaff}
               />
             )}
 
@@ -703,7 +750,7 @@ export function App() {
               <BranchStaffDirectory
                 currentBranch={selectedBranch}
                 currentUser={currentUser}
-                staffList={MOCK_STAFF}
+                staffList={staffList}
               />
             )}
 

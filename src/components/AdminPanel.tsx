@@ -3,7 +3,7 @@ import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson } from '
 import { supabase } from '../lib/supabase';
 import { MOCK_ATTENDANCE } from '../lib/mockData';
 import { StaffDetailModal } from './StaffDetailModal';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles } from 'lucide-react';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3 } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -11,15 +11,31 @@ interface AdminPanelProps {
   attendanceLogs?: AttendanceRecord[];
   onAddBranch?: (branch: Branch) => void;
   onToggleBranchStatus?: (branchId: string) => void;
+  onRefreshStaff?: () => void;
+  onUpdateStaff?: (updatedStaff: Staff) => void;
 }
 
-export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, attendanceLogs = [], onAddBranch, onToggleBranchStatus }) => {
+export const AdminPanel: React.FC<AdminPanelProps> = ({ 
+  branches, 
+  staffList, 
+  attendanceLogs = [], 
+  onAddBranch, 
+  onToggleBranchStatus,
+  onRefreshStaff,
+  onUpdateStaff
+}) => {
   const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>('payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
   const [newStaffRole, setNewStaffRole] = useState<Staff['role']>('sales');
   const [localStaff, setLocalStaff] = useState<Staff[]>(staffList);
+  const [initialEditMode, setInitialEditMode] = useState<boolean>(false);
+
+  useEffect(() => {
+    setLocalStaff(staffList);
+  }, [staffList]);
+
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<Staff | null>(null);
@@ -75,7 +91,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
     // Insert to Supabase DB live
     try {
-      await supabase.from('staff').insert([
+      const { error } = await supabase.from('staff').insert([
         {
           full_name: newStaffName,
           phone: newStaffPhone,
@@ -84,21 +100,68 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
           is_active: true
         }
       ]);
-      alert(`✅ Đã thêm nhân sự mới: ${newStaffName} (${newStaffPhone}) thành công!`);
-      setNewStaffName('');
-      setNewStaffPhone('');
+      if (error) {
+        console.error('Error adding staff to Supabase:', error);
+        alert(`⚠️ Lỗi thêm nhân sự: ${error.message}`);
+      } else {
+        alert(`✅ Đã thêm nhân sự mới: ${newStaffName} (${newStaffPhone}) thành công!`);
+        setNewStaffName('');
+        setNewStaffPhone('');
+        onRefreshStaff?.();
+      }
     } catch (err) {
       console.error('Error adding staff to Supabase:', err);
     }
   };
 
-  const handleToggleStaffStatus = (staffId: string) => {
-    setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, isActive: !s.isActive } : s));
+  const handleToggleStaffStatus = async (staffId: string) => {
+    const target = localStaff.find(s => s.id === staffId);
+    if (!target) return;
+    const newStatus = !target.isActive;
+
+    // Optimistic UI update
+    setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, isActive: newStatus } : s));
+
+    try {
+      const { error } = await supabase
+        .from('staff')
+        .update({ is_active: newStatus })
+        .eq('id', staffId);
+
+      if (error) {
+        console.error('Error toggling staff status in Supabase:', error);
+        alert(`⚠️ Không thể cập nhật trạng thái trên Supabase: ${error.message}`);
+      } else {
+        onRefreshStaff?.();
+      }
+    } catch (err) {
+      console.error('Exception toggling staff status:', err);
+    }
   };
 
-  const handleDeleteStaff = (staffId: string, name: string) => {
+  const handleDeleteStaff = async (staffId: string, name: string) => {
     if (confirm(`Bạn có chắc chắn muốn xóa nhân sự ${name} khỏi hệ thống?`)) {
+      // Optimistic UI update
       setLocalStaff(prev => prev.filter(s => s.id !== staffId));
+
+      try {
+        // Cascade delete any child records referencing staff_id to satisfy Foreign Key constraints
+        await supabase.from('attendance').delete().eq('staff_id', staffId);
+        await supabase.from('staff_progress').delete().eq('staff_id', staffId);
+        await supabase.from('leave_requests').delete().eq('staff_id', staffId);
+
+        // Delete from staff table
+        const { error } = await supabase.from('staff').delete().eq('id', staffId);
+        if (error) {
+          console.error('Error deleting staff from Supabase:', error);
+          alert(`⚠️ Không thể xóa nhân sự trên Supabase: ${error.message}`);
+          onRefreshStaff?.();
+        } else {
+          onRefreshStaff?.();
+        }
+      } catch (err: any) {
+        console.error('Exception deleting staff:', err);
+      }
     }
   };
 
@@ -203,7 +266,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
             }`}
           >
             <Server className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">3. Cấu Hình 7 Chi Nhánh</span>
+            <span className="truncate">3. Cấu Hình Chi Nhánh ({branches.filter(b => b.isActive).length}/{branches.length})</span>
           </button>
 
           <button
@@ -276,9 +339,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
           sales: 9
         };
 
+        const activeBranchIds = new Set(branches.filter(b => b.isActive).map(b => b.id));
         const filteredStaff = localStaff
           .filter(s => {
-            const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+            const matchBranch = selectedBranch === 'ALL'
+              ? (activeBranchIds.has(s.branchId) || s.role === 'founder' || s.role === 'admin')
+              : s.branchId === selectedBranch;
             const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
             return matchBranch && matchSearch;
           })
@@ -436,12 +502,21 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   <select
                     value={selectedBranch}
                     onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="w-full sm:w-64 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
+                    className="w-full sm:w-72 p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                   >
-                    <option value="ALL">🏢 Tất cả {branches.length} Chi nhánh (Toàn Chuỗi)</option>
-                    {branches.map(b => (
-                      <option key={b.id} value={b.id}>📍 {b.name}</option>
-                    ))}
+                    <option value="ALL">🏢 Toàn Chuỗi ({branches.filter(b => b.isActive).length} CN Đang Hoạt Động)</option>
+                    <optgroup label="── Chi Nhánh Đang Hoạt Động ──">
+                      {branches.filter(b => b.isActive).map(b => (
+                        <option key={b.id} value={b.id}>🟢 {b.name}</option>
+                      ))}
+                    </optgroup>
+                    {branches.some(b => !b.isActive) && (
+                      <optgroup label="── Chi Nhánh Tạm Đóng / Offline ──">
+                        {branches.filter(b => !b.isActive).map(b => (
+                          <option key={b.id} value={b.id}>🔴 {b.name} (TẠM ĐÓNG)</option>
+                        ))}
+                      </optgroup>
+                    )}
                   </select>
                 </div>
 
@@ -596,7 +671,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   <option value="manager">🏢 Quản Lý Chi Nhánh</option>
                   <option value="sales_head">💼 Trưởng Phòng Kinh Doanh</option>
                   <option value="accountant">📊 Kế Toán Trưởng</option>
+                  <option value="warehouse_accountant">📦 Kế Toán Kho</option>
                   <option value="marketing">📢 Chuyên Viên Marketing</option>
+                  <option value="media">🎬 Chuyên Viên Media</option>
                   <option value="hr">👥 Chuyên Viên HC-NS</option>
                   <option value="admin">💻 Admin Hệ Thống</option>
                 </select>
@@ -659,10 +736,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   onChange={(e) => setSelectedBranch(e.target.value)}
                   className="p-2 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-bold focus:outline-none focus:border-cyan-500"
                 >
-                  <option value="ALL">🏢 Tất cả {branches.length} Chi nhánh</option>
-                  {branches.map(b => (
-                    <option key={b.id} value={b.id}>📍 {b.name}</option>
-                  ))}
+                  <option value="ALL">🏢 Toàn Chuỗi ({branches.filter(b => b.isActive).length} CN Đang Hoạt Động)</option>
+                  <optgroup label="── Chi Nhánh Đang Hoạt Động ──">
+                    {branches.filter(b => b.isActive).map(b => (
+                      <option key={b.id} value={b.id}>🟢 {b.name}</option>
+                    ))}
+                  </optgroup>
+                  {branches.some(b => !b.isActive) && (
+                    <optgroup label="── Chi Nhánh Tạm Đóng / Offline ──">
+                      {branches.filter(b => !b.isActive).map(b => (
+                        <option key={b.id} value={b.id}>🔴 {b.name} (TẠM ĐÓNG)</option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
 
                 <div className="relative flex-1 sm:flex-none">
@@ -678,12 +764,22 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
               </div>
             </div>
 
+            {/* Offline Branch Notice */}
+            {selectedBranch !== 'ALL' && branches.find(b => b.id === selectedBranch && !b.isActive) && (
+              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+                <span>⚠️ Chi nhánh này đang ở trạng thái TẠM ĐÓNG (CLOSED). Các hoạt động kinh doanh, ca trực và chấm công GPS đang tạm dừng.</span>
+              </div>
+            )}
+
             {/* CARD VIEW MODE */}
             {staffViewMode === 'cards' && (
               <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 sm:gap-4 text-xs">
                 {[...localStaff]
                   .filter(s => {
-                    const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+                    const activeBranchIds = new Set(branches.filter(b => b.isActive).map(b => b.id));
+                    const matchBranch = selectedBranch === 'ALL'
+                      ? (activeBranchIds.has(s.branchId) || s.role === 'founder' || s.role === 'admin')
+                      : s.branchId === selectedBranch;
                     const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
                     return matchBranch && matchSearch;
                   })
@@ -738,11 +834,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                               s.role === 'technician' ? 'bg-sky-500/80 text-slate-950 border-sky-300 font-black' :
                               s.role === 'hr' ? 'bg-pink-500/80 text-white border-pink-400' :
                               s.role === 'marketing' ? 'bg-indigo-500/80 text-white border-indigo-400' :
+                              s.role === 'media' ? 'bg-fuchsia-600/90 text-white border-fuchsia-400' :
                               s.role === 'accountant' ? 'bg-emerald-500/80 text-slate-950 border-emerald-300 font-black' :
+                              s.role === 'warehouse_accountant' ? 'bg-teal-600/90 text-white border-teal-400 font-black' :
                               s.role === 'admin' || s.role === 'founder' ? 'bg-purple-600/90 text-white border-purple-400' :
                               'bg-slate-900/90 text-slate-200 border-slate-700'
                             }`}>
-                              {s.role === 'sales_head' ? 'TP. KINH DOANH' : s.role}
+                              {s.role === 'sales_head' ? 'TP. KINH DOANH' : 
+                               s.role === 'media' ? 'MEDIA' :
+                               s.role === 'warehouse_accountant' ? 'KẾ TOÁN KHO' :
+                               s.role === 'accountant' ? 'KẾ TOÁN TRƯỞNG' : s.role}
                             </span>
                           </div>
 
@@ -772,11 +873,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
 
                           <div className="pt-1.5 sm:pt-2 border-t border-slate-800/80 flex items-center gap-1">
                             <button
-                              onClick={() => setSelectedStaffForDetail(s)}
+                              onClick={() => { setSelectedStaffForDetail(s); setInitialEditMode(false); }}
                               className="flex-1 py-1 sm:py-1.5 bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 rounded-lg sm:rounded-xl font-extrabold text-[10px] sm:text-[11px] flex items-center justify-center gap-1 transition-all cursor-pointer truncate"
                             >
                               <Eye className="w-3 h-3 flex-shrink-0" />
                               <span className="truncate">Xem Hồ Sơ</span>
+                            </button>
+
+                            <button
+                              onClick={() => { setSelectedStaffForDetail(s); setInitialEditMode(true); }}
+                              className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-[9px] sm:text-[10px] font-bold transition-colors cursor-pointer flex items-center gap-0.5"
+                              title="Sửa thông tin nhân sự"
+                            >
+                              <Edit3 className="w-3 h-3 flex-shrink-0" />
+                              <span>Sửa</span>
                             </button>
 
                             <button
@@ -821,7 +931,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                   <tbody className="divide-y divide-slate-800/60">
                     {[...localStaff]
                       .filter(s => {
-                        const matchBranch = selectedBranch === 'ALL' || s.branchId === selectedBranch;
+                        const activeBranchIds = new Set(branches.filter(b => b.isActive).map(b => b.id));
+                        const matchBranch = selectedBranch === 'ALL'
+                          ? (activeBranchIds.has(s.branchId) || s.role === 'founder' || s.role === 'admin')
+                          : s.branchId === selectedBranch;
                         const matchSearch = s.fullName.toLowerCase().includes(searchTerm.toLowerCase()) || s.phone.includes(searchTerm);
                         return matchBranch && matchSearch;
                       })
@@ -847,7 +960,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                             </td>
                             <td className="p-3 text-center">
                               <span className="text-[10px] px-2 py-0.5 rounded font-mono uppercase font-bold border bg-slate-800 text-slate-300 border-slate-700">
-                                {s.role}
+                                {s.role === 'sales_head' ? 'TP. KINH DOANH' :
+                                 s.role === 'media' ? 'MEDIA' :
+                                 s.role === 'warehouse_accountant' ? 'KẾ TOÁN KHO' :
+                                 s.role === 'accountant' ? 'KẾ TOÁN TRƯỞNG' : s.role}
                               </span>
                             </td>
                             <td className="p-3 text-center">
@@ -859,10 +975,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
                             </td>
                             <td className="p-3 text-right space-x-2">
                               <button
-                                onClick={() => setSelectedStaffForDetail(s)}
+                                onClick={() => { setSelectedStaffForDetail(s); setInitialEditMode(false); }}
                                 className="text-cyan-400 hover:underline font-bold text-[11px] cursor-pointer"
                               >
                                 Hồ Sơ
+                              </button>
+                              <button
+                                onClick={() => { setSelectedStaffForDetail(s); setInitialEditMode(true); }}
+                                className="text-amber-400 hover:underline font-bold text-[11px] cursor-pointer"
+                              >
+                                Sửa
                               </button>
                               <button
                                 onClick={() => handleDeleteStaff(s.id, s.fullName)}
@@ -1260,7 +1382,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({ branches, staffList, att
       <StaffDetailModal
         staff={selectedStaffForDetail}
         branch={branches.find(b => b.id === selectedStaffForDetail?.branchId)}
-        onClose={() => setSelectedStaffForDetail(null)}
+        branches={branches}
+        canEdit={true}
+        initialEditMode={initialEditMode}
+        onClose={() => {
+          setSelectedStaffForDetail(null);
+          setInitialEditMode(false);
+        }}
+        onUpdateStaff={(updatedStaff) => {
+          setLocalStaff(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+          setSelectedStaffForDetail(updatedStaff);
+          if (onUpdateStaff) onUpdateStaff(updatedStaff);
+        }}
         onUpdateScores={(staffId, updatedScores) => {
           setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, competencyScores: updatedScores } : s));
           setSelectedStaffForDetail(prev => prev && prev.id === staffId ? { ...prev, competencyScores: updatedScores } : prev);

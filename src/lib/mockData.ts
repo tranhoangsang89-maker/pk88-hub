@@ -1,10 +1,10 @@
-import { Branch, Staff, AttendanceRecord, RepairTicket } from '../types';
+import { Branch, Staff, AttendanceRecord, RepairTicket, LeaveRequest } from '../types';
 
 export const INITIAL_BRANCHES: Branch[] = [
   {
-    id: 'b1',
-    code: 'PK88_BENTRE_1',
-    name: 'Phụ Kiện 88 - Bến Tre 1 (HQ)',
+    id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
+    code: 'PK88_PHUKHUONG',
+    name: 'Phụ Kiện 88 - Phú Khương',
     address: '35B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
     lat: 10.2465,
     lng: 106.3812,
@@ -12,16 +12,16 @@ export const INITIAL_BRANCHES: Branch[] = [
     isActive: true
   },
   {
-    id: 'b2',
-    code: 'PK88_BENTRE_2',
-    name: 'Phụ Kiện 88 - Bến Tre 2 (Tân Thành)',
+    id: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28',
+    code: 'PK88_DONGKHOI',
+    name: 'Phụ Kiện 88 - Đồng Khởi',
     address: '173 Đại Lộ Đồng Khởi, Vòng Xoay Tân Thành, TP. Bến Tre',
     lat: 10.2589,
     lng: 106.3764,
     isActive: true
   },
   {
-    id: 'b3',
+    id: 'ce898286-8130-44cb-9f92-25176cec6703',
     code: 'PK88_MYTHO',
     name: 'Phụ Kiện 88 - Mỹ Tho',
     address: '25 Đinh Bộ Lĩnh, TP. Mỹ Tho, Tỉnh Tiền Giang',
@@ -30,7 +30,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     isActive: true
   },
   {
-    id: 'b4',
+    id: '98e58c92-edb5-4c5b-8a33-c78e38b3f954',
     code: 'PK88_VINHLONG',
     name: 'Phụ Kiện 88 - Vĩnh Long',
     address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long',
@@ -39,7 +39,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     isActive: true
   },
   {
-    id: 'b5',
+    id: '7593aa44-bd49-476a-8d13-b9912874c0e0',
     code: 'PK88_CANTHO',
     name: 'Phụ Kiện 88 - Cần Thơ',
     address: '94 Đường Trần Hưng Đạo, Phường Thới Bình, Q. Ninh Kiều, TP. Cần Thơ',
@@ -48,167 +48,106 @@ export const INITIAL_BRANCHES: Branch[] = [
     isActive: true
   },
   {
-    id: 'b6',
+    id: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e',
+    code: 'PK88_THUDUC',
+    name: 'Phụ Kiện 88 - Thủ Đức',
+    address: '178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh',
+    lat: 10.850586,
+    lng: 106.762497,
+    isActive: true
+  },
+  {
+    id: '11111111-2222-3333-4444-555555555555',
+    code: 'PK88_VANPHONG',
+    name: 'Phụ Kiện 88 - Văn Phòng',
+    address: 'Trụ Sở Điều Hành Khối Văn Phòng & Quản Trị Hệ Thống',
+    lat: 10.2465,
+    lng: 106.3812,
+    isActive: true
+  },
+  {
+    id: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e',
     code: 'PK88_TRAVINH',
     name: 'Phụ Kiện 88 - Trà Vinh',
     address: '29 Nguyễn Đáng, Phường 6, TP. Trà Vinh',
     lat: 9.9350,
     lng: 106.3450,
-    isActive: true
+    isActive: false
   }
 ];
 
-export const MOCK_STAFF: Staff[] = [
-  {
-    id: 's1',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    fullName: 'Ngô Hồng Thao (Founder)',
-    phone: '0777888688',
-    role: 'founder',
-    isActive: true,
-    avatarUrl: '/ngohongthao-founder.jpg'
-  },
-  {
-    id: 's0',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    fullName: 'Trần Hoàng Sang (Admin & Automation)',
-    phone: '0888003205',
-    role: 'admin',
-    isActive: true,
-    avatarUrl: '/tranhoangsang-admin.png'
-  },
+export const REAL_STAFF: Staff[] = [
+  { id: '7526b7c5-12ac-442b-90a6-b68b9d624364', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Ngô Hồng Thao (Founder)', phone: '0777888688', role: 'founder', isActive: true, code: 'PK88-FOUNDER', email: 'ngohongthao@phukien88.vn', joinDate: '2020-01-01', avatarUrl: '/ngohongthao-founder.jpg', birthDate: '1988-10-12' },
+  { id: 'e30be7a4-e5f6-47c0-8f27-d3f25d3adff8', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Trần Hoàng Sang (Admin & Automation)', phone: '0888003205', role: 'admin', isActive: true, code: 'PK88-ADMIN', email: 'tranhoangsang@phukien88.vn', joinDate: '2021-06-01', avatarUrl: '/tranhoangsang-admin.png', birthDate: '1995-08-20' },
+  { id: 's-pk88-001', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Trương Thị Thùy Dương', phone: '0939998322', role: 'manager', isActive: true, code: 'PK88-001', email: 'thuyduong280719@gmail.com', joinDate: '2023-03-12', birthDate: '1998-03-15' },
+  { id: 's-pk88-002', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Minh Hoài Ngọc', phone: '0386914770', role: 'technician', isActive: true, code: 'PK88-002', email: 'hn111224hn@gmail.com', joinDate: '2023-10-22', birthDate: '2004-12-11' },
+  { id: 's-pk88-003', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Huỳnh Tiểu My', phone: '0392399534', role: 'sales', isActive: true, code: 'PK88-003', email: 'mytieu306@gmail.com', joinDate: '2024-11-18', birthDate: '2001-07-01' },
+  { id: 's-pk88-004', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Trung Hiếu', phone: '0939118793', role: 'technician', isActive: true, code: 'PK88-004', email: 'trhieu0811@gmail.com', joinDate: '2024-06-06', birthDate: '2004-11-08' },
+  { id: 's-pk88-005', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Kim Hân', phone: '0328194190', role: 'sales', isActive: true, code: 'PK88-005', email: 'nkimhan26082005@gmail.com', joinDate: '2025-10-21', birthDate: '2005-08-26' },
+  { id: 's-pk88-006', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Hữu Đạt', phone: '0919982861', role: 'sales', isActive: true, code: 'PK88-006', email: 'baotapkoo23102001@gmail.com', joinDate: '2025-12-02', birthDate: '2001-01-23' },
+  { id: 's-pk88-007', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Duy Khang', phone: '0847478721', role: 'sales', isActive: true, code: 'PK88-007', email: 'nguyenkhang424976@gmail.com', joinDate: '2026-06-08', birthDate: '2007-03-01' },
+  { id: 's-pk88-008', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Phan Thành Long', phone: '0367793585', role: 'technician', isActive: false, code: 'PK88-008', email: 'thanhlong19102007@gmail.com', joinDate: '2024-06-18', birthDate: '2007-10-19' },
+  { id: 's-pk88-009', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Thị Xuân Nhi', phone: '0365345008', role: 'sales', isActive: true, code: 'PK88-009', joinDate: '2026-08-23', birthDate: '2006-06-30' },
+  { id: 's-pk88-010', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Lưu Thị Hồng Phụng', phone: '0787363979', role: 'manager', isActive: true, code: 'PK88-010', email: 'haian140322@gmail.com', joinDate: '2025-11-15', birthDate: '1997-07-05' },
+  { id: 's-pk88-011', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Nguyễn Phan Ngọc Dương', phone: '0869297659', role: 'sales', isActive: true, code: 'PK88-011', email: 'nguyenphanngocduong@gmail.com', joinDate: '2024-06-27', birthDate: '2007-03-16' },
+  { id: 's-pk88-012', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Trần Thanh Hòa', phone: '090000088012', role: 'sales', isActive: false, code: 'PK88-012', joinDate: '2026-10-01' },
+  { id: 's-pk88-013', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Bùi Thị Phương Châu', phone: '0917894158', role: 'sales', isActive: true, code: 'PK88-013', email: 'Buithiphuongchau1998@gmail.com', joinDate: '2026-05-14', birthDate: '1998-12-06' },
+  { id: 's-pk88-014', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Trần Thị Lan Thảo', phone: '0915433694', role: 'manager', isActive: true, code: 'PK88-014', email: 'tranthilanthao240101@gmail.com', joinDate: '2024-01-07', birthDate: '2001-01-24' },
+  { id: 's-pk88-015', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Nguyễn Bình Trọng', phone: '0343797559', role: 'sales', isActive: true, code: 'PK88-015', email: 'nguyenbinhtrong0806@gmail.com', joinDate: '2025-02-27', birthDate: '2005-06-08' },
+  { id: 's-pk88-016', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Nguyễn Thái Quốc', phone: '0823918425', role: 'sales', isActive: true, code: 'PK88-016', email: 'thaiquocnguyen750@gmail.com', joinDate: '2025-09-23', birthDate: '2003-10-16' },
+  { id: 's-pk88-017', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Lê Hữu Danh', phone: '0898997544', role: 'technician', isActive: true, code: 'PK88-017', joinDate: '2026-07-27', birthDate: '2002-09-13' },
+  { id: 's-pk88-018', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Trương Lê Huỳnh', phone: '0375302833', role: 'technician', isActive: true, code: 'PK88-018', email: 'truonglehuynh9@gmail.com', joinDate: '2026-06-01', birthDate: '2002-02-19' },
+  { id: 's-pk88-019', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Phan Văn Thống', phone: '0369626490', role: 'manager', isActive: true, code: 'PK88-019', email: 'phanvanthong1234567891@gmail.com', joinDate: '2023-05-13', birthDate: '2002-09-04' },
+  { id: 's-pk88-020', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Bùi Thị Diểm', phone: '0345994310', role: 'manager', isActive: true, code: 'PK88-020', email: 'bdiem153@gmail.com', joinDate: '2025-10-11', birthDate: '1997-08-20' },
+  { id: 's-pk88-021', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Nguyễn Chí Bảo', phone: '0939614220', role: 'manager', isActive: true, code: 'PK88-021', email: 'Phamnguyenchibao562@gmail.com', joinDate: '2025-11-25', birthDate: '2001-06-11' },
+  { id: 's-pk88-022', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Lê Minh Sang', phone: '0788707367', role: 'technician', isActive: true, code: 'PK88-022', email: 'minhsang5688@gmail.com', joinDate: '2025-11-25', birthDate: '2003-08-23' },
+  { id: 's-pk88-023', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Trần Minh Nhựt', phone: '0789801046', role: 'sales', isActive: true, code: 'PK88-023', email: 'Babyboytg@gmail.com', joinDate: '2026-04-07', birthDate: '1998-01-14' },
+  { id: 's-pk88-024', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Huỳnh Thị Mỹ Duyên', phone: '0774563600', role: 'sales', isActive: true, code: 'PK88-024', joinDate: '2026-09-01', birthDate: '1997-08-20' },
+  { id: 's-pk88-025', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Huỳnh Phương Châm', phone: '0703641900', role: 'manager', isActive: true, code: 'PK88-025', email: 'huynhphuongcham65@gmail.com', joinDate: '2023-04-03', birthDate: '2000-11-06' },
+  { id: 's-pk88-026', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Nguyễn Thị Ngọc Hân', phone: '0907383690', role: 'sales', isActive: true, code: 'PK88-026', email: 'ngochan270994@gmail.com', joinDate: '2025-06-05', birthDate: '1994-09-27' },
+  { id: 's-pk88-027', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Nguyễn Ngọc Duyên', phone: '0392894136', role: 'manager', isActive: true, code: 'PK88-027', email: 'nndyn23@gmail.com', joinDate: '2024-11-09', birthDate: '2001-12-23' },
+  { id: 's-pk88-028', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Đổ Phước Nguyên', phone: '0388316548', role: 'technician', isActive: true, code: 'PK88-028', email: 'work.phuocnguyenit@gmail.com', joinDate: '2024-11-11', birthDate: '2002-03-25' },
+  { id: 's-pk88-029', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Phạm Thị Mỹ An', phone: '0337376765', role: 'sales', isActive: true, code: 'PK88-029', email: 'phamthimyan5574@gmail.com', joinDate: '2025-11-19', birthDate: '2003-10-06' },
+  { id: 's-pk88-030', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Lập', phone: '090000088030', role: 'sales', isActive: true, code: 'PK88-030' },
+  { id: 's-pk88-031', branchId: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e', fullName: 'Liêu Thanh Tuấn', phone: '0934078758', role: 'manager', isActive: true, code: 'PK88-031', email: 'lieuthanhtuan6122003@gmail.com', joinDate: '2022-06-08', birthDate: '2003-12-06' },
+  { id: 's-pk88-032', branchId: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e', fullName: 'Diệu', phone: '090000088032', role: 'sales', isActive: true, code: 'PK88-032' },
+  { id: 's-pk88-033', branchId: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e', fullName: 'Trần Thị Hồng Thắm', phone: '0366958154', role: 'sales', isActive: true, code: 'PK88-033', joinDate: '2026-09-21', birthDate: '2008-01-19' },
+  { id: 's-pk88-034', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Nguyễn Thị Bích Trâm', phone: '0985059514', role: 'accountant', isActive: true, code: 'PK88-034', email: 'bichtramnguyen18051994@gmail.com', joinDate: '2025-09-23', birthDate: '1994-05-18' },
+  { id: 's-pk88-035', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Phan Hoàng Khánh', phone: '0394336726', role: 'hr', isActive: true, code: 'PK88-035', email: 'phanhoangkhanh03@gmail.com', joinDate: '2025-11-24', birthDate: '1999-08-03' },
+  { id: 's-pk88-036', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Võ Tuấn Anh', phone: '0915755063', role: 'warehouse_accountant', isActive: true, code: 'PK88-036', email: 'tuananh0945358747@gmail.com', joinDate: '2026-03-25', birthDate: '1993-09-01' },
+  { id: 's-pk88-037', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Nguyễn Huỳnh Khả Tú', phone: '0375350720', role: 'marketing', isActive: true, code: 'PK88-037', email: 'nguyenhuynhkhatu19@gmail.com', joinDate: '2026-06-15', birthDate: '1992-10-23' },
+  { id: 's-pk88-038', branchId: '11111111-2222-3333-4444-555555555555', fullName: 'Phan Dương Quốc Việt', phone: '0343639533', role: 'media', isActive: true, code: 'PK88-038', joinDate: '2026-07-20', birthDate: '2005-06-15' },
 
-  // --- CHI NHÁNH 1: BẾN TRE 1 (HQ) --- (11 Nhân sự)
-  { id: 's112', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Vũ Minh Tuấn (Trưởng Phòng Kinh Doanh)', phone: '0911001012', role: 'sales_head', isActive: true },
-  { id: 's111', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Trần Thị Mai Phương (Kế Toán Trưởng)', phone: '0911001011', role: 'accountant', isActive: true },
-  { id: 's110', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Đặng Hoàng Long (Chuyên viên Marketing)', phone: '0911001010', role: 'marketing', isActive: true },
-  { id: 's109', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Thị Ngọc Bích (Chuyên viên HC-NS)', phone: '0911001009', role: 'hr', isActive: true },
-  { id: 's101', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Hoàng Hải (Quản lý)', phone: '0911001001', role: 'manager', isActive: true },
-  { id: 's102', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Lê Hoàng Nam (Kỹ thuật)', phone: '0909123456', role: 'technician', isActive: true },
-  { id: 's103', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Trần Quốc Bảo (Kỹ thuật)', phone: '0911001003', role: 'technician', isActive: true },
-  { id: 's104', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Đặng Thị Hồng (Bán hàng)', phone: '0911001004', role: 'sales', isActive: true },
-  { id: 's105', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Nguyễn Thanh Trúc (Bán hàng)', phone: '0911001005', role: 'sales', isActive: true },
-  { id: 's106', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Phạm Đức Anh (Bán hàng)', phone: '0911001006', role: 'sales', isActive: true },
-  { id: 's107', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Võ Thị Mai (Bán hàng)', phone: '0911001007', role: 'sales', isActive: true },
-  { id: 's108', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', fullName: 'Huỳnh Tấn Phát (Bán hàng)', phone: '0911001008', role: 'sales', isActive: true },
-
-  // --- CHI NHÁNH 2: BẾN TRE 2 (TÂN THÀNH) --- (8 Nhân sự)
-  { id: 's201', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Trịnh Văn Long (Quản lý)', phone: '0922002001', role: 'manager', isActive: true },
-  { id: 's202', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Bùi Hữu Nghĩa (Kỹ thuật)', phone: '0922002002', role: 'technician', isActive: true },
-  { id: 's203', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Phan Văn Khải (Kỹ thuật)', phone: '0922002003', role: 'technician', isActive: true },
-  { id: 's204', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Trần Thị Ngọc (Bán hàng)', phone: '0922002004', role: 'sales', isActive: true },
-  { id: 's205', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Nguyễn Hoàng Yến (Bán hàng)', phone: '0922002005', role: 'sales', isActive: true },
-  { id: 's206', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Lê Minh Triết (Bán hàng)', phone: '0922002006', role: 'sales', isActive: true },
-  { id: 's207', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Đỗ Khánh Linh (Bán hàng)', phone: '0922002007', role: 'sales', isActive: true },
-  { id: 's208', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', fullName: 'Hồ Thanh Bình (Bán hàng)', phone: '0922002008', role: 'sales', isActive: true },
-
-  // --- CHI NHÁNH 3: MỸ THO --- (8 Nhân sự)
-  { id: 's301', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Nguyễn Văn Minh (Quản lý)', phone: '0912345678', role: 'manager', isActive: true },
-  { id: 's302', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Đinh Trọng Hiếu (Kỹ thuật)', phone: '0933003002', role: 'technician', isActive: true },
-  { id: 's303', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Vũ Huy Hoàng (Kỹ thuật)', phone: '0933003003', role: 'technician', isActive: true },
-  { id: 's304', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Phạm Thị Mỹ (Bán hàng)', phone: '0977112233', role: 'sales', isActive: true },
-  { id: 's305', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Nguyễn Ánh Tuyết (Bán hàng)', phone: '0933003005', role: 'sales', isActive: true },
-  { id: 's306', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Lý Văn Thuận (Bán hàng)', phone: '0933003006', role: 'sales', isActive: true },
-  { id: 's307', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Ngô Thị Thảo (Bán hàng)', phone: '0933003007', role: 'sales', isActive: true },
-  { id: 's308', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', fullName: 'Trương Gia Bình (Bán hàng)', phone: '0933003008', role: 'sales', isActive: true },
-
-  // --- CHI NHÁNH 4: VĨNH LONG --- (8 Nhân sự)
-  { id: 's401', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Hoàng Văn Thái (Quản lý)', phone: '0944004001', role: 'manager', isActive: true },
-  { id: 's402', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Nguyễn Tấn Dũng (Kỹ thuật)', phone: '0944004002', role: 'technician', isActive: true },
-  { id: 's403', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Bùi Quang Huy (Kỹ thuật)', phone: '0944004003', role: 'technician', isActive: true },
-  { id: 's404', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Lê Thị Thu Hà (Bán hàng)', phone: '0944004004', role: 'sales', isActive: true },
-  { id: 's405', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Đặng Văn Lâm (Bán hàng)', phone: '0944004005', role: 'sales', isActive: true },
-  { id: 's406', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Phạm Quỳnh Anh (Bán hàng)', phone: '0944004006', role: 'sales', isActive: true },
-  { id: 's407', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Võ Tấn Tài (Bán hàng)', phone: '0944004007', role: 'sales', isActive: true },
-  { id: 's408', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', fullName: 'Nguyễn Thị Hương (Bán hàng)', phone: '0944004008', role: 'sales', isActive: true },
-
-  // --- CHI NHÁNH 5: CẦN THƠ --- (8 Nhân sự)
-  { id: 's501', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Mai Xuân Trường (Quản lý)', phone: '0955005001', role: 'manager', isActive: true },
-  { id: 's502', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Dương Văn Khoa (Kỹ thuật)', phone: '0955005002', role: 'technician', isActive: true },
-  { id: 's503', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Lâm Văn Thịnh (Kỹ thuật)', phone: '0955005003', role: 'technician', isActive: true },
-  { id: 's504', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Nguyễn Thị Kim Anh (Bán hàng)', phone: '0955005004', role: 'sales', isActive: true },
-  { id: 's505', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Trần Thanh Sơn (Bán hàng)', phone: '0955005005', role: 'sales', isActive: true },
-  { id: 's506', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Huỳnh Ngọc Trinh (Bán hàng)', phone: '0955005006', role: 'sales', isActive: true },
-  { id: 's507', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Cao Văn Nam (Bán hàng)', phone: '0955005007', role: 'sales', isActive: true },
-  { id: 's508', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', fullName: 'Lê Thị Bích Trâm (Bán hàng)', phone: '0955005008', role: 'sales', isActive: true },
-
-  // --- CHI NHÁNH 6: TRÀ VINH --- (8 Nhân sự)
-  { id: 's601', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Thạch Văn Sang (Quản lý)', phone: '0966006001', role: 'manager', isActive: true },
-  { id: 's602', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Kim Son Thạch (Kỹ thuật)', phone: '0966006002', role: 'technician', isActive: true },
-  { id: 's603', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Nguyễn Thanh Phong (Kỹ thuật)', phone: '0966006003', role: 'technician', isActive: true },
-  { id: 's604', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Sơn Thị Sa Rây (Bán hàng)', phone: '0966006004', role: 'sales', isActive: true },
-  { id: 's605', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Thạch Thị Đa Vi (Bán hàng)', phone: '0966006005', role: 'sales', isActive: true },
-  { id: 's606', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Trần Văn Hùng (Bán hàng)', phone: '0966006006', role: 'sales', isActive: true },
-  { id: 's607', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Lê Thị Cẩm Vân (Bán hàng)', phone: '0966006007', role: 'sales', isActive: true },
-  { id: 's608', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', fullName: 'Nguyễn Minh Tâm (Bán hàng)', phone: '0966006008', role: 'sales', isActive: true }
 ];
 
+// Export as MOCK_STAFF for backward compatibility across components
+export const MOCK_STAFF: Staff[] = REAL_STAFF;
+
 export const MOCK_ATTENDANCE: AttendanceRecord[] = [
-  { id: 'att-0', staffId: 's0', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: new Date(Date.now() - 3600000 * 2).toISOString(), lat: 10.24652, lng: 106.38125, distanceMeters: 6, isVerified: true, notes: 'Trần Hoàng Sang - Check-in GPS Hợp lệ', workHours: 176 },
-
-  // BẾN TRE 1
-  { id: 'att-101', staffId: 's101', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 184, notes: '0911001001' },
-  { id: 'att-102', staffId: 's102', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 176, notes: '0909123456' },
-  { id: 'att-103', staffId: 's103', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 168, notes: '0911001003' },
-  { id: 'att-104', staffId: 's104', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 172, notes: '0911001004' },
-  { id: 'att-105', staffId: 's105', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 160, notes: '0911001005' },
-  { id: 'att-106', staffId: 's106', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 180, notes: '0911001006' },
-  { id: 'att-107', staffId: 's107', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 165, notes: '0911001007' },
-  { id: 'att-108', staffId: 's108', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 170, notes: '0911001008' },
-  { id: 'att-109', staffId: 's109', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 176, notes: '0911001009' },
-  { id: 'att-110', staffId: 's110', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 176, notes: '0911001010' },
-  { id: 'att-111', staffId: 's111', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 176, notes: '0911001011' },
-  { id: 'att-112', staffId: 's112', branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 176, notes: '0911001012' },
-
-  // BẾN TRE 2
-  { id: 'att-201', staffId: 's201', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 180, notes: '0922002001' },
-  { id: 'att-202', staffId: 's202', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 175, notes: '0922002002' },
-  { id: 'att-203', staffId: 's203', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 168, notes: '0922002003' },
-  { id: 'att-204', staffId: 's204', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 172, notes: '0922002004' },
-  { id: 'att-205', staffId: 's205', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 162, notes: '0922002005' },
-  { id: 'att-206', staffId: 's206', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 178, notes: '0922002006' },
-  { id: 'att-207', staffId: 's207', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 166, notes: '0922002007' },
-  { id: 'att-208', staffId: 's208', branchId: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 174, notes: '0922002008' },
-
-  // MỸ THO
-  { id: 'att-301', staffId: 's301', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 182, notes: '0912345678' },
-  { id: 'att-302', staffId: 's302', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 176, notes: '0933003002' },
-  { id: 'att-303', staffId: 's303', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 170, notes: '0933003003' },
-  { id: 'att-304', staffId: 's304', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 176, notes: '0977112233' },
-  { id: 'att-305', staffId: 's305', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 164, notes: '0933003005' },
-  { id: 'att-306', staffId: 's306', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 180, notes: '0933003006' },
-  { id: 'att-307', staffId: 's307', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 168, notes: '0933003007' },
-  { id: 'att-308', staffId: 's308', branchId: 'ce898286-8130-44cb-9f92-25176cec6703', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 172, notes: '0933003008' },
-
-  // VĨNH LONG
-  { id: 'att-401', staffId: 's401', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 180, notes: '0944004001' },
-  { id: 'att-402', staffId: 's402', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 174, notes: '0944004002' },
-  { id: 'att-403', staffId: 's403', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 168, notes: '0944004003' },
-  { id: 'att-404', staffId: 's404', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 175, notes: '0944004004' },
-  { id: 'att-405', staffId: 's405', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 160, notes: '0944004005' },
-  { id: 'att-406', staffId: 's406', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 178, notes: '0944004006' },
-  { id: 'att-407', staffId: 's407', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 165, notes: '0944004007' },
-  { id: 'att-408', staffId: 's408', branchId: '98e58c92-edb5-4c5b-8a33-c78e38b3f954', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 171, notes: '0944004008' },
-
-  // CẦN THƠ
-  { id: 'att-501', staffId: 's501', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 185, notes: '0955005001' },
-  { id: 'att-502', staffId: 's502', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 176, notes: '0955005002' },
-  { id: 'att-503', staffId: 's503', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 170, notes: '0955005003' },
-  { id: 'att-504', staffId: 's504', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 172, notes: '0955005004' },
-  { id: 'att-505', staffId: 's505', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 163, notes: '0955005005' },
-  { id: 'att-506', staffId: 's506', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 179, notes: '0955005006' },
-  { id: 'att-507', staffId: 's507', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 167, notes: '0955005007' },
-  { id: 'att-508', staffId: 's508', branchId: '7593aa44-bd49-476a-8d13-b9912874c0e0', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 173, notes: '0955005008' },
-
-  // TRÀ VINH
-  { id: 'att-601', staffId: 's601', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:55:00Z', isVerified: true, workHours: 181, notes: '0966006001' },
-  { id: 'att-602', staffId: 's602', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:58:00Z', isVerified: true, workHours: 175, notes: '0966006002' },
-  { id: 'att-603', staffId: 's603', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T08:00:00Z', isVerified: true, workHours: 169, notes: '0966006003' },
-  { id: 'att-604', staffId: 's604', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:50:00Z', isVerified: true, workHours: 174, notes: '0966006004' },
-  { id: 'att-605', staffId: 's605', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:52:00Z', isVerified: true, workHours: 161, notes: '0966006005' },
-  { id: 'att-606', staffId: 's606', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:54:00Z', isVerified: true, workHours: 177, notes: '0966006006' },
-  { id: 'att-607', staffId: 's607', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T07:59:00Z', isVerified: true, workHours: 166, notes: '0966006007' },
-  { id: 'att-608', staffId: 's608', branchId: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e', checkIn: '2026-09-01T08:01:00Z', isVerified: true, workHours: 172, notes: '0966006008' }
+  {
+    id: 'att-admin',
+    staffId: 'e30be7a4-e5f6-47c0-8f27-d3f25d3adff8',
+    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
+    checkIn: new Date(Date.now() - 3600000 * 3).toISOString(),
+    lat: 10.24652,
+    lng: 106.38125,
+    distanceMeters: 5,
+    isVerified: true,
+    notes: 'Trần Hoàng Sang (0888003205) - Check-in GPS Hợp lệ (Bến Tre 1)',
+    workHours: 176
+  },
+  {
+    id: 'att-founder',
+    staffId: '7526b7c5-12ac-442b-90a6-b68b9d624364',
+    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
+    checkIn: new Date(Date.now() - 3600000 * 4).toISOString(),
+    lat: 10.24651,
+    lng: 106.38123,
+    distanceMeters: 4,
+    isVerified: true,
+    notes: 'Ngô Hồng Thao (0777888688) - Check-in GPS Hợp lệ',
+    workHours: 0
+  }
 ];
 
 export const MOCK_REPAIR_TICKETS: RepairTicket[] = [
@@ -223,7 +162,7 @@ export const MOCK_REPAIR_TICKETS: RepairTicket[] = [
     status: 'IN_PROGRESS',
     price: 850000,
     createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    technicianName: 'Lê Hoàng Nam'
+    technicianName: 'Nguyễn Trung Hiếu'
   },
   {
     id: 't-102',
@@ -236,7 +175,7 @@ export const MOCK_REPAIR_TICKETS: RepairTicket[] = [
     status: 'READY',
     price: 450000,
     createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    technicianName: 'Nguyễn Văn Minh'
+    technicianName: 'Lê Minh Sang'
   }
 ];
 
@@ -245,27 +184,27 @@ export const MOCK_MARKETING_POSTS = [
     id: 'post-1',
     branch_id: 'ce898286-8130-44cb-9f92-25176cec6703',
     platform: 'facebook',
-    post_url: 'https://facebook.com/post/1',
-    author_name: 'Ngô Hồng Thao',
+    post_url: 'https://facebook.com/phukien88/posts/1',
+    author_name: 'Phan Văn Thống',
     created_at: new Date(Date.now() - 3600000).toISOString()
   },
   {
     id: 'post-2',
     branch_id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     platform: 'tiktok',
-    post_url: 'https://tiktok.com/@pk88/video/2',
-    author_name: 'Trịnh Văn Long',
+    post_url: 'https://tiktok.com/@pk88/video/1',
+    author_name: 'Trương Thị Thùy Dương',
     created_at: new Date(Date.now() - 7200000).toISOString()
-  },
+  }
 ];
 
-export const MOCK_LEAVE_REQUESTS: any[] = [
+export const MOCK_LEAVE_REQUESTS: LeaveRequest[] = [
   {
     id: 'leave-1',
-    staffId: 's-tech-1',
-    staffName: 'Trần Văn Nam',
-    phone: '0901234567',
-    branchId: 'b1',
+    staffId: 's-pk88-004',
+    staffName: 'Nguyễn Trung Hiếu',
+    phone: '0939118793',
+    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     role: 'technician',
     startDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
     endDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
@@ -273,14 +212,14 @@ export const MOCK_LEAVE_REQUESTS: any[] = [
     type: 'PAID_LEAVE',
     status: 'PENDING',
     createdAt: new Date().toISOString(),
-    aiRiskAssessment: '🟢 An toàn: Bến Tre 1 còn 2 thợ sửa máy ca này, đảm bảo vận hành.'
+    aiRiskAssessment: '🟢 An toàn: Bến Tre 1 (Phú Khương) còn kỹ thuật viên Nguyễn Minh Hoài Ngọc ca này, đảm bảo vận hành.'
   },
   {
     id: 'leave-2',
-    staffId: 's-sales-2',
-    staffName: 'Lê Thị Mỹ',
-    phone: '0912345678',
-    branchId: 'b3',
+    staffId: 's-pk88-003',
+    staffName: 'Huỳnh Tiểu My',
+    phone: '0392399534',
+    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     role: 'sales',
     startDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
     endDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
@@ -289,23 +228,6 @@ export const MOCK_LEAVE_REQUESTS: any[] = [
     status: 'APPROVED',
     approvedBy: 'Trần Hoàng Sang (ADMIN)',
     createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    aiRiskAssessment: '🟡 Cảnh báo nhẹ: Đã được Manager duyệt ca thế.'
-  },
-  {
-    id: 'leave-3',
-    staffId: 's-sales-5',
-    staffName: 'Nguyễn Văn Hải',
-    phone: '0933445566',
-    branchId: 'b5',
-    role: 'sales',
-    startDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 86400000 * 5).toISOString().split('T')[0],
-    reason: 'Xin nghỉ việc riêng đi chơi tự túc',
-    type: 'UNPAID_LEAVE',
-    status: 'REJECTED',
-    rejectedBy: 'Phạm Thị Mỹ (MANAGER - Mỹ Tho)',
-    createdAt: new Date(Date.now() - 3600000 * 12).toISOString(),
-    aiRiskAssessment: '🔴 Rủi ro cao: Ngày này chi nhánh Cần Thơ có sự kiện chạy khuyến mãi Flash Sale.'
+    aiRiskAssessment: '🟡 Cảnh báo nhẹ: Cửa hàng trưởng Trương Thị Thùy Dương đã bố trí nhân viên trực thay thế.'
   }
 ];
-
