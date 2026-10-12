@@ -27,7 +27,17 @@ export function App() {
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
-  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(MOCK_LEAVE_REQUESTS);
+  const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
+    const cached = localStorage.getItem('pk88_leave_requests');
+    if (cached) {
+      try {
+        return JSON.parse(cached);
+      } catch (e) {
+        console.error('Error parsing cached leave requests:', e);
+      }
+    }
+    return MOCK_LEAVE_REQUESTS;
+  });
   const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [staffList, setStaffList] = useState<Staff[]>(MOCK_STAFF);
 
@@ -118,6 +128,42 @@ export function App() {
       }
     } catch (err) {
       console.error('Fetch marketing posts exception:', err);
+    }
+  };
+
+  const fetchLeaveRequests = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('leave_requests')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.warn('Supabase leave_requests notice:', error.message);
+      } else if (data && data.length > 0) {
+        const formatted: LeaveRequest[] = data.map((item: any) => ({
+          id: item.id,
+          staffId: item.staff_id,
+          staffName: item.staff_name,
+          phone: item.phone,
+          branchId: item.branch_id,
+          role: item.role,
+          startDate: item.start_date,
+          endDate: item.end_date,
+          reason: item.reason,
+          type: item.type,
+          status: item.status,
+          approvedBy: item.approved_by,
+          rejectedBy: item.rejected_by,
+          createdAt: item.created_at,
+          replacementStaffName: item.replacement_staff_name,
+          aiRiskAssessment: item.ai_risk_assessment
+        }));
+        setLeaveRequests(formatted);
+        localStorage.setItem('pk88_leave_requests', JSON.stringify(formatted));
+      }
+    } catch (err) {
+      console.error('Fetch leave requests exception:', err);
     }
   };
 
@@ -229,6 +275,7 @@ export function App() {
     fetchRealAttendance();
     fetchTickets();
     fetchMarketingPosts();
+    fetchLeaveRequests();
     
     // In demo mode, load mock if empty
     import('./lib/mockData').then(({ MOCK_MARKETING_POSTS }) => {
@@ -253,6 +300,7 @@ export function App() {
     fetchRealAttendance();
     fetchTickets();
     fetchMarketingPosts();
+    fetchLeaveRequests();
 
     if (staff.role === 'admin') setActiveTab('admin');
     else if (staff.role === 'founder') setActiveTab('dashboard');
@@ -386,22 +434,95 @@ export function App() {
     }
   };
 
-  const handleLeaveRequestSubmit = (newReq: LeaveRequest) => {
-    setLeaveRequests(prev => [newReq, ...prev]);
+  const handleLeaveRequestSubmit = async (newReq: LeaveRequest) => {
+    // 1. Optimistic update and persist local cache
+    setLeaveRequests(prev => {
+      const updated = [newReq, ...prev];
+      localStorage.setItem('pk88_leave_requests', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Persist to Supabase Cloud DB
+    try {
+      const { error } = await supabase.from('leave_requests').insert({
+        id: newReq.id,
+        staff_id: newReq.staffId,
+        staff_name: newReq.staffName,
+        phone: newReq.phone || '',
+        branch_id: newReq.branchId,
+        role: newReq.role,
+        start_date: newReq.startDate,
+        end_date: newReq.endDate,
+        reason: newReq.reason,
+        type: newReq.type,
+        status: newReq.status,
+        approved_by: newReq.approvedBy || null,
+        rejected_by: newReq.rejectedBy || null,
+        replacement_staff_name: newReq.replacementStaffName || '',
+        ai_risk_assessment: newReq.aiRiskAssessment || '',
+        created_at: newReq.createdAt || new Date().toISOString()
+      });
+
+      if (error) {
+        console.warn('Lỗi ghi đơn nghỉ phép lên Supabase:', error.message);
+      } else {
+        console.log('✅ Đã đồng bộ đơn nghỉ phép lên Supabase thành công:', newReq.id);
+      }
+    } catch (err) {
+      console.error('Lỗi ngoại lệ khi gửi đơn lên Supabase:', err);
+    }
   };
 
-  const handleUpdateLeaveStatus = (reqId: string, status: LeaveStatus, handlerName: string) => {
-    setLeaveRequests(prev => prev.map(r => {
-      if (r.id === reqId) {
-        return {
-          ...r,
+  const handleUpdateLeaveStatus = async (reqId: string, status: LeaveStatus, handlerName: string) => {
+    // 1. Optimistic update and persist local cache
+    setLeaveRequests(prev => {
+      const updated = prev.map(r => {
+        if (r.id === reqId) {
+          return {
+            ...r,
+            status,
+            approvedBy: status === 'APPROVED' ? handlerName : r.approvedBy,
+            rejectedBy: status === 'REJECTED' ? handlerName : r.rejectedBy
+          };
+        }
+        return r;
+      });
+      localStorage.setItem('pk88_leave_requests', JSON.stringify(updated));
+      return updated;
+    });
+
+    // 2. Persist status change to Supabase Cloud DB
+    try {
+      const target = leaveRequests.find(r => r.id === reqId);
+      if (target) {
+        const { error } = await supabase.from('leave_requests').upsert({
+          id: target.id,
+          staff_id: target.staffId,
+          staff_name: target.staffName,
+          phone: target.phone || '',
+          branch_id: target.branchId,
+          role: target.role,
+          start_date: target.startDate,
+          end_date: target.endDate,
+          reason: target.reason,
+          type: target.type,
           status,
-          approvedBy: status === 'APPROVED' ? handlerName : r.approvedBy,
-          rejectedBy: status === 'REJECTED' ? handlerName : r.rejectedBy
-        };
+          approved_by: status === 'APPROVED' ? handlerName : (status === 'REJECTED' ? null : target.approvedBy || null),
+          rejected_by: status === 'REJECTED' ? handlerName : (status === 'APPROVED' ? null : target.rejectedBy || null),
+          replacement_staff_name: target.replacementStaffName || '',
+          ai_risk_assessment: target.aiRiskAssessment || '',
+          created_at: target.createdAt || new Date().toISOString()
+        });
+
+        if (error) {
+          console.warn('Lỗi cập nhật trạng thái đơn phép lên Supabase:', error.message);
+        } else {
+          console.log('✅ Đã cập nhật trạng thái duyệt đơn lên Supabase:', reqId, status);
+        }
       }
-      return r;
-    }));
+    } catch (err) {
+      console.error('Lỗi ngoại lệ khi cập nhật trạng thái duyệt lên Supabase:', err);
+    }
   };
 
   return (
@@ -574,17 +695,17 @@ export function App() {
           <div className="bg-slate-900/90 border border-slate-800/90 p-2.5 rounded-2xl space-y-2 shadow-lg">
             {/* Row 1: 4 Tabs */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+              {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <button
                   onClick={() => setActiveTab('admin')}
                   className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'admin'
-                      ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
+                      ? (currentUser.role === 'hr' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/20 font-extrabold' : 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold')
                       : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                   }`}
                 >
-                  <Cpu className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">Quản Trị System Admin</span>
+                  {currentUser.role === 'hr' ? <Users className="w-4 h-4 flex-shrink-0" /> : <Cpu className="w-4 h-4 flex-shrink-0" />}
+                  <span className="truncate">{currentUser.role === 'hr' ? 'Quản Trị Nhân Sự (HR)' : 'Quản Trị System Admin'}</span>
                 </button>
               )}
 
@@ -626,7 +747,7 @@ export function App() {
                 <span className="truncate">Đồng Nghiệp Chi Nhánh</span>
               </button>
 
-              {!(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+              {!(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <>
                   <button
                     onClick={() => setActiveTab('tickets')}
@@ -657,7 +778,7 @@ export function App() {
 
             {/* Row 2 */}
             <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-2">
-              {(currentUser.role === 'admin' || currentUser.role === 'founder') && (
+              {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <>
                   <button
                     onClick={() => setActiveTab('tickets')}
@@ -713,7 +834,7 @@ export function App() {
           <RepairTicketView tickets={tickets} role="customer" onCreateTicket={handleCreateTicket} />
         ) : (
           <>
-            {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder') && (
+            {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder' || currentUser?.role === 'hr') && (
               <AdminPanel 
                 branches={branches} 
                 staffList={staffList} 
@@ -722,6 +843,7 @@ export function App() {
                 onToggleBranchStatus={handleToggleBranchStatus}
                 onRefreshStaff={fetchStaff}
                 onUpdateStaff={handleUpdateStaff}
+                currentUser={currentUser}
               />
             )}
 

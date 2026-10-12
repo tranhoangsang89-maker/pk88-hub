@@ -13,6 +13,7 @@ interface AdminPanelProps {
   onToggleBranchStatus?: (branchId: string) => void;
   onRefreshStaff?: () => void;
   onUpdateStaff?: (updatedStaff: Staff) => void;
+  currentUser?: Staff;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ 
@@ -22,9 +23,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onAddBranch, 
   onToggleBranchStatus,
   onRefreshStaff,
-  onUpdateStaff
+  onUpdateStaff,
+  currentUser
 }) => {
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>('payroll');
+  const isHR = currentUser?.role === 'hr';
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>(isHR ? 'staff' : 'payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
@@ -202,25 +205,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-gradient-to-r from-slate-900 via-slate-900 to-cyan-950/40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400 font-extrabold shadow-lg shadow-cyan-500/10">
-              <Cpu className="w-6 h-6 animate-pulse" />
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center font-extrabold shadow-lg ${
+              isHR 
+                ? 'bg-pink-500/10 border border-pink-500/30 text-pink-400 shadow-pink-500/10'
+                : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-cyan-500/10'
+            }`}>
+              {isHR ? <Users className="w-6 h-6 animate-pulse" /> : <Cpu className="w-6 h-6 animate-pulse" />}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base font-extrabold text-slate-100">BẢNG QUẢN TRỊ KỸ THUẬT & AUTOMATION</h2>
-                <span className="text-[10px] font-mono bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full font-bold">
-                  ADMIN SYSTEM
+                <h2 className="text-base font-extrabold text-slate-100">
+                  {isHR ? 'BẢNG ĐIỀU HÀNH NHÂN SỰ & CHẤM CÔNG' : 'BẢNG QUẢN TRỊ KỸ THUẬT & AUTOMATION'}
+                </h2>
+                <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
+                  isHR 
+                    ? 'bg-pink-500/20 text-pink-300 border-pink-500/40' 
+                    : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                }`}>
+                  {isHR ? 'HR PORTAL' : 'ADMIN SYSTEM'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 mt-0.5">Phụ trách bởi: **Trần Hoàng Sang** (Chuyên viên Công nghệ Phụ Kiện 88)</p>
+              <p className="text-xs text-slate-400 mt-0.5">
+                {isHR 
+                  ? 'Phụ trách bởi: **Phan Hoàng Khánh** (Chuyên viên Nhân sự Phụ Kiện 88)' 
+                  : 'Phụ trách bởi: **Trần Hoàng Sang** (Chuyên viên Công nghệ Phụ Kiện 88)'}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
-              <Activity className="w-4 h-4 text-emerald-400" />
-              <span className="text-slate-300">n8n Middleware: <strong className="text-emerald-400">ONLINE</strong></span>
-            </div>
+            {isHR ? (
+              <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-pink-500/30">
+                <ShieldCheck className="w-4 h-4 text-pink-400" />
+                <span className="text-slate-300">Quyền Hạn: <strong className="text-pink-400">TOÀN QUYỀN NHÂN SỰ</strong></span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                <Activity className="w-4 h-4 text-emerald-400" />
+                <span className="text-slate-300">n8n Middleware: <strong className="text-emerald-400">ONLINE</strong></span>
+              </div>
+            )}
             <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
               <Database className="w-4 h-4 text-sky-400" />
               <span className="text-slate-300">Supabase RLS: <strong className="text-sky-400">ACTIVE</strong></span>
