@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Staff, Branch, UserRole, CompetencyScores } from '../types';
 import { 
   X, Phone, Mail, Calendar, Award, CheckCircle2, ShieldCheck, 
   MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw,
-  Gift, Cake, PartyPopper
+  Gift, Cake, PartyPopper, Camera, UploadCloud, RefreshCw
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
+import { compressAvatarImage, CompressedImageResult } from '../lib/imageCompression';
 
 interface StaffDetailModalProps {
   staff: Staff | null;
@@ -202,6 +203,16 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
 
+  // Avatar Upload & Compression State
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string>('');
+  const [isCompressing, setIsCompressing] = useState<boolean>(false);
+  const [compressionStats, setCompressionStats] = useState<{
+    originalKB: number;
+    compressedKB: number;
+    savedPercent: number;
+  } | null>(null);
+
   // Sync state if staff changes
   useEffect(() => {
     if (staff) {
@@ -216,12 +227,14 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
       setEditBirthDate(staff.birthDate || '');
       setEditEmail(staff.email || '');
       setEditIsActive(staff.isActive !== undefined ? staff.isActive : true);
+      setAvatarPreview(staff.avatarUrl || AVATAR_FALLBACKS[staff.id] || '');
+      setCompressionStats(null);
     }
   }, [staff, initialEditMode]);
 
   // Derive display values
   const staffCode = staff.code || `PK88-NV${staff.id.replace(/\D/g, '').padStart(3, '0')}`;
-  const avatarUrl = staff.avatarUrl || AVATAR_FALLBACKS[staff.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName)}&background=0284c7&color=fff&size=200&font-size=0.35&bold=true`;
+  const avatarUrl = avatarPreview || staff.avatarUrl || AVATAR_FALLBACKS[staff.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName)}&background=0284c7&color=fff&size=200&font-size=0.35&bold=true`;
   const roleDisplay = 
     staff.role === 'founder' ? 'Chủ Sở Hữu / Founder' :
     staff.role === 'admin' ? 'Admin & System Automation' :
@@ -297,6 +310,101 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     }
   };
 
+  // Handle Avatar Selection & Ultra-Light Compression (~20KB)
+  const handleAvatarFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !staff) return;
+
+    setIsCompressing(true);
+    try {
+      // Nén ảnh bằng Canvas: Tự động crop vuông 1:1, resize 400x400, nén WebP chất lượng 0.8
+      const result = await compressAvatarImage(file, {
+        maxWidth: 400,
+        maxHeight: 400,
+        quality: 0.8,
+        squareCrop: true
+      });
+
+      setAvatarPreview(result.dataUrl);
+      setCompressionStats({
+        originalKB: result.originalSizeKB,
+        compressedKB: result.compressedSizeKB,
+        savedPercent: result.savedPercent
+      });
+
+      const updatedStaff: Staff = {
+        ...staff,
+        avatarUrl: result.dataUrl
+      };
+
+      // 1. Lưu đệm localStorage để load ngay tức thì mọi nơi
+      const overridesStr = localStorage.getItem('pk88_staff_overrides');
+      const overrides = overridesStr ? JSON.parse(overridesStr) : {};
+      overrides[staff.id] = { ...overrides[staff.id], ...updatedStaff };
+      overrides[staff.phone] = { ...overrides[staff.phone], ...updatedStaff };
+      localStorage.setItem('pk88_staff_overrides', JSON.stringify(overrides));
+
+      // 2. Cập nhật state cha
+      if (onUpdateStaff) {
+        onUpdateStaff(updatedStaff);
+      }
+
+      // 3. Đồng bộ lên Supabase staff table vào cột avatar_url mới tạo
+      try {
+        const { error: sbErr } = await supabase
+          .from('staff')
+          .update({ avatar_url: result.dataUrl })
+          .eq('phone', staff.phone);
+
+        if (sbErr) {
+          await supabase
+            .from('staff')
+            .update({ avatar_url: result.dataUrl })
+            .eq('id', staff.id);
+        }
+      } catch (dbErr) {
+        console.log('Supabase staff avatar_url update notice:', dbErr);
+      }
+
+    } catch (err: any) {
+      console.error('Error compressing avatar:', err);
+      alert('⚠️ Không thể tải ảnh: ' + (err.message || err));
+    } finally {
+      setIsCompressing(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleResetAvatar = async () => {
+    if (!staff) return;
+    if (!confirm(`Bạn có chắc muốn đặt lại ảnh đại diện mặc định cho ${staff.fullName}?`)) return;
+
+    setAvatarPreview('');
+    setCompressionStats(null);
+
+    const updatedStaff: Staff = {
+      ...staff,
+      avatarUrl: undefined
+    };
+
+    const overridesStr = localStorage.getItem('pk88_staff_overrides');
+    const overrides = overridesStr ? JSON.parse(overridesStr) : {};
+    if (overrides[staff.id]) delete overrides[staff.id].avatarUrl;
+    if (overrides[staff.phone]) delete overrides[staff.phone].avatarUrl;
+    localStorage.setItem('pk88_staff_overrides', JSON.stringify(overrides));
+
+    if (onUpdateStaff) onUpdateStaff(updatedStaff);
+
+    try {
+      await supabase.from('staff').update({ avatar_url: null }).eq('phone', staff.phone);
+      await supabase.from('staff').update({ avatar_url: null }).eq('id', staff.id);
+    } catch (e) {
+      console.log('Supabase avatar reset notice:', e);
+    }
+  };
+
   const handleSaveProfile = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!staff) return;
@@ -312,7 +420,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
 
     setSavingProfile(true);
     try {
-      // 1. Live update to Supabase 'staff' table
+      // 1. Live update to Supabase 'staff' table (kèm avatar_url)
       const { error } = await supabase
         .from('staff')
         .update({
@@ -320,7 +428,8 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
           phone: editPhone.trim(),
           branch_id: editBranchId || staff.branchId,
           role: editRole,
-          is_active: editIsActive
+          is_active: editIsActive,
+          avatar_url: avatarPreview || staff.avatarUrl || null
         })
         .eq('id', staff.id);
 
@@ -333,7 +442,8 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
             phone: editPhone.trim(),
             branch_id: editBranchId || staff.branchId,
             role: editRole,
-            is_active: editIsActive
+            is_active: editIsActive,
+            avatar_url: avatarPreview || staff.avatarUrl || null
           })
           .eq('phone', staff.phone);
       }
@@ -348,7 +458,8 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
         isActive: editIsActive,
         joinDate: editJoinDate.trim() || undefined,
         birthDate: editBirthDate.trim() || undefined,
-        email: editEmail.trim() || undefined
+        email: editEmail.trim() || undefined,
+        avatarUrl: avatarPreview || staff.avatarUrl
       };
 
       // 3. Save to localStorage overrides so birthDate, joinDate, email persist across reloads
@@ -448,6 +559,16 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
         <div className="p-6 grid grid-cols-1 md:grid-cols-12 gap-6">
           {/* Left Column: Portrait & Personal Metadata (5 cols) */}
           <div className="md:col-span-5 space-y-4">
+            {/* Hidden File Input for Avatar */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleAvatarFileSelect}
+              className="hidden"
+            />
+
+            {/* Avatar Portrait Card with interactive upload */}
             <div className="relative group rounded-2xl overflow-hidden border-2 border-cyan-500/30 shadow-lg bg-slate-950">
               <img
                 src={avatarUrl}
@@ -457,22 +578,84 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                   (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName)}&background=0284c7&color=fff&size=200&bold=true`;
                 }}
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/20 to-transparent pointer-events-none" />
               
-              {birthdayInfo.isToday && (
-                <div className="absolute top-3 left-3 right-3 z-10 flex items-center justify-center gap-2 py-1.5 px-3 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white shadow-xl shadow-pink-500/40 border border-pink-300/40 animate-pulse">
-                  <Gift className="w-4 h-4 text-white fill-white/20 animate-bounce" />
-                  <span className="text-[11px] font-black tracking-wide uppercase drop-shadow">Hôm nay sinh nhật! 🎂🎁</span>
+              {/* Interactive Hover Overlay to Upload Photo */}
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="absolute inset-0 bg-slate-950/70 backdrop-blur-xs opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4 text-center cursor-pointer z-10"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-400/50 flex items-center justify-center text-cyan-300 shadow-lg shadow-cyan-500/30 group-hover:scale-110 transition-transform">
+                  <Camera className="w-6 h-6" />
+                </div>
+                <span className="text-xs font-black text-white drop-shadow">Nhấp để tải ảnh lên</span>
+                <span className="text-[10px] text-cyan-300 font-medium bg-cyan-950/80 border border-cyan-500/30 px-2.5 py-0.5 rounded-full">
+                  ⚡ Tự động nén WebP siêu nhẹ (~20KB)
+                </span>
+              </div>
+
+              {/* Floating Camera Button (Always visible on top right for mobile/tablet) */}
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={isCompressing}
+                title="Tải lên hoặc thay đổi ảnh đại diện"
+                className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-cyan-600 text-cyan-300 hover:text-white border border-cyan-500/40 shadow-xl backdrop-blur-md text-[11px] font-bold transition-all hover:scale-105 active:scale-95 cursor-pointer"
+              >
+                <Camera className="w-3.5 h-3.5" />
+                <span>Đổi ảnh</span>
+              </button>
+
+              {/* Compressing Loading Overlay */}
+              {isCompressing && (
+                <div className="absolute inset-0 z-30 bg-slate-950/90 backdrop-blur-sm flex flex-col items-center justify-center gap-2 text-cyan-300">
+                  <div className="w-8 h-8 border-3 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                  <span className="text-xs font-extrabold animate-pulse">Đang nén & tối ưu ảnh...</span>
+                  <span className="text-[10px] text-slate-400 font-mono">Bảo vệ dung lượng Supabase</span>
                 </div>
               )}
               
-              <div className="absolute bottom-3 left-3 right-3">
+              {birthdayInfo.isToday && (
+                <div className="absolute top-3 left-3 z-10 flex items-center gap-1.5 py-1.5 px-3 rounded-xl bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white shadow-xl shadow-pink-500/40 border border-pink-300/40 animate-pulse">
+                  <Gift className="w-3.5 h-3.5 text-white fill-white/20 animate-bounce" />
+                  <span className="text-[10px] font-black tracking-wide uppercase drop-shadow">Hôm nay sinh nhật! 🎂</span>
+                </div>
+              )}
+              
+              <div className="absolute bottom-3 left-3 right-3 pointer-events-none z-10">
                 <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-gradient-to-r ${roleColor} shadow-md uppercase tracking-wider mb-1`}>
                   {roleDisplay}
                 </span>
                 <h2 className="text-lg font-black text-white leading-tight drop-shadow-md">{staff.fullName}</h2>
               </div>
             </div>
+
+            {/* Compression Feedback Banner */}
+            {compressionStats && (
+              <div className="bg-emerald-950/70 border border-emerald-500/40 rounded-2xl p-3 text-xs text-emerald-300 flex items-center justify-between shadow-lg shadow-emerald-500/10 animate-fade-in">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                    <Sparkles className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-white text-[11px]">Đã tối ưu & nén ảnh thành công!</p>
+                    <p className="text-[10px] text-emerald-300/90 font-mono">
+                      Gốc: {compressionStats.originalKB} KB ➔ Nén: <strong className="text-white font-bold">{compressionStats.compressedKB} KB</strong> (Tiết kiệm {compressionStats.savedPercent}%)
+                    </p>
+                  </div>
+                </div>
+                {avatarPreview && (
+                  <button
+                    type="button"
+                    onClick={handleResetAvatar}
+                    className="text-[10px] text-slate-400 hover:text-rose-400 underline ml-2 shrink-0 cursor-pointer"
+                    title="Khôi phục ảnh avatar mặc định ban đầu"
+                  >
+                    Khôi phục
+                  </button>
+                )}
+              </div>
+            )}
 
             {/* Profile Edit Form OR Quick Metadata Card */}
             {isEditingProfile ? (
@@ -484,6 +667,19 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                   <span className="text-[10px] font-mono text-emerald-400 font-bold bg-emerald-950/60 px-2 py-0.5 rounded border border-emerald-500/30">
                     Lưu Supabase Cloud
                   </span>
+                </div>
+
+                {/* Upload Avatar Button inside Edit Form */}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isCompressing}
+                    className="w-full py-2 px-3 rounded-xl bg-slate-900 hover:bg-slate-800 border border-cyan-500/30 hover:border-cyan-400 text-cyan-300 hover:text-white font-bold flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4 text-cyan-400" />
+                    <span>Tải Lên / Thay Đổi Ảnh Avatar (Nén ~20KB)</span>
+                  </button>
                 </div>
 
                 {/* Full name */}

@@ -251,7 +251,7 @@ export function App() {
             phone: item.phone || override?.phone || match?.phone,
             role: item.role || override?.role || match?.role,
             isActive: item.is_active !== undefined ? item.is_active : (override?.isActive !== undefined ? override.isActive : true),
-            avatarUrl: override?.avatarUrl || match?.avatarUrl,
+            avatarUrl: item.avatar_url || override?.avatarUrl || match?.avatarUrl,
             code: override?.code || match?.code,
             email: override?.email || match?.email,
             joinDate: override?.joinDate || match?.joinDate,
@@ -873,6 +873,7 @@ export function App() {
                 currentBranch={selectedBranch}
                 currentUser={currentUser}
                 staffList={staffList}
+                onUpdateStaff={handleUpdateStaff}
               />
             )}
 

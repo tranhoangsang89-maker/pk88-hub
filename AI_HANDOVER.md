@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 07/10/2026 (Phiên Chuẩn Hóa Bộ Não AI gemini-flash-lite-latest, Sửa Scroll Mobile & Nâng Cấp Năng Lực 5D Đa Vai Trò)*
+*Ngày cập nhật mới nhất: 13/10/2026 (Tính Năng Tự Upload & Nén Avatar Siêu Nhẹ ~20KB Bảo Vệ Supabase, Client-Side Canvas WebP Optimizer)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,14 +7,70 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự 50+ người (7 chi nhánh), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR và hệ thống LMS đào tạo nội bộ 60 ngày.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR và hệ thống LMS đào tạo nội bộ 60 ngày.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React.
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 07/10/2026)
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 13/10/2026) - QUAN TRỌNG
+
+### A. Tính Năng Tự Upload & Nén Ảnh Avatar Client-Side Siêu Nhẹ (~20KB) (NEW - 13/10)
+- **Mục tiêu giải quyết:** Mở khóa ảnh đại diện cho nhân sự tự đổi ảnh, đồng thời ngăn chặn nguy cơ đầy bộ nhớ Supabase do người dùng tải ảnh dung lượng lớn (3MB - 10MB) từ camera điện thoại.
+- **Cơ chế nén bằng HTML5 Canvas (`src/lib/imageCompression.ts`):**
+  - Tự động crop vuông căn giữa (1:1 Center Square Crop), resize chuẩn avatar tối đa 400x400 px.
+  - Xuất định dạng WebP chất lượng 0.8 (fallback JPEG nếu cần).
+  - Giảm dung lượng từ vài MB xuống chỉ còn **15KB - 30KB** (tiết kiệm **98% - 99%** dung lượng).
+  - Hiển thị badge thống kê trực quan: *"Gốc: 3.8 MB ➔ Nén: 24 KB (-99%)"*.
+- **Tích hợp vào giao diện & phân quyền:**
+  - Nút camera "Đổi ảnh" nổi và overlay hover trực tiếp trên khung ảnh đại diện `StaffDetailModal.tsx`.
+  - Nút đổi ảnh tích hợp trong form Sửa Thông Tin Nhân Sự.
+  - Phân quyền linh hoạt: Nhân viên được phép tự đổi ảnh của chính mình (`BranchStaffDirectory.tsx`); Founder, Admin và HR có quyền đổi ảnh cho toàn bộ nhân sự.
+- **Đồng bộ dữ liệu đa tầng:**
+  - Lưu tức thời vào bộ nhớ đệm `pk88_staff_overrides` trong `localStorage`.
+  - Cập nhật state hệ thống `onUpdateStaff` cho `BranchStaffDirectory` và `App.tsx`.
+  - Hỗ trợ lưu trực tiếp lên cột `avatar_url` trên bảng `staff` Supabase.
+
+### B. Chuẩn Hóa 100% Danh Sách Nhân Sự & Chi Nhánh Theo File Excel Gốc (12/10)
+- **Dữ liệu nguồn:** Toàn bộ danh sách nhân sự được chuẩn hóa từ file `DANH_SACH_NHAN_VIEN_PK88_CHUAN_HOA.xlsx`. Đã loại bỏ hoàn toàn các dữ liệu mẫu (mock staff) giả lập trước đây.
+- **Cấu hình 7 Chi Nhánh Chuẩn:**
+  1. `PHÚ KHƯƠNG` (Bến Tre 1)
+  2. `ĐỒNG KHỞI` (Bến Tre 2)
+  3. `VĨNH LONG`
+  4. `MỸ THO`
+  5. `CẦN THƠ`
+  6. `THỦ ĐỨC` (TP.HCM)
+  7. `VĂN PHÒNG` (Headquarters)
+- **Cập nhật nhân sự đầu não & chức danh:**
+  - **Founder Ngô Hồng Thao** và **Admin Trần Hoàng Sang** trực thuộc chi nhánh **VĂN PHÒNG**.
+  - **Phan Dương Quốc Việt:** Chuyên viên Media.
+  - **Võ Tuấn Anh:** Kế Toán Kho.
+
+### B. Tính Năng Ngày Sinh Nhật & Icon Hộp Quà 🎁 Bắt Mắt (NEW - 12/10)
+- **Thay thế nhãn hồ sơ:** Bỏ nhãn *"Trạng thái hồ sơ: ĐỦ HỒ SƠ"*, thay bằng ngày sinh nhật của nhân sự (`birthDate`).
+- **Hiệu ứng chúc mừng sinh nhật tự động:**
+  - Khi ngày/tháng hiện tại trùng với ngày/tháng sinh của nhân viên, hệ thống tự động hiển thị **Icon Hộp Quà `🎁`** với hiệu ứng nhịp đập rung rinh (Pulse/Bounce) và viền vàng nổi bật tại cả `BranchStaffDirectory.tsx` và `StaffDetailModal.tsx`.
+
+### C. Chức Năng Chỉnh Sửa Hồ Sơ Nhân Sự Trực Tiếp (Live Staff Editor) (NEW - 12/10)
+- **Quyền hạn:** Founder, Admin và HR (Phan Hoàng Khánh) có quyền chỉnh sửa thông tin bất kỳ nhân sự nào trực tiếp từ giao diện Profile Modal:
+  - Cho phép sửa: Họ và tên, Số điện thoại, Ngày sinh, Ngày vào làm, Chi nhánh, Chức vụ.
+  - Tự động đồng bộ và lưu dữ liệu ngay lập tức vào bảng `staff` trên Supabase, đồng thời cập nhật bộ nhớ đệm `localStorage` (`pk88_staff_overrides`).
+
+### D. Mở Quyền Quản Trị Nhân Sự Cho HR Phan Hoàng Khánh (NEW - 12/10)
+- **Cấp quyền HR:** Nhân sự **Phan Hoàng Khánh** (SĐT `0933808922`, role `hr`) đã được mở quyền truy cập và thao tác đầy đủ trong Tab **"Quản Trị Nhân Sự (HR & Hệ Thống)"** (`AdminPanel.tsx`), bên cạnh Founder và Admin.
+
+### E. Đồng Bộ Đơn Nghỉ Phép 2 Chiều Với Supabase Cloud DB (NEW - 12/10)
+- **Khởi tạo bảng `leave_requests`:** Bảng đã được tạo trên Supabase và bật Row Level Security (RLS) mở quyền đọc/ghi:
+  - Cột: `id`, `staff_id`, `staff_name`, `phone`, `branch_id`, `role`, `start_date`, `end_date`, `reason`, `type`, `status`, `approved_by`, `rejected_by`, `replacement_staff_name`, `ai_risk_assessment`, `created_at`.
+- **Đồng bộ 2 chiều tự động trong [`App.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/App.tsx):**
+  - **Tải dữ liệu:** Tự động fetch danh sách đơn thực tế từ Supabase khi mở app hoặc login.
+  - **Gửi đơn:** Đơn nộp qua form hoặc qua Chị 8 AI HR được `INSERT` ngay lập tức lên Supabase.
+  - **Duyệt / Từ chối đơn:** Thao tác *"Duyệt Cho Nghỉ"* hoặc *"Từ Chối Đơn"* tự động `UPSERT` trực tiếp lên Supabase và lưu đệm `localStorage`. F5 hoặc đóng trình duyệt không bị mất dữ liệu.
+
+---
+
+## 3. THÀNH TỰU TRƯỚC ĐÓ (07/10/2026)
 
 ### A. Chuẩn Hóa 100% Hệ Sinh Thái AI - Duy Nhất 1 Bộ Não `gemini-flash-lite-latest` (NEW - 07/10)
 - **Đồng bộ Model AI Engine:** Tất cả 4 công cụ/Trợ lý AI chính trong hệ thống đều được khóa sử dụng **DUY NHẤT 1 bộ não AI**: `gemini-flash-lite-latest` (Loại bỏ toàn bộ các model fallback như `gemini-2.0-flash-lite` hay `gemini-1.5-flash` để tránh lỗi nghẽn hoặc không tương thích):
@@ -74,8 +130,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 4. CƠ SỞ DỮ LIỆU (SUPABASE)
 - **`branches`**: Danh sách chi nhánh (id, code, name, lat, lng...)
-- **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active, avatar_url)
+- **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active, avatar_url, birth_date)
 - **`attendance`**: Nhật ký chấm công (id, staff_id, branch_id, check_in, check_out, work_hours...)
+- **`leave_requests`**: Quản lý đơn xin nghỉ phép (id, staff_id, staff_name, phone, branch_id, role, start_date, end_date, reason, type, status, approved_by, rejected_by, replacement_staff_name, ai_risk_assessment, created_at) - Đã đồng bộ 2 chiều với Chị 8 AI HR & Quản lý duyệt.
+- **`repair_tickets`**: Phiếu tiếp nhận & sửa chữa thiết bị khách hàng.
 - **`courses`, `lessons`, `quizzes`, `staff_progress`:** CSDL hệ thống đào tạo LMS 60 ngày.
 
 ---

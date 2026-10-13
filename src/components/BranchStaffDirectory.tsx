@@ -8,6 +8,7 @@ interface BranchStaffDirectoryProps {
   currentUser: Staff;
   staffList: Staff[];
   onUpdateScores?: (staffId: string, updatedScores: CompetencyScores) => void;
+  onUpdateStaff?: (updatedStaff: Staff) => void;
 }
 
 export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
@@ -15,6 +16,7 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
   currentUser,
   staffList,
   onUpdateScores,
+  onUpdateStaff,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [roleFilter, setRoleFilter] = useState<string>('ALL');
@@ -299,11 +301,18 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
       <StaffDetailModal
         staff={selectedColleague}
         branch={currentBranch}
-        canEdit={currentUser?.role === 'founder' || currentUser?.role === 'admin'}
+        branches={[currentBranch]}
+        canEdit={
+          currentUser?.role === 'founder' || 
+          currentUser?.role === 'admin' || 
+          currentUser?.role === 'hr' || 
+          (selectedColleague ? (selectedColleague.id === currentUser?.id || selectedColleague.phone === currentUser?.phone) : false)
+        }
         onClose={() => setSelectedColleague(null)}
         onUpdateScores={onUpdateScores}
         onUpdateStaff={(updatedStaff) => {
           setSelectedColleague(updatedStaff);
+          if (onUpdateStaff) onUpdateStaff(updatedStaff);
         }}
       />
     </div>
