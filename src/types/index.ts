@@ -118,6 +118,8 @@ export interface MarketingPost {
   post_url: string;
   author_name: string;
   created_at: string;
+  views?: number;
+  likes?: number;
 }
 
 export type LeaveType = 'PAID_LEAVE' | 'UNPAID_LEAVE' | 'SICK_LEAVE';

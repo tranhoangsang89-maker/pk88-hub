@@ -32,7 +32,35 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
   - Cập nhật state hệ thống `onUpdateStaff` cho `BranchStaffDirectory` và `App.tsx`.
   - Hỗ trợ lưu trực tiếp lên cột `avatar_url` trên bảng `staff` Supabase.
 
-### B. Chuẩn Hóa 100% Danh Sách Nhân Sự & Chi Nhánh Theo File Excel Gốc (12/10)
+### B. Ô Nhập Prompt Ghi Chú Bổ Sung Cho AI Content Studio (NEW - 13/10)
+- **Vị trí tích hợp:** Thêm ô textarea *"Ghi chú bổ sung / Yêu cầu riêng cho AI"* ngay dưới 4 phong cách nội dung trong `AIContentStudioModal.tsx`.
+- **Cơ chế AI:** Giữ nguyên 4 phong cách cốt lõi, nhưng cho phép người dùng tùy biến thêm bất kỳ yêu cầu cụ thể nào (ví dụ: nhấn mạnh quà tặng, bảo hành 1 đổi 1, giọng điệu đặc thù). Prompt này được nhúng trực tiếp vào `systemInstruction` và `requestPayload` gửi tới model `gemini-flash-lite-latest`.
+
+### C. Kích Hoạt Bảng Ma Trận Bài Đăng Supabase Cloud (`marketing_posts`) (NEW - 13/10)
+- Khởi tạo bảng `marketing_posts` và RLS policy trên Supabase Cloud.
+- Sửa lỗi múi giờ UTC sang giờ địa phương Việt Nam (GMT+7) trong `MarketingDashboard.tsx`.
+- Lưu đệm `localStorage` (`pk88_marketing_posts`) kết hợp đồng bộ 2 chiều với Supabase `marketing_posts`.
+
+### D. Nâng Cấp Khung Live Feed Bài Đăng Đa Chi Nhánh (NEW - 13/10)
+- **Tích hợp bộ lọc Chi nhánh:** Dropdown chọn lọc theo 7 chi nhánh hoặc toàn chuỗi.
+- **Tích hợp bộ lọc Kênh Mạng Xã Hội:** Nút badge chọn lọc nhanh bài viết Facebook, TikTok, Zalo, YouTube.
+- **Huy hiệu đếm số lượng thời gian thực:** Badge đếm số bài viết phù hợp với bộ lọc hiện tại.
+- **Xử lý trạng thái rỗng:** Hiển thị thông báo và nút đặt lại bộ lọc thông minh khi không có bài đăng khớp điều kiện.
+
+### E. Đo Lường Lượt Xem & Tương Tác Thời Gian Thực (Zero n8n) (NEW - 13/10)
+- **Thêm cột vào Supabase `marketing_posts`:** Đã thêm `views INT DEFAULT 0` và `likes INT DEFAULT 0`.
+- **Huy hiệu đo lường trên Live Feed:** Mỗi thẻ bài đăng hiển thị trực quan `👁️ [views] views` và `❤️ [likes] thích`.
+- **Thẻ KPI thời gian thực đầu trang:**
+  - *Tổng Lượt Xem Hôm Nay* (gradient cyan neon, tính tổng view toàn chuỗi).
+  - *Tổng Tương Tác Hôm Nay* (gradient rose neon, tính tổng lượt like/reaction).
+  - Đối với nhân sự chi nhánh: Hiển thị riêng Lượt Xem và Lượt Tương Tác của chính chi nhánh đó.
+  - Cột *Tổng View* tích hợp ngay trong Bảng Ma Trận Đăng Bài.
+- **Modal Sửa Nhanh (Quick Edit):** Cho phép Marketing/Quản lý chỉnh sửa nhanh số view và like trong 2 giây, hỗ trợ nút "Điền nhanh số liệu ước tính AI", đồng bộ tức thời lên Supabase.
+- **Modal AI Quét Tương Tác (Gemini Flash AI Scanner):**
+  - *Quét từ link:* Sử dụng Gemini Flash (`gemini-flash-lite-latest`) và public oEmbed để phân tích bài đăng theo nền tảng.
+  - *Quét từ ảnh chụp màn hình (Gemini Vision):* Cho phép kéo thả ảnh chụp màn hình bài viết Facebook/TikTok/Studio, AI tự đọc và bóc tách chính xác số Views & Likes rồi lưu thẳng vào Supabase. Không cần n8n hay máy chủ trung gian.
+
+### F. Chuẩn Hóa 100% Danh Sách Nhân Sự & Chi Nhánh Theo File Excel Gốc (12/10)
 - **Dữ liệu nguồn:** Toàn bộ danh sách nhân sự được chuẩn hóa từ file `DANH_SACH_NHAN_VIEN_PK88_CHUAN_HOA.xlsx`. Đã loại bỏ hoàn toàn các dữ liệu mẫu (mock staff) giả lập trước đây.
 - **Cấu hình 7 Chi Nhánh Chuẩn:**
   1. `PHÚ KHƯƠNG` (Bến Tre 1)

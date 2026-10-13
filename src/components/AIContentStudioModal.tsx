@@ -33,6 +33,7 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
   const [searchTerm, setSearchTerm] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [style, setStyle] = useState(STYLES[0]);
+  const [customPrompt, setCustomPrompt] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -69,12 +70,15 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
     const allKeys = envKeys.split(',').map((k: string) => k.trim()).filter(Boolean);
 
     const currentDate = new Date().toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+    const additionalNotes = customPrompt.trim() ? `\nYêu cầu / Ghi chú bổ sung đặc biệt từ người dùng:\n"${customPrompt.trim()}"\n(Hãy ưu tiên kết hợp khéo léo yêu cầu bổ sung này vào nội dung)` : '';
+
     const systemInstruction = `[THÔNG TIN HỆ THỐNG]: Hôm nay là ${currentDate}. Hãy ghi nhớ mốc thời gian này để viết content bắt trend, phù hợp với thời điểm hiện tại.
 
 Bạn là một chuyên gia sáng tạo nội dung Marketing xuất sắc cho chuỗi bán lẻ sửa chữa điện thoại "Phụ Kiện 88". 
 Hãy viết nội dung dựa trên yêu cầu sau:
 Sản phẩm/Dịch vụ: ${product}
-Phong cách: ${style}
+Phong cách chủ đạo: ${style}
+${additionalNotes}
 Địa chỉ chi nhánh gắn vào CTA: ${currentBranch.name} - ${currentBranch.address}
 
 ${format === 'video' ? `
@@ -92,11 +96,11 @@ Yêu cầu định dạng [Bài viết Fanpage/Zalo + Gợi ý ảnh]:
 - Lời mời ghé đúng địa chỉ chi nhánh + Bộ Hashtag chuẩn SEO.
 `}
 
-Viết bằng tiếng Việt, định dạng Markdown rõ ràng, sáng tạo, thực tế, đúng phong cách yêu cầu. Không thêm phần giới thiệu dông dài.`;
+Viết bằng tiếng Việt, định dạng Markdown rõ ràng, sáng tạo, thực tế, đúng phong cách yêu cầu và tuân thủ chặt chẽ ghi chú bổ sung nếu có. Không thêm phần giới thiệu dông dài.`;
 
     if (allKeys.length === 0) {
       await new Promise(resolve => setTimeout(resolve, 600));
-      setResult(`**[DEMO MODE - CHƯA CẤU HÌNH API KEY]**\n\nNội dung được tạo ra bởi AI dựa trên: ${product}, phong cách: ${style}.\n\nVui lòng thêm \`VITE_GEMINI_API_KEY\` vào file \`.env\` để sử dụng tính năng này thật sự.`);
+      setResult(`**[DEMO MODE - CHƯA CẤU HÌNH API KEY]**\n\nNội dung được tạo ra bởi AI dựa trên: ${product}, phong cách: ${style}.${customPrompt.trim() ? `\nGhi chú bổ sung: "${customPrompt.trim()}"` : ''}\n\nVui lòng thêm \`VITE_GEMINI_API_KEY\` vào file \`.env\` để sử dụng tính năng này thật sự.`);
       setLoading(false);
       return;
     }
@@ -109,7 +113,7 @@ Viết bằng tiếng Việt, định dạng Markdown rõ ràng, sáng tạo, th
       system_instruction: {
         parts: [{ text: systemInstruction }]
       },
-      contents: [{ parts: [{ text: `Tạo nội dung marketing cho sản phẩm: ${product}` }] }],
+      contents: [{ parts: [{ text: `Tạo nội dung marketing cho sản phẩm: ${product}${customPrompt.trim() ? `. Yêu cầu bổ sung: ${customPrompt.trim()}` : ''}` }] }],
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 1024
@@ -287,6 +291,24 @@ Viết bằng tiếng Việt, định dạng Markdown rõ ràng, sáng tạo, th
                     {s}
                   </button>
                 ))}
+              </div>
+
+              {/* Ô nhập Prompt / Ghi chú bổ sung cho phong cách */}
+              <div className="mt-3">
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                  Ghi chú bổ sung / Yêu cầu riêng cho AI (Tùy chọn):
+                </label>
+                <textarea
+                  value={customPrompt}
+                  onChange={(e) => setCustomPrompt(e.target.value)}
+                  placeholder="VD: Nhấn mạnh bảo hành 12 tháng 1 đổi 1, mở đầu tếu táo dí dỏm, nhắc khách ghé trước 18h để nhận quà..."
+                  rows={3}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-purple-500 rounded-xl px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-purple-500/50 resize-none transition-all shadow-inner"
+                />
+                <p className="text-[10px] text-slate-500 mt-1">
+                  💡 Giúp AI cá nhân hóa nội dung sát với ý đồ của bạn hơn
+                </p>
               </div>
             </div>
 

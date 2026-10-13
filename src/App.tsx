@@ -116,15 +116,29 @@ export function App() {
 
   const fetchMarketingPosts = async () => {
     try {
+      const cached = localStorage.getItem('pk88_marketing_posts');
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setMarketingPosts(parsed);
+          }
+        } catch (e) {}
+      }
+
       const { data, error } = await supabase
         .from('marketing_posts')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        console.error('Fetch marketing posts error:', error);
+        console.warn('Fetch marketing posts notice (Supabase table may not exist yet):', error.message);
+        import('./lib/mockData').then(({ MOCK_MARKETING_POSTS }) => {
+          setMarketingPosts(prev => prev.length > 0 ? prev : MOCK_MARKETING_POSTS as MarketingPost[]);
+        });
       } else if (data) {
         setMarketingPosts(data as MarketingPost[]);
+        localStorage.setItem('pk88_marketing_posts', JSON.stringify(data));
       }
     } catch (err) {
       console.error('Fetch marketing posts exception:', err);
@@ -276,11 +290,6 @@ export function App() {
     fetchTickets();
     fetchMarketingPosts();
     fetchLeaveRequests();
-    
-    // In demo mode, load mock if empty
-    import('./lib/mockData').then(({ MOCK_MARKETING_POSTS }) => {
-      setMarketingPosts(prev => prev.length > 0 ? prev : MOCK_MARKETING_POSTS as MarketingPost[]);
-    });
   }, []);
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
@@ -406,7 +415,11 @@ export function App() {
       const { data, error } = await supabase.from('marketing_posts').insert([newPost]).select();
       
       if (!error && data && data.length > 0) {
-        setMarketingPosts(prev => [data[0] as MarketingPost, ...prev]);
+        setMarketingPosts(prev => {
+          const updated = [data[0] as MarketingPost, ...prev];
+          localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
+          return updated;
+        });
       } else {
         // Fallback to local state
         const fallbackPost: MarketingPost = {
@@ -414,7 +427,11 @@ export function App() {
           ...newPost,
           created_at: new Date().toISOString()
         };
-        setMarketingPosts(prev => [fallbackPost, ...prev]);
+        setMarketingPosts(prev => {
+          const updated = [fallbackPost, ...prev];
+          localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
+          return updated;
+        });
       }
       
       setShowMarketingModal(false);
@@ -431,6 +448,29 @@ export function App() {
       
     } catch (err) {
       console.error('Marketing submission error', err);
+    }
+  };
+
+  const handleUpdateMarketingPost = async (postId: string, views: number, likes: number) => {
+    try {
+      // 1. Cập nhật tức thì vào State và LocalStorage
+      setMarketingPosts(prev => {
+        const updated = prev.map(p => p.id === postId ? { ...p, views, likes } : p);
+        localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
+        return updated;
+      });
+
+      // 2. Đồng bộ lên Supabase database
+      const { error } = await supabase
+        .from('marketing_posts')
+        .update({ views, likes })
+        .eq('id', postId);
+
+      if (error) {
+        console.warn('Supabase update marketing post error:', error.message);
+      }
+    } catch (err) {
+      console.error('Update marketing post exception:', err);
     }
   };
 
@@ -898,6 +938,7 @@ export function App() {
                 currentBranch={selectedBranch}
                 currentUser={currentUser}
                 onOpenSubmitModal={() => setShowMarketingModal(true)}
+                onUpdatePost={handleUpdateMarketingPost}
               />
             )}
 
