@@ -56,8 +56,8 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
   - Đối với nhân sự chi nhánh: Hiển thị riêng Lượt Xem và Lượt Tương Tác của chính chi nhánh đó.
   - Cột *Tổng View* tích hợp ngay trong Bảng Ma Trận Đăng Bài.
 - **Modal Sửa Nhanh (Quick Edit):** Cho phép Marketing/Quản lý chỉnh sửa nhanh số view và like trong 2 giây, hỗ trợ nút "Điền nhanh số liệu ước tính AI", đồng bộ tức thời lên Supabase.
-- **Modal AI Quét Tương Tác (Gemini Flash AI Scanner):**
-  - *Quét từ link:* Sử dụng Gemini Flash (`gemini-flash-lite-latest`) và public oEmbed để phân tích bài đăng theo nền tảng.
+- **Modal AI Quét Tương Tác (Gemini Flash AI Scanner & Vercel Serverless Scraper):**
+  - *Quét từ link trực tiếp qua Vercel Serverless Function (`api/scrape-metrics.ts`):* Vượt qua rào cản CORS của trình duyệt, cào dữ liệu ngầm cho TikTok, Facebook, YouTube. Bóc tách `views`, `likes`, `comments`, `shares`. Hỗ trợ cả trên localhost và Vercel.
   - *Quét từ ảnh chụp màn hình (Gemini Vision):* Cho phép kéo thả ảnh chụp màn hình bài viết Facebook/TikTok/Studio, AI tự đọc và bóc tách chính xác số Views & Likes rồi lưu thẳng vào Supabase. Không cần n8n hay máy chủ trung gian.
 
 ### F. Chuẩn Hóa 100% Danh Sách Nhân Sự & Chi Nhánh Theo File Excel Gốc (12/10)
