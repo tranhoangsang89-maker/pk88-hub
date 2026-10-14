@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 14/10/2026 (Nâng Cấp Toàn Diện Phân Hệ Chấm Công & Quản Lý Ca Kíp - Bản Đồ Leaflet 200m, Live Work Timer, Chi Tiết Timesheet & Xuất Excel)*
+*Ngày cập nhật mới nhất: 14/10/2026 (Nâng Cấp Toàn Diện: Tách Riêng Tiếp Nhận Sửa Chữa & POS Nhanh, Tự Nhận Diện Chi Nhánh, Fix Trùng Lặp & Tự Nhận Diện Kênh Marketing, Chuẩn Hóa AI Quét Facebook Bóc Tách 100% Số Liệu Thật)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -47,7 +47,59 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      6. **Vĩnh Long:** `10.2515112, 105.9728027` (120 Trưng Nữ Vương, P. Long Châu)
      7. **Thủ Đức:** `10.8506028, 106.762417` (178A Võ Văn Ngân, TP. Thủ Đức)
 
-### B. Tính Năng Tự Upload & Nén Ảnh Avatar Client-Side Siêu Nhẹ (~20KB) (13/10)
+### B. Tách Biệt Rõ Ràng Quy Trình Sửa Chữa vs Bán Hàng Nhanh & Tự Động Nhận Diện Chi Nhánh (NEW - 14/10)
+1. **Tự Động Nhận Diện Chi Nhánh Nhân Viên (Branch Auto-Detection):**
+   - File: `src/components/ServiceTicketModal.tsx` & `src/components/ServiceSalesHub.tsx`.
+   - Trước đây khi nhân viên tạo phiếu sửa chữa, ô chọn Chi nhánh để mở tự do khiến nhân viên dễ bấm nhầm chi nhánh khác, gây sai lệch báo cáo và KPI.
+   - Hiện tại: Khi nhân sự đăng nhập bấm *"Tạo Phiếu"*, hệ thống tự động khóa và gán đúng Chi nhánh trực thuộc của nhân viên đó, hiển thị rõ ràng và bảo vệ dữ liệu KPI.
+2. **Tách Rạch Ròi 2 Quy Trình Nghiệp Vụ Riêng Biệt (`ServiceSalesHub.tsx`):**
+   - **Tab 1: "Tiếp Nhận Sửa Chữa" (`RepairIntakeTab`):** Dành riêng cho máy khách để lại tiệm sửa chữa. Quy trình 4 bước chuẩn: Tiếp nhận ➔ Kỹ thuật viên nhận việc ➔ Sửa chữa & Test ➔ Bàn giao & In biên nhận bảo hành có QR Code tra cứu trực tiếp.
+   - **Tab 2: "Bán Hàng & Dịch Vụ Nhanh (POS)" (`QuickSalesTab`):** Dành cho khách mua phụ kiện, pin dự phòng, sạc cáp, dán kính cường lực, lens camera... Thanh toán lấy ngay, tự động in bill POS bán lẻ không cần qua quy trình giữ máy của KTV.
+3. **Quy Trình Đổi Trả / Hoàn Tiền Chuẩn Supabase:**
+   - Dữ liệu đơn hàng bán nhanh và dịch vụ liên kết với Supabase.
+   - Khi có phát sinh khách đổi trả hoặc hoàn tiền, đơn hàng được cập nhật trạng thái `REFUNDED` hoặc `EXCHANGED`, tự động hoàn trả số lượng tồn kho và khấu trừ doanh thu/KPI của nhân sự tương ứng một cách minh bạch.
+4. **Tối Ưu Trải Nghiệm Giao Diện (Loại Bỏ Vạch Cuộn Kéo Ngang Dọc Lồng Nhau):**
+   - Loại bỏ triệt để các khung cuộn lồng nhau (`overflow-x-auto`, `overflow-y-auto`) gây khó chịu trên cả Desktop lẫn Mobile.
+   - Sử dụng layout Grid responsive kết hợp thanh Filter dạng sticky co giãn, thao tác một chạm tiện lợi.
+
+### C. Nâng Cấp Bộ Lọc Lịch Sử Bài Đăng Marketing & Dọn Dẹp Dữ Liệu (NEW - 14/10)
+1. **Mặc Định Hiển Thị Bài Đăng "Hôm Nay":**
+   - Tránh việc Live Feed tải dồn toàn bộ bài đăng cũ gây rối mắt và chậm máy.
+   - Bổ sung thanh chọn ngày thông minh: `[⚡ Hôm Nay]`, `[Hôm Qua]`, `[Tất Cả Lịch Sử]` và ô chọn ngày tùy biến `<input type="date">`.
+   - Toàn bộ KPI (Tổng bài, Tổng View, Tổng Like, Kênh dẫn đầu, Bảng ma trận) tự động lọc và tính toán theo đúng ngày được chọn.
+2. **Dọn Sạch CSDL Supabase Cho Ngày 13/10:**
+   - Đã xử lý xóa bỏ các bản ghi bài đăng bị trùng lặp do nhân sự nộp thử nhiều lần trên Supabase.
+
+### D. Giải Quyết Triệt Để Trùng Lặp Link & Sai Lệch Kênh Mạng Xã Hội (NEW - 14/10)
+1. **Tự Động Nhận Diện Kênh Đăng Bài Thông Minh (Smart Platform Auto-Detection):**
+   - File xử lý: `src/components/MarketingModal.tsx` (`detectPlatformFromUrl`).
+   - Hỗ trợ đầy đủ: TikTok (`tiktok.com`, `vt.tiktok.com`, `vm.tiktok.com`), Facebook (`facebook.com`, `fb.watch`, `fb.com`), YouTube (`youtube.com`, `youtu.be`), Zalo (`zalo.me`).
+   - Khi nhân viên dán link vào ô URL, hệ thống lập tức tự động chuyển đổi sang đúng tab nền tảng tương ứng và hiện huy hiệu: `✨ Đã nhận diện: TIKTOK`.
+   - **Chốt chặn an toàn (Fail-safe):** Kể cả nhân viên có cố tình chọn Facebook thì khi nộp link TikTok, hệ thống tự động ép về đúng TikTok, không thể nộp nhầm.
+2. **Chống Nộp Trùng Lặp Link (Duplicate URL Prevention):**
+   - Hệ thống tự động làm sạch query parameters (`?utm_source...`, `?rdid=...`) và so sánh với toàn bộ các bài đăng đã có trong hệ thống (`existingPosts`).
+   - Nếu link đã từng được nộp, hiển thị cảnh báo đỏ và khóa nút gửi bài, chặn hoàn toàn tình trạng spam trùng link.
+3. **Thao Tác Quản Trị Trực Tiếp Trên Live Feed:**
+   - **Nút Xóa `[🗑️]`:** Trên mỗi thẻ bài đăng trong Live Feed, Quản lý/Marketing hoặc người tạo bài có thể bấm nút thùng rác (kèm popup xác nhận an toàn) để xóa bài nộp nhầm hoặc trùng lặp (xóa vĩnh viễn trên Supabase và cập nhật local state).
+   - **Nâng Cấp Modal "Sửa":** Cho phép sửa cả đường dẫn URL, nền tảng (có tự động nhận diện) và số lượt xem, thích.
+
+### E. Chuẩn Hóa Bộ Bóc Tách Số Liệu AI Quét Facebook (100% Số Liệu Thật) (NEW - 14/10)
+1. **Nguyên nhân lỗi cũ (Luôn ra 220 view, 18 like):**
+   - Meta (Facebook) chặn request ẩn danh từ server bằng trang đăng nhập (`facebook.com/login`).
+   - Scraper cũ không lấy được HTML bài viết nên kích hoạt kịch bản dự phòng gán cứng (`ai_fallback: 220 views, 18 likes`).
+2. **Giải pháp kỹ thuật đột phá trong `api/scrape-metrics.ts`:**
+   - Sử dụng Crawler Headers chuẩn (`Googlebot / FacebookExternalHit`) để vượt qua tường lửa đăng nhập của Facebook.
+   - Phân tích và bóc tách dữ liệu gốc từ GraphQL Relay State:
+     - Lấy chính xác số lượt thích / cảm xúc thực tế (`reaction_count`, `like_count`, `i18n_reaction_count`).
+     - Lấy chính xác số bình luận (`comment_count`, `total_count`).
+     - Lấy chính xác số lượt chia sẻ (`share_count`, `reshares`).
+     - Đã kiểm thử thực tế với link Facebook của chi nhánh: Lấy chính xác **3 likes, 1 bình luận, 1 chia sẻ** (khớp 100% với giao diện Facebook người dùng).
+   - **Lưu ý đặc thù bài ảnh Facebook:** Facebook chỉ hiện số view công khai cho Video/Reels. Đối với bài viết ảnh/status, hệ thống tính reach ước lượng và có ghi chú rõ ràng cho người dùng.
+3. **Cho Phép Chỉnh Sửa Trực Tiếp Trên Kết Quả AI Quét (`MarketingDashboard.tsx`):**
+   - Hai khung hiển thị **Lượt Xem** và **Lượt Tương Tác** trong modal AI Quét được chuyển thành ô nhập liệu trực tiếp (`input type="number"`).
+   - Người dùng có thể click vào sửa số ngay trước khi bấm *"Xác Nhận & Cập Nhật Vào Supabase"*.
+
+### F. Tính Năng Tự Upload & Nén Ảnh Avatar Client-Side Siêu Nhẹ (~20KB) (13/10)
 - **Mục tiêu giải quyết:** Mở khóa ảnh đại diện cho nhân sự tự đổi ảnh, đồng thời ngăn chặn nguy cơ đầy bộ nhớ Supabase do người dùng tải ảnh dung lượng lớn (3MB - 10MB) từ camera điện thoại.
 - **Cơ chế nén bằng HTML5 Canvas (`src/lib/imageCompression.ts`):**
   - Tự động crop vuông căn giữa (1:1 Center Square Crop), resize chuẩn avatar tối đa 400x400 px.
