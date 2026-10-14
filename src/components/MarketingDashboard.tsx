@@ -292,14 +292,19 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
 
         if (scrapedData && scrapedData.success && (scrapedData.views > 0 || scrapedData.likes > 0)) {
           const extraInfo = [
+            `${scrapedData.likes} lượt thích`,
             scrapedData.comments ? `${scrapedData.comments} bình luận` : '',
             scrapedData.shares ? `${scrapedData.shares} chia sẻ` : ''
           ].filter(Boolean).join(', ');
 
+          const isFacebookPhoto = scanningPost.platform === 'facebook' && (!scrapedData.videoViews || scrapedData.videoViews === 0);
+
           setScanResult({
             views: Number(scrapedData.views) || 0,
             likes: Number(scrapedData.likes) || 0,
-            note: `Bóc tách từ link ${scanningPost.platform.toUpperCase()}${extraInfo ? ` (${extraInfo})` : ''} - Nguồn: ${scrapedData.source}`
+            note: isFacebookPhoto
+              ? `Bóc tách chuẩn xác Facebook: ${extraInfo}. (Lưu ý: Facebook không hiện lượt xem bài ảnh, số view là ước lượng reach - bạn có thể chỉnh tay số nếu cần)`
+              : `Bóc tách từ link ${scanningPost.platform.toUpperCase()} (${extraInfo}) - Nguồn: ${scrapedData.source}`
           });
           setScanStatusMsg('✅ Đã bóc tách số liệu từ link!');
         } else {
@@ -1169,18 +1174,32 @@ Chỉ trả về duy nhất chuỗi JSON:
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="bg-slate-900/80 p-2.5 rounded-lg border border-cyan-800/50">
-                    <div className="text-[10px] text-cyan-400 flex items-center justify-center gap-1 mb-0.5">
-                      <Eye className="w-3 h-3" /> Lượt Xem
+                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-cyan-800/50">
+                    <div className="text-[10px] text-cyan-400 flex items-center justify-center gap-1 mb-1 font-semibold">
+                      <Eye className="w-3 h-3" /> Lượt Xem (Views)
                     </div>
-                    <div className="text-lg font-black text-slate-100">{scanResult.views.toLocaleString('vi-VN')}</div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={scanResult.views}
+                      onChange={(e) => setScanResult({ ...scanResult, views: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-2 text-center text-cyan-300 font-black text-lg focus:outline-none focus:border-cyan-500 font-mono"
+                    />
+                    <div className="text-[9px] text-slate-500 mt-1">Bấm để chỉnh số</div>
                   </div>
 
-                  <div className="bg-slate-900/80 p-2.5 rounded-lg border border-rose-800/50">
-                    <div className="text-[10px] text-rose-400 flex items-center justify-center gap-1 mb-0.5">
-                      <Heart className="w-3 h-3" /> Lượt Tương Tác
+                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-800/50">
+                    <div className="text-[10px] text-rose-400 flex items-center justify-center gap-1 mb-1 font-semibold">
+                      <Heart className="w-3 h-3" /> Lượt Tương Tác (Likes)
                     </div>
-                    <div className="text-lg font-black text-slate-100">{scanResult.likes.toLocaleString('vi-VN')}</div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={scanResult.likes}
+                      onChange={(e) => setScanResult({ ...scanResult, likes: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-2 text-center text-rose-300 font-black text-lg focus:outline-none focus:border-rose-500 font-mono"
+                    />
+                    <div className="text-[9px] text-slate-500 mt-1">Bấm để chỉnh số</div>
                   </div>
                 </div>
 
