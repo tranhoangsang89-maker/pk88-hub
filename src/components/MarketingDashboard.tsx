@@ -4,9 +4,10 @@ import {
   TrendingUp, Award, AlertTriangle, ExternalLink, Facebook, Youtube, 
   MessageCircle, Link as LinkIcon, Sparkles, Megaphone, Target, 
   Building2, Filter, RotateCcw, Eye, Heart, Edit3, Zap, Check, 
-  Camera, Upload, Loader2, X, RefreshCw, Calendar
+  Camera, Upload, Loader2, X, RefreshCw, Calendar, Trash2
 } from 'lucide-react';
 import { AIContentStudioModal } from './AIContentStudioModal';
+import { detectPlatformFromUrl } from './MarketingModal';
 
 interface MarketingDashboardProps {
   branches: Branch[];
@@ -14,7 +15,13 @@ interface MarketingDashboardProps {
   currentBranch: Branch;
   currentUser: Staff;
   onOpenSubmitModal: () => void;
-  onUpdatePost?: (postId: string, views: number, likes: number) => Promise<void>;
+  onUpdatePost?: (
+    postId: string, 
+    views: number, 
+    likes: number, 
+    extra?: { post_url?: string; platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo' }
+  ) => Promise<void>;
+  onDeletePost?: (postId: string) => Promise<void>;
 }
 
 export function MarketingDashboard({ 
@@ -23,7 +30,8 @@ export function MarketingDashboard({
   currentBranch, 
   currentUser, 
   onOpenSubmitModal,
-  onUpdatePost 
+  onUpdatePost,
+  onDeletePost 
 }: MarketingDashboardProps) {
   const [showAIModal, setShowAIModal] = useState(false);
   const [feedBranchFilter, setFeedBranchFilter] = useState<string>('ALL');
@@ -33,6 +41,8 @@ export function MarketingDashboard({
   const [editingPost, setEditingPost] = useState<MarketingPost | null>(null);
   const [editViews, setEditViews] = useState<number>(0);
   const [editLikes, setEditLikes] = useState<number>(0);
+  const [editUrl, setEditUrl] = useState<string>('');
+  const [editPlatform, setEditPlatform] = useState<'facebook' | 'tiktok' | 'youtube' | 'zalo'>('facebook');
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
 
   // AI Scanner Modal State
@@ -125,19 +135,48 @@ export function MarketingDashboard({
     setEditingPost(post);
     setEditViews(post.views || 0);
     setEditLikes(post.likes || 0);
+    setEditUrl(post.post_url || '');
+    setEditPlatform((post.platform as any) || 'facebook');
   };
 
-  // Lưu chỉnh sửa số liệu
+  // Lưu chỉnh sửa số liệu và link/nền tảng
   const handleSaveEdit = async () => {
     if (!editingPost || !onUpdatePost) return;
     setIsSavingEdit(true);
     try {
-      await onUpdatePost(editingPost.id, Math.max(0, Number(editViews) || 0), Math.max(0, Number(editLikes) || 0));
+      const cleanUrl = editUrl.trim() || editingPost.post_url;
+      let finalPlatform = editPlatform;
+      // Tự động chuẩn hóa nền tảng nếu link rõ ràng thuộc nền tảng khác
+      const detected = detectPlatformFromUrl(cleanUrl);
+      if (detected && detected !== finalPlatform) {
+        finalPlatform = detected;
+      }
+
+      await onUpdatePost(
+        editingPost.id, 
+        Math.max(0, Number(editViews) || 0), 
+        Math.max(0, Number(editLikes) || 0),
+        { post_url: cleanUrl, platform: finalPlatform }
+      );
       setEditingPost(null);
     } catch (err) {
       console.error('Save edit error:', err);
     } finally {
       setIsSavingEdit(false);
+    }
+  };
+
+  // Xóa bài đăng (trùng lặp / sai sót)
+  const handleDeletePost = async (postId: string) => {
+    if (!onDeletePost) return;
+    if (!window.confirm('Bạn có chắc chắn muốn xóa bài đăng này không? Thao tác này sẽ xóa vĩnh viễn khỏi hệ thống.')) {
+      return;
+    }
+    try {
+      await onDeletePost(postId);
+    } catch (err) {
+      console.error('Delete post error:', err);
+      alert('Không thể xóa bài đăng. Vui lòng thử lại!');
     }
   };
 
@@ -778,6 +817,18 @@ Chỉ trả về duy nhất chuỗi JSON:
                         </div>
                       </div>
                     </div>
+
+                    {/* Nút Xóa bài đăng (nếu là quản trị viên/marketing hoặc người đăng) */}
+                    {onDeletePost && (isAdminRole || currentUser.fullName === post.author_name) && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeletePost(post.id)}
+                        className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg transition-colors cursor-pointer"
+                        title="Xóa bài đăng này"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
 
                   {/* HUY HIỆU ĐO LƯỜNG VIEW VÀ LIKE */}
@@ -854,6 +905,61 @@ Chỉ trả về duy nhất chuỗi JSON:
             </div>
 
             <div className="space-y-3">
+              {/* SỬA ĐƯỜNG DẪN LINK */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Đường Dẫn Bài Đăng (URL)
+                </label>
+                <input
+                  type="url"
+                  value={editUrl}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setEditUrl(val);
+                    const detected = detectPlatformFromUrl(val);
+                    if (detected) setEditPlatform(detected);
+                  }}
+                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 text-xs focus:outline-none focus:border-amber-500 font-mono"
+                  placeholder="https://..."
+                />
+                {(() => {
+                  const detected = detectPlatformFromUrl(editUrl);
+                  if (detected) {
+                    return (
+                      <div className="text-[11px] text-emerald-400 font-medium flex items-center gap-1 mt-1">
+                        <span>✨ Tự động nhận diện:</span>
+                        <strong className="uppercase">{detected}</strong>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+              </div>
+
+              {/* CHỌN NỀN TẢNG */}
+              <div>
+                <label className="block text-xs font-medium text-slate-300 mb-1">
+                  Nền Tảng
+                </label>
+                <div className="grid grid-cols-4 gap-1.5">
+                  {(['facebook', 'tiktok', 'zalo', 'youtube'] as const).map(p => (
+                    <button
+                      key={p}
+                      type="button"
+                      onClick={() => setEditPlatform(p)}
+                      className={`py-1.5 px-1 rounded-xl text-xs font-bold border transition-all flex flex-col items-center gap-1 cursor-pointer ${
+                        editPlatform === p
+                          ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-sm'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {getPlatformIcon(p, 'w-3.5 h-3.5')}
+                      <span className="text-[10px] capitalize">{p}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
               <div>
                 <label className="block text-xs font-medium text-cyan-300 mb-1 flex items-center gap-1">
                   <Eye className="w-3.5 h-3.5" /> Số Lượt Xem (Views)

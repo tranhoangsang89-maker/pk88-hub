@@ -461,11 +461,20 @@ export function App() {
     }
   };
 
-  const handleUpdateMarketingPost = async (postId: string, views: number, likes: number) => {
+  const handleUpdateMarketingPost = async (
+    postId: string, 
+    views: number, 
+    likes: number, 
+    extra?: { post_url?: string; platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo' }
+  ) => {
     try {
+      const updateData: any = { views, likes };
+      if (extra?.post_url) updateData.post_url = extra.post_url;
+      if (extra?.platform) updateData.platform = extra.platform;
+
       // 1. Cập nhật tức thì vào State và LocalStorage
       setMarketingPosts(prev => {
-        const updated = prev.map(p => p.id === postId ? { ...p, views, likes } : p);
+        const updated = prev.map(p => p.id === postId ? { ...p, ...updateData } : p);
         localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
         return updated;
       });
@@ -473,7 +482,7 @@ export function App() {
       // 2. Đồng bộ lên Supabase database
       const { error } = await supabase
         .from('marketing_posts')
-        .update({ views, likes })
+        .update(updateData)
         .eq('id', postId);
 
       if (error) {
@@ -481,6 +490,29 @@ export function App() {
       }
     } catch (err) {
       console.error('Update marketing post exception:', err);
+    }
+  };
+
+  const handleDeleteMarketingPost = async (postId: string) => {
+    try {
+      // 1. Xóa tức thì khỏi State và LocalStorage
+      setMarketingPosts(prev => {
+        const updated = prev.filter(p => p.id !== postId);
+        localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
+        return updated;
+      });
+
+      // 2. Xóa vĩnh viễn trên Supabase
+      const { error } = await supabase
+        .from('marketing_posts')
+        .delete()
+        .eq('id', postId);
+
+      if (error) {
+        console.error('Supabase delete marketing post error:', error.message);
+      }
+    } catch (err) {
+      console.error('Delete marketing post exception:', err);
     }
   };
 
@@ -597,6 +629,7 @@ export function App() {
           currentUser={currentUser}
           currentBranch={selectedBranch}
           onSubmit={handleMarketingSubmit}
+          existingPosts={marketingPosts}
         />
       )}
 
@@ -983,6 +1016,7 @@ export function App() {
                 currentUser={currentUser}
                 onOpenSubmitModal={() => setShowMarketingModal(true)}
                 onUpdatePost={handleUpdateMarketingPost}
+                onDeletePost={handleDeleteMarketingPost}
               />
             )}
 
