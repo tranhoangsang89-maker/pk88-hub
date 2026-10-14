@@ -145,6 +145,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - Bộ lọc danh mục sử dụng `no-scrollbar` kèm nút trượt nhanh `<` và `>` trên Desktop; hỗ trợ vuốt chạm 60fps trên Mobile.
    - Danh sách sản phẩm áp dụng **Phân trang thông minh (Pagination)** (12 sản phẩm/trang, có hiển thị số lượng và nút `Trước`/`Sau`), loại bỏ hoàn toàn hiện tượng kẹt chuột (scroll-trap).
    - **Tối ưu Mobile POS:** Bổ sung thanh chuyển đổi nhanh giữa *Danh Mục* và *Giỏ Hàng*, cùng thanh nổi thanh toán ghim đáy màn hình (*Sticky Bottom Floating Bar*) khi có sản phẩm trong giỏ.
+5. **Nâng Cấp Bộ Lọc Ngày & Đồng Bộ Live Feed Marketing (`MarketingDashboard.tsx`):**
+   - Bổ sung thanh chọn thời gian linh hoạt: *[⚡ Hôm Nay]*, *[Hôm Qua]*, *[Tất Cả Lịch Sử]* và ô chọn ngày tùy ý (`input type="date"`).
+   - Đồng bộ toàn diện: Tất cả các thẻ KPI, Bảng Ma Trận đăng bài 7 chi nhánh, và Live Feed bài đăng đều tự động lọc chính xác theo ngày được chọn (mặc định là Hôm Nay, tránh tình trạng hiển thị bài hôm trước gây hiểu lầm).
+   - Thẻ bài đăng hiển thị đầy đủ ngày giờ nộp link (`dd/MM lúc HH:mm`), kèm trạng thái rỗng thân thiện và nút quay về Hôm Nay nhanh.
 
 ---
 

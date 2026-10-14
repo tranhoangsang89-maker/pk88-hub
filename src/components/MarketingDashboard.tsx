@@ -4,7 +4,7 @@ import {
   TrendingUp, Award, AlertTriangle, ExternalLink, Facebook, Youtube, 
   MessageCircle, Link as LinkIcon, Sparkles, Megaphone, Target, 
   Building2, Filter, RotateCcw, Eye, Heart, Edit3, Zap, Check, 
-  Camera, Upload, Loader2, X, RefreshCw
+  Camera, Upload, Loader2, X, RefreshCw, Calendar
 } from 'lucide-react';
 import { AIContentStudioModal } from './AIContentStudioModal';
 
@@ -55,23 +55,45 @@ export function MarketingDashboard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
-  const todayStr = toLocalDateString(new Date().toISOString());
-  const todayPosts = posts.filter(post => toLocalDateString(post.created_at) === todayStr);
+  const todayObj = new Date();
+  const todayStr = toLocalDateString(todayObj.toISOString());
 
-  // KPIs
-  const totalPostsToday = todayPosts.length;
-  const totalViewsToday = todayPosts.reduce((acc, p) => acc + (p.views || 0), 0);
-  const totalLikesToday = todayPosts.reduce((acc, p) => acc + (p.likes || 0), 0);
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yesterdayStr = toLocalDateString(yesterdayObj.toISOString());
+
+  // Date Filter State: Mặc định lọc theo 'Hôm Nay'
+  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+
+  const selectedDateLabel = React.useMemo(() => {
+    if (selectedDate === 'ALL') return 'Tất Cả Lịch Sử';
+    if (selectedDate === todayStr) return 'Hôm Nay';
+    if (selectedDate === yesterdayStr) return 'Hôm Qua';
+    const parts = selectedDate.split('-');
+    if (parts.length === 3) return `Ngày ${parts[2]}/${parts[1]}/${parts[0]}`;
+    return selectedDate;
+  }, [selectedDate, todayStr, yesterdayStr]);
+
+  // Lọc bài đăng theo ngày đã chọn
+  const dateFilteredPosts = React.useMemo(() => {
+    if (selectedDate === 'ALL') return posts;
+    return posts.filter(post => toLocalDateString(post.created_at) === selectedDate);
+  }, [posts, selectedDate]);
+
+  // KPIs theo ngày đã chọn
+  const totalPostsToday = dateFilteredPosts.length;
+  const totalViewsToday = dateFilteredPosts.reduce((acc, p) => acc + (p.views || 0), 0);
+  const totalLikesToday = dateFilteredPosts.reduce((acc, p) => acc + (p.likes || 0), 0);
   
   // Platform stats
-  const platformCounts = todayPosts.reduce((acc, post) => {
+  const platformCounts = dateFilteredPosts.reduce((acc, post) => {
     acc[post.platform] = (acc[post.platform] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
   const topPlatform = Object.entries(platformCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'N/A';
 
   // Branch stats
-  const branchCounts = todayPosts.reduce((acc, post) => {
+  const branchCounts = dateFilteredPosts.reduce((acc, post) => {
     acc[post.branch_id] = (acc[post.branch_id] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -79,6 +101,7 @@ export function MarketingDashboard({
   const topBranchName = branches.find(b => b.id === topBranchId)?.name || 'N/A';
 
   const missedBranches = branches.filter(b => (branchCounts[b.id] || 0) < 2);
+
 
   const getPlatformIcon = (platform: string, className = "w-4 h-4") => {
     switch (platform) {
@@ -377,13 +400,78 @@ Chỉ trả về duy nhất chuỗi JSON:
         </div>
       </div>
 
+      {/* THANH BỘ LỌC NGÀY THÁNG TOÀN DIỆN (DATE FILTER BAR) */}
+      <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex flex-wrap items-center justify-between gap-3 shadow-md">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-amber-400" />
+          <span className="text-xs font-bold text-slate-200">Thời gian xem báo cáo:</span>
+          <span className="text-xs font-mono font-bold text-cyan-400 bg-cyan-950/60 border border-cyan-500/30 px-2.5 py-0.5 rounded-lg">
+            {selectedDateLabel}
+          </span>
+        </div>
+
+        {/* Quick Date Presets & Custom Date Picker */}
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setSelectedDate(todayStr)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedDate === todayStr
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            ⚡ Hôm Nay
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedDate(yesterdayStr)}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedDate === yesterdayStr
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20'
+                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            Hôm Qua
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setSelectedDate('ALL')}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              selectedDate === 'ALL'
+                ? 'bg-purple-500 text-white shadow-md shadow-purple-500/20'
+                : 'bg-slate-950 text-slate-400 border border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+            }`}
+          >
+            Tất Cả Lịch Sử
+          </button>
+
+          {/* Custom Date Picker input */}
+          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-xl px-2.5 py-1 text-xs">
+            <span className="text-slate-500 text-[11px]">Ngày khác:</span>
+            <input
+              type="date"
+              value={selectedDate === 'ALL' ? '' : selectedDate}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value);
+                }
+              }}
+              className="bg-transparent text-slate-200 font-mono text-xs focus:outline-none cursor-pointer"
+            />
+          </div>
+        </div>
+      </div>
+
       {/* BẢNG KPI ĐẦU TRANG - TÍCH HỢP TỔNG VIEW & TỔNG TƯƠNG TÁC */}
       {isAdminRole ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           {/* Card 1: Tổng Bài */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between">
             <div className="flex items-center justify-between text-slate-400 mb-2">
-              <span className="text-xs font-medium">Tổng Bài Hôm Nay</span>
+              <span className="text-xs font-medium">Tổng Bài ({selectedDateLabel})</span>
               <TrendingUp className="w-4 h-4 text-amber-500" />
             </div>
             <div className="text-2xl font-black text-amber-400">{totalPostsToday} <span className="text-xs text-slate-500 font-normal">bài</span></div>
@@ -449,7 +537,7 @@ Chỉ trả về duy nhất chuỗi JSON:
               <Target className="w-5 h-5" />
             </div>
             <div>
-              <div className="text-xs text-blue-300">Tiến Độ Hôm Nay</div>
+              <div className="text-xs text-blue-300">Tiến Độ ({selectedDateLabel})</div>
               <div className="text-base font-bold text-slate-100">
                 {currentBranch.name.replace('Phụ Kiện 88 - ', '')}: <span className="text-emerald-400 font-black">{branchCounts[currentBranch.id] || 0}/2</span> bài
               </div>
@@ -463,7 +551,7 @@ Chỉ trả về duy nhất chuỗi JSON:
             <div>
               <div className="text-xs text-slate-400">Lượt Xem Của Shop</div>
               <div className="text-lg font-bold text-cyan-300">
-                {todayPosts.filter(p => p.branch_id === currentBranch.id).reduce((s, p) => s + (p.views || 0), 0).toLocaleString('vi-VN')} views
+                {dateFilteredPosts.filter(p => p.branch_id === currentBranch.id).reduce((s, p) => s + (p.views || 0), 0).toLocaleString('vi-VN')} views
               </div>
             </div>
           </div>
@@ -475,7 +563,7 @@ Chỉ trả về duy nhất chuỗi JSON:
             <div>
               <div className="text-xs text-slate-400">Tương Tác Của Shop</div>
               <div className="text-lg font-bold text-rose-300">
-                {todayPosts.filter(p => p.branch_id === currentBranch.id).reduce((s, p) => s + (p.likes || 0), 0).toLocaleString('vi-VN')} lượt
+                {dateFilteredPosts.filter(p => p.branch_id === currentBranch.id).reduce((s, p) => s + (p.likes || 0), 0).toLocaleString('vi-VN')} lượt
               </div>
             </div>
           </div>
@@ -488,7 +576,7 @@ Chỉ trả về duy nhất chuỗi JSON:
           <div className="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden flex flex-col">
             <div className="p-4 border-b border-slate-800 bg-slate-800/50 flex justify-between items-center">
               <h3 className="font-bold text-slate-100 flex items-center gap-2">
-                Bảng Ma Trận Đăng Bài Hôm Nay
+                Bảng Ma Trận Đăng Bài ({selectedDateLabel})
                 <span className="text-xs font-normal text-slate-400">(Chỉ tiêu: 2 Bài/Shop/Ngày)</span>
               </h3>
             </div>
@@ -508,7 +596,7 @@ Chỉ trả về duy nhất chuỗi JSON:
                 </thead>
                 <tbody className="divide-y divide-slate-800/50">
                   {branches.map(branch => {
-                    const branchPosts = todayPosts.filter(p => p.branch_id === branch.id);
+                    const branchPosts = dateFilteredPosts.filter(p => p.branch_id === branch.id);
                     const fbCount = branchPosts.filter(p => p.platform === 'facebook').length;
                     const ttCount = branchPosts.filter(p => p.platform === 'tiktok').length;
                     const zlCount = branchPosts.filter(p => p.platform === 'zalo').length;
@@ -570,11 +658,11 @@ Chỉ trả về duy nhất chuỗi JSON:
             <div className="flex items-center justify-between">
               <h3 className="font-bold text-slate-100 flex items-center gap-2 text-sm">
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse"></div>
-                Live Feed Bài Đăng
+                Live Feed Bài Đăng ({selectedDateLabel})
               </h3>
               <div className="flex items-center gap-1.5">
                 <span className="text-[11px] font-mono font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 px-2 py-0.5 rounded-full shadow-sm">
-                  {posts.filter(p => {
+                  {dateFilteredPosts.filter(p => {
                     if (feedBranchFilter !== 'ALL' && p.branch_id !== feedBranchFilter) return false;
                     if (feedPlatformFilter !== 'ALL' && p.platform !== feedPlatformFilter) return false;
                     return true;
@@ -645,7 +733,7 @@ Chỉ trả về duy nhất chuỗi JSON:
           {/* List of cards */}
           <div className="p-4 overflow-y-auto flex-1 space-y-3 custom-scrollbar">
             {(() => {
-              const filteredList = posts.filter(post => {
+              const filteredList = dateFilteredPosts.filter(post => {
                 if (feedBranchFilter !== 'ALL' && post.branch_id !== feedBranchFilter) return false;
                 if (feedPlatformFilter !== 'ALL' && post.platform !== feedPlatformFilter) return false;
                 return true;
@@ -653,18 +741,23 @@ Chỉ trả về duy nhất chuỗi JSON:
 
               if (filteredList.length === 0) {
                 return (
-                  <div className="text-center text-slate-500 py-12 flex flex-col items-center gap-2">
+                  <div className="text-center text-slate-500 py-16 flex flex-col items-center gap-2.5">
                     <Filter className="w-8 h-8 text-slate-600 mb-1" />
-                    <p className="text-xs">Không có bài đăng nào phù hợp với bộ lọc.</p>
-                    {(feedBranchFilter !== 'ALL' || feedPlatformFilter !== 'ALL') && (
+                    <p className="text-xs font-bold text-slate-300">
+                      Không có bài đăng nào trong {selectedDateLabel.toLowerCase()}
+                    </p>
+                    <p className="text-[11px] text-slate-500 max-w-xs leading-relaxed">
+                      {selectedDate === todayStr
+                        ? 'Hôm nay chưa có bài nộp nào. Bấm "+ Nộp Link Bài Đăng" ở đầu trang để nộp link và kiểm tra số liệu!'
+                        : 'Thử chuyển sang ngày khác hoặc bấm "Tất Cả Lịch Sử" để xem các bài viết cũ.'}
+                    </p>
+                    {selectedDate !== todayStr && (
                       <button
-                        onClick={() => {
-                          setFeedBranchFilter('ALL');
-                          setFeedPlatformFilter('ALL');
-                        }}
-                        className="text-xs text-cyan-400 hover:underline font-medium"
+                        type="button"
+                        onClick={() => setSelectedDate(todayStr)}
+                        className="mt-2 px-3 py-1.5 bg-amber-500/20 text-amber-300 border border-amber-500/40 rounded-xl text-xs font-bold hover:bg-amber-500 hover:text-slate-950 transition-all cursor-pointer"
                       >
-                        Xem tất cả bài đăng
+                        Quay về Hôm Nay
                       </button>
                     )}
                   </div>
@@ -681,7 +774,7 @@ Chỉ trả về duy nhất chuỗi JSON:
                       <div>
                         <div className="text-xs font-bold text-slate-200">{post.author_name}</div>
                         <div className="text-[10px] text-slate-500">
-                          {branches.find(b => b.id === post.branch_id)?.name.replace('Phụ Kiện 88 - ', '') || 'Chi nhánh'} • {new Date(post.created_at).toLocaleTimeString('vi-VN')}
+                          {branches.find(b => b.id === post.branch_id)?.name.replace('Phụ Kiện 88 - ', '') || 'Chi nhánh'} • {new Date(post.created_at).toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' })} lúc {new Date(post.created_at).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
                         </div>
                       </div>
                     </div>
