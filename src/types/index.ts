@@ -44,7 +44,7 @@ export interface Staff {
   competencyScores?: CompetencyScores;
 }
 
-export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH';
+export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'TANG_CUONG' | 'TUY_CHINH';
 
 export interface AttendanceRecord {
   id: string;
@@ -59,6 +59,8 @@ export interface AttendanceRecord {
   distanceMeters?: number;
   isVerified: boolean;
   notes?: string;
+  isLate?: boolean;
+  isOutsideGeofence?: boolean;
 }
 
 export interface RepairTicket {
@@ -68,11 +70,13 @@ export interface RepairTicket {
   customerPhone: string;
   customerName: string;
   deviceModel: string;
-  serviceType: 'THAY_PIN' | 'EP_KINH' | 'DAN_PPF' | 'THAY_MAN' | 'KHAC';
-  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED';
+  serviceType: string;
+  status: 'RECEIVED' | 'IN_PROGRESS' | 'READY' | 'DELIVERED' | 'REFUNDED' | 'CANCELLED';
   price: number;
   createdAt: string;
   technicianName?: string;
+  createdByStaffId?: string;
+  createdByStaffName?: string;
 }
 
 export interface Course {
@@ -142,5 +146,33 @@ export interface LeaveRequest {
   createdAt: string;
   replacementStaffName?: string;
   aiRiskAssessment?: string;
+}
+
+export interface POSCartItem {
+  product: Product;
+  quantity: number;
+  price: number;
+}
+
+export type POSPaymentMethod = 'CASH' | 'TRANSFER' | 'CARD';
+
+export interface POSOrder {
+  id: string;
+  code: string;
+  branchId: string;
+  branchName: string;
+  cashierId: string;
+  cashierName: string;
+  customerName?: string;
+  customerPhone?: string;
+  items: POSCartItem[];
+  totalAmount: number;
+  paymentMethod: POSPaymentMethod;
+  status?: 'DELIVERED' | 'REFUNDED' | 'CANCELLED';
+  refundReason?: string;
+  refundedAt?: string;
+  refundedBy?: string;
+  createdAt: string;
+  note?: string;
 }
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff, LeaveRequest, LeaveStatus } from './types';
-import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_ATTENDANCE, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS } from './lib/mockData';
+import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS } from './lib/mockData';
 import { AttendanceCard } from './components/AttendanceCard';
 import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { RepairTicketView } from './components/RepairTicketView';
@@ -12,16 +12,17 @@ import { MarketingDashboard } from './components/MarketingDashboard';
 import { MarketingModal } from './components/MarketingModal';
 import { AIHRModal } from './components/AIHRModal';
 import { BranchStaffDirectory } from './components/BranchStaffDirectory';
+import { POSView } from './components/POSView';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 
 export function App() {
   const [currentUser, setCurrentUser] = useState<Staff | null>(null);
   const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'staff_directory' | 'tickets' | 'training' | 'marketing'>('attendance');
-  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>(MOCK_ATTENDANCE);
+  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'staff_directory' | 'tickets' | 'pos' | 'training' | 'marketing'>('attendance');
+  const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
   const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
@@ -31,20 +32,34 @@ export function App() {
     const cached = localStorage.getItem('pk88_leave_requests');
     if (cached) {
       try {
-        return JSON.parse(cached);
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((item: any) => !item.id?.startsWith('mock-'));
+        }
       } catch (e) {
         console.error('Error parsing cached leave requests:', e);
       }
     }
-    return MOCK_LEAVE_REQUESTS;
+    return [];
   });
   const [branches, setBranches] = useState<Branch[]>(INITIAL_BRANCHES);
   const [staffList, setStaffList] = useState<Staff[]>(MOCK_STAFF);
 
   const activeBranches = branches.filter(b => b.isActive);
   
-  // Marketing Posts State (Fallback to Mock Data)
-  const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>([]);
+  // Marketing Posts State (Real database sync)
+  const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>(() => {
+    const cached = localStorage.getItem('pk88_marketing_posts');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((p: any) => !p.id?.startsWith('post-'));
+        }
+      } catch (e) {}
+    }
+    return [];
+  });
 
   // Fetch real attendance records directly from Supabase Cloud DB!
   const fetchRealAttendance = async () => {
@@ -54,12 +69,15 @@ export function App() {
         .from('attendance')
         .select('*')
         .order('check_in', { ascending: false })
-        .limit(30);
+        .limit(250);
 
       if (error) {
         console.error('Error fetching Supabase attendance:', error);
-      } else if (data && data.length > 0) {
+      } else if (data) {
         const formatted: AttendanceRecord[] = data.map((item: any) => {
+          const isLate = item.is_late || item.notes?.toLowerCase().includes('đi trễ') || false;
+          const isOutsideGeofence = item.is_outside_geofence || (item.distance_meters !== undefined && item.distance_meters > 200) || false;
+
           return {
             id: item.id,
             staffId: item.staff_id || 'unknown',
@@ -72,7 +90,9 @@ export function App() {
             lng: item.lng,
             distanceMeters: item.distance_meters,
             isVerified: item.is_verified,
-            notes: item.notes || 'Check-in GPS Hợp lệ'
+            notes: item.notes || 'Check-in GPS Hợp lệ',
+            isLate,
+            isOutsideGeofence
           };
         });
         setAttendanceHistory(formatted);
@@ -116,16 +136,6 @@ export function App() {
 
   const fetchMarketingPosts = async () => {
     try {
-      const cached = localStorage.getItem('pk88_marketing_posts');
-      if (cached) {
-        try {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setMarketingPosts(parsed);
-          }
-        } catch (e) {}
-      }
-
       const { data, error } = await supabase
         .from('marketing_posts')
         .select('*')
@@ -133,9 +143,6 @@ export function App() {
 
       if (error) {
         console.warn('Fetch marketing posts notice (Supabase table may not exist yet):', error.message);
-        import('./lib/mockData').then(({ MOCK_MARKETING_POSTS }) => {
-          setMarketingPosts(prev => prev.length > 0 ? prev : MOCK_MARKETING_POSTS as MarketingPost[]);
-        });
       } else if (data) {
         setMarketingPosts(data as MarketingPost[]);
         localStorage.setItem('pk88_marketing_posts', JSON.stringify(data));
@@ -154,7 +161,7 @@ export function App() {
 
       if (error) {
         console.warn('Supabase leave_requests notice:', error.message);
-      } else if (data && data.length > 0) {
+      } else if (data) {
         const formatted: LeaveRequest[] = data.map((item: any) => ({
           id: item.id,
           staffId: item.staff_id,
@@ -329,6 +336,7 @@ export function App() {
     try {
       const { data, error } = await supabase.from('repair_tickets').insert([{
         code: newTicket.code,
+        branch_id: newTicket.branchId,
         customer_name: newTicket.customerName,
         customer_phone: newTicket.customerPhone,
         device_model: newTicket.deviceModel,
@@ -349,7 +357,7 @@ export function App() {
         const savedTicket: RepairTicket = {
           id: savedItem.id, // Use real UUID from DB
           code: savedItem.code,
-          branchId: savedItem.branch_id || 'b1',
+          branchId: savedItem.branch_id || newTicket.branchId,
           customerName: savedItem.customer_name,
           customerPhone: savedItem.customer_phone,
           deviceModel: savedItem.device_model,
@@ -357,7 +365,9 @@ export function App() {
           status: savedItem.status,
           price: Number(savedItem.price),
           createdAt: savedItem.created_at,
-          technicianName: savedItem.technician_name
+          technicianName: savedItem.technician_name,
+          createdByStaffId: newTicket.createdByStaffId,
+          createdByStaffName: newTicket.createdByStaffName
         };
         setTickets((prev) => [savedTicket, ...prev]);
       }
@@ -793,58 +803,70 @@ export function App() {
                     onClick={() => setActiveTab('tickets')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'tickets'
+                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <Wrench className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                    <span className="truncate">Tiếp Nhận Sửa Chữa</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('pos')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'pos'
                         ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
                         : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                     }`}
                   >
-                    <TicketCheck className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('marketing')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'marketing'
-                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
-                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                    }`}
-                  >
-                    <Megaphone className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Hiệu Suất Marketing</span>
+                    <ShoppingBag className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                    <span className="truncate">Bán Hàng & Dịch Vụ Nhanh (POS)</span>
                   </button>
                 </>
               )}
             </div>
 
             {/* Row 2 */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 gap-2">
+            <div className={`grid gap-2 ${(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' : 'grid-cols-1 sm:grid-cols-3'}`}>
               {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <>
                   <button
                     onClick={() => setActiveTab('tickets')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'tickets'
+                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                    }`}
+                  >
+                    <Wrench className="w-4 h-4 flex-shrink-0 text-rose-400" />
+                    <span className="truncate">Tiếp Nhận Sửa Chữa</span>
+                  </button>
+
+                  <button
+                    onClick={() => setActiveTab('pos')}
+                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      activeTab === 'pos'
                         ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
                         : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                     }`}
                   >
-                    <TicketCheck className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Phiếu Dịch Vụ & Sửa Chữa</span>
-                  </button>
-
-                  <button
-                    onClick={() => setActiveTab('marketing')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'marketing'
-                        ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
-                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                    }`}
-                  >
-                    <Megaphone className="w-4 h-4 flex-shrink-0" />
-                    <span className="truncate">Hiệu Suất Marketing</span>
+                    <ShoppingBag className="w-4 h-4 flex-shrink-0 text-amber-400" />
+                    <span className="truncate">Bán Hàng & POS</span>
                   </button>
                 </>
               )}
+
+              <button
+                onClick={() => setActiveTab('marketing')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'marketing'
+                    ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                }`}
+              >
+                <Megaphone className="w-4 h-4 flex-shrink-0" />
+                <span className="truncate">Hiệu Suất Marketing</span>
+              </button>
 
               <button
                 onClick={() => setActiveTab('training')}
@@ -871,7 +893,12 @@ export function App() {
 
         {/* Tab Render Views */}
         {isCustomerMode ? (
-          <RepairTicketView tickets={tickets} role="customer" onCreateTicket={handleCreateTicket} />
+          <RepairTicketView 
+            tickets={tickets} 
+            role="customer" 
+            branches={branches}
+            onCreateTicket={handleCreateTicket} 
+          />
         ) : (
           <>
             {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder' || currentUser?.role === 'hr') && (
@@ -879,9 +906,11 @@ export function App() {
                 branches={branches} 
                 staffList={staffList} 
                 attendanceLogs={attendanceHistory}
+                leaveRequests={leaveRequests}
                 onAddBranch={handleAddBranch}
                 onToggleBranchStatus={handleToggleBranchStatus}
                 onRefreshStaff={fetchStaff}
+                onRefreshAttendance={fetchRealAttendance}
                 onUpdateStaff={handleUpdateStaff}
                 currentUser={currentUser}
               />
@@ -893,6 +922,7 @@ export function App() {
                 attendanceLogs={attendanceHistory} 
                 marketingPosts={marketingPosts}
                 leaveRequests={leaveRequests}
+                tickets={tickets}
                 onOpenAIHRModal={() => setShowAIHRModal(true)}
               />
             )}
@@ -921,9 +951,23 @@ export function App() {
               <RepairTicketView 
                 tickets={tickets} 
                 role={currentUser.role} 
+                currentUser={currentUser}
+                currentBranch={selectedBranch}
+                branches={branches}
                 onCreateTicket={handleCreateTicket} 
                 onUpdateTicket={handleUpdateTicket}
                 currentUserName={currentUser.fullName}
+              />
+            )}
+
+            {activeTab === 'pos' && currentUser && (
+              <POSView 
+                currentUser={currentUser}
+                currentBranch={selectedBranch}
+                branches={branches}
+                onCreateOrder={handleCreateTicket}
+                onUpdateOrder={handleUpdateTicket}
+                tickets={tickets}
               />
             )}
 

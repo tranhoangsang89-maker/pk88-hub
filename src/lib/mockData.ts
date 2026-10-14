@@ -5,9 +5,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     code: 'PK88_PHUKHUONG',
     name: 'Phụ Kiện 88 - Phú Khương',
-    address: '35B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
-    lat: 10.2465,
-    lng: 106.3812,
+    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ)',
+    lat: 10.2527211,
+    lng: 106.3707262,
     wifiBssid: '00:11:22:33:44:55',
     isActive: true
   },
@@ -15,18 +15,18 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28',
     code: 'PK88_DONGKHOI',
     name: 'Phụ Kiện 88 - Đồng Khởi',
-    address: '173 Đại Lộ Đồng Khởi, Vòng Xoay Tân Thành, TP. Bến Tre',
-    lat: 10.2589,
-    lng: 106.3764,
+    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Vòng xoay Tân Thành)',
+    lat: 10.2584726,
+    lng: 106.3616252,
     isActive: true
   },
   {
     id: 'ce898286-8130-44cb-9f92-25176cec6703',
     code: 'PK88_MYTHO',
     name: 'Phụ Kiện 88 - Mỹ Tho',
-    address: '25 Đinh Bộ Lĩnh, TP. Mỹ Tho, Tỉnh Tiền Giang',
-    lat: 10.3548,
-    lng: 106.3621,
+    address: '25 Đinh Bộ Lĩnh, Phường Mỹ Tho, Tỉnh Đồng Tháp',
+    lat: 10.355880,
+    lng: 106.369735,
     isActive: true
   },
   {
@@ -34,17 +34,17 @@ export const INITIAL_BRANCHES: Branch[] = [
     code: 'PK88_VINHLONG',
     name: 'Phụ Kiện 88 - Vĩnh Long',
     address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long',
-    lat: 10.2520,
-    lng: 105.9740,
+    lat: 10.2515112,
+    lng: 105.9728027,
     isActive: true
   },
   {
     id: '7593aa44-bd49-476a-8d13-b9912874c0e0',
     code: 'PK88_CANTHO',
     name: 'Phụ Kiện 88 - Cần Thơ',
-    address: '94 Đường Trần Hưng Đạo, Phường Thới Bình, Q. Ninh Kiều, TP. Cần Thơ',
-    lat: 10.0384,
-    lng: 105.7820,
+    address: '94 Đường Trần Hưng Đạo, Phường An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ',
+    lat: 10.037976,
+    lng: 105.7763555,
     isActive: true
   },
   {
@@ -52,17 +52,17 @@ export const INITIAL_BRANCHES: Branch[] = [
     code: 'PK88_THUDUC',
     name: 'Phụ Kiện 88 - Thủ Đức',
     address: '178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh',
-    lat: 10.850586,
-    lng: 106.762497,
+    lat: 10.8506028,
+    lng: 106.762417,
     isActive: true
   },
   {
     id: '11111111-2222-3333-4444-555555555555',
     code: 'PK88_VANPHONG',
     name: 'Phụ Kiện 88 - Văn Phòng',
-    address: 'Trụ Sở Điều Hành Khối Văn Phòng & Quản Trị Hệ Thống',
-    lat: 10.2465,
-    lng: 106.3812,
+    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long',
+    lat: 10.252668,
+    lng: 106.370604,
     isActive: true
   },
   {
@@ -123,111 +123,10 @@ export const REAL_STAFF: Staff[] = [
 // Export as MOCK_STAFF for backward compatibility across components
 export const MOCK_STAFF: Staff[] = REAL_STAFF;
 
-export const MOCK_ATTENDANCE: AttendanceRecord[] = [
-  {
-    id: 'att-admin',
-    staffId: 'e30be7a4-e5f6-47c0-8f27-d3f25d3adff8',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    checkIn: new Date(Date.now() - 3600000 * 3).toISOString(),
-    lat: 10.24652,
-    lng: 106.38125,
-    distanceMeters: 5,
-    isVerified: true,
-    notes: 'Trần Hoàng Sang (0888003205) - Check-in GPS Hợp lệ (Bến Tre 1)',
-    workHours: 176
-  },
-  {
-    id: 'att-founder',
-    staffId: '7526b7c5-12ac-442b-90a6-b68b9d624364',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    checkIn: new Date(Date.now() - 3600000 * 4).toISOString(),
-    lat: 10.24651,
-    lng: 106.38123,
-    distanceMeters: 4,
-    isVerified: true,
-    notes: 'Ngô Hồng Thao (0777888688) - Check-in GPS Hợp lệ',
-    workHours: 0
-  }
-];
+export const MOCK_ATTENDANCE: AttendanceRecord[] = [];
 
-export const MOCK_REPAIR_TICKETS: RepairTicket[] = [
-  {
-    id: 't-101',
-    code: 'PK88-SC-9981',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    customerName: 'Anh Tuấn',
-    customerPhone: '0939112233',
-    deviceModel: 'iPhone 13 Pro Max',
-    serviceType: 'EP_KINH',
-    status: 'IN_PROGRESS',
-    price: 850000,
-    createdAt: new Date(Date.now() - 3600000 * 2).toISOString(),
-    technicianName: 'Nguyễn Trung Hiếu'
-  },
-  {
-    id: 't-102',
-    code: 'PK88-SC-9982',
-    branchId: 'ce898286-8130-44cb-9f92-25176cec6703',
-    customerName: 'Chị Mai',
-    customerPhone: '0988776655',
-    deviceModel: 'iPhone 11',
-    serviceType: 'THAY_PIN',
-    status: 'READY',
-    price: 450000,
-    createdAt: new Date(Date.now() - 3600000 * 5).toISOString(),
-    technicianName: 'Lê Minh Sang'
-  }
-];
+export const MOCK_REPAIR_TICKETS: RepairTicket[] = [];
 
-export const MOCK_MARKETING_POSTS = [
-  {
-    id: 'post-1',
-    branch_id: 'ce898286-8130-44cb-9f92-25176cec6703',
-    platform: 'facebook',
-    post_url: 'https://facebook.com/phukien88/posts/1',
-    author_name: 'Phan Văn Thống',
-    created_at: new Date(Date.now() - 3600000).toISOString()
-  },
-  {
-    id: 'post-2',
-    branch_id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    platform: 'tiktok',
-    post_url: 'https://tiktok.com/@pk88/video/1',
-    author_name: 'Trương Thị Thùy Dương',
-    created_at: new Date(Date.now() - 7200000).toISOString()
-  }
-];
+export const MOCK_MARKETING_POSTS: any[] = [];
 
-export const MOCK_LEAVE_REQUESTS: LeaveRequest[] = [
-  {
-    id: 'leave-1',
-    staffId: 's-pk88-004',
-    staffName: 'Nguyễn Trung Hiếu',
-    phone: '0939118793',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    role: 'technician',
-    startDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    endDate: new Date(Date.now() + 86400000 * 2).toISOString().split('T')[0],
-    reason: 'Xin nghỉ đưa người nhà đi khám bệnh tại TP.HCM',
-    type: 'PAID_LEAVE',
-    status: 'PENDING',
-    createdAt: new Date().toISOString(),
-    aiRiskAssessment: '🟢 An toàn: Bến Tre 1 (Phú Khương) còn kỹ thuật viên Nguyễn Minh Hoài Ngọc ca này, đảm bảo vận hành.'
-  },
-  {
-    id: 'leave-2',
-    staffId: 's-pk88-003',
-    staffName: 'Huỳnh Tiểu My',
-    phone: '0392399534',
-    branchId: '2b150536-0b47-4e32-912b-b5ede701bfa6',
-    role: 'sales',
-    startDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    endDate: new Date(Date.now() - 86400000).toISOString().split('T')[0],
-    reason: 'Sốt cao xin nghỉ bệnh 1 ngày',
-    type: 'SICK_LEAVE',
-    status: 'APPROVED',
-    approvedBy: 'Trần Hoàng Sang (ADMIN)',
-    createdAt: new Date(Date.now() - 86400000 * 2).toISOString(),
-    aiRiskAssessment: '🟡 Cảnh báo nhẹ: Cửa hàng trưởng Trương Thị Thùy Dương đã bố trí nhân viên trực thay thế.'
-  }
-];
+export const MOCK_LEAVE_REQUESTS: LeaveRequest[] = [];

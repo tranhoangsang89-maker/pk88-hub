@@ -1,6 +1,25 @@
 import React from 'react';
-import { Branch, AttendanceRecord, MarketingPost, LeaveRequest } from '../types';
-import { TrendingUp, AlertTriangle, Package, CheckCircle, Smartphone, ArrowUpRight, DollarSign, Clock, UserCheck, Activity, Calendar, FileText, CheckCircle2, XCircle, Bot } from 'lucide-react';
+import { Branch, AttendanceRecord, MarketingPost, LeaveRequest, RepairTicket } from '../types';
+import { 
+  TrendingUp, 
+  AlertTriangle, 
+  Package, 
+  CheckCircle, 
+  Smartphone, 
+  ArrowUpRight, 
+  DollarSign, 
+  Clock, 
+  UserCheck, 
+  Activity, 
+  Calendar, 
+  CheckCircle2, 
+  XCircle, 
+  Bot, 
+  ShieldCheck, 
+  AlertCircle, 
+  Wrench,
+  Users
+} from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -20,6 +39,7 @@ interface ExecutiveDashboardProps {
   attendanceLogs?: AttendanceRecord[];
   marketingPosts?: MarketingPost[];
   leaveRequests?: LeaveRequest[];
+  tickets?: RepairTicket[];
   onOpenAIHRModal?: () => void;
 }
 
@@ -28,100 +48,36 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   attendanceLogs = [], 
   marketingPosts = [],
   leaveRequests = [],
+  tickets = [],
   onOpenAIHRModal
 }) => {
-  const alerts = [
-    {
-      type: 'REVENUE_DROP',
-      branch: 'Phụ Kiện 88 - Cần Thơ',
-      message: 'Doanh thu sụt giảm 28% so với trung bình 3 ngày trước',
-      severity: 'HIGH',
-      time: '18:30 Hôm nay'
-    },
-    {
-      type: 'REPAIR_DELAY',
-      branch: 'Phụ Kiện 88 - Bến Tre',
-      message: 'Có 2 phiếu sửa chữa iPhone 13 Pro Max tồn > 5 ngày chưa giao',
-      severity: 'HIGH',
-      time: '15:10 Hôm nay'
-    },
-    {
-      type: 'LOW_STOCK',
-      branch: 'Phụ Kiện 88 - Mỹ Tho',
-      message: 'Kính cường lực Kingkong iPhone 14 Pro còn dưới 5 cái',
-      severity: 'MEDIUM',
-      time: '12:00 Hôm nay'
-    }
-  ];
-
   const activeBranches = branches.filter(b => b.isActive);
   const inactiveBranches = branches.filter(b => !b.isActive);
   const closedBranchNames = inactiveBranches.map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ');
 
-  // Dữ liệu hiệu suất bán hàng chuẩn hóa theo từng mã chi nhánh (các shop tạm đóng sẽ có doanh thu 0đ)
-  const defaultPerformance: Record<string, { revenue: number; orders: number; growth: string }> = {
-    'PK88_MYTHO': { revenue: 14500000, orders: 42, growth: '+15%' },
-    'PK88_PHUKHUONG': { revenue: 12200000, orders: 38, growth: '+8%' },
-    'PK88_BENTRE_1': { revenue: 12200000, orders: 38, growth: '+8%' },
-    'PK88_VINHLONG': { revenue: 9800000, orders: 27, growth: '+4%' },
-    'PK88_DONGKHOI': { revenue: 8500000, orders: 24, growth: '+2%' },
-    'PK88_BENTRE_2': { revenue: 8500000, orders: 24, growth: '+2%' },
-    'PK88_CANTHO': { revenue: 6400000, orders: 19, growth: '-28%' },
-    'PK88_THUDUC': { revenue: 0, orders: 0, growth: '0%' },
-    'PK88_VANPHONG': { revenue: 0, orders: 0, growth: '0%' },
-    'PK88_TRAVINH': { revenue: 0, orders: 0, growth: '0%' },
-  };
-
-  const branchMetrics = branches.map(b => {
-    const isOnline = b.isActive;
-    const shortName = b.name.replace('Phụ Kiện 88 - ', 'PK88 ');
-    const perf = isOnline ? (defaultPerformance[b.code] || { revenue: 0, orders: 0, growth: '0%' }) : { revenue: 0, orders: 0, growth: '0%' };
-    return {
-      id: b.id,
-      code: b.code,
-      name: shortName,
-      isActive: isOnline,
-      revenue: perf.revenue,
-      orders: perf.orders,
-      growth: perf.growth
-    };
-  }).sort((a, b) => {
-    if (a.isActive && !b.isActive) return -1;
-    if (!a.isActive && b.isActive) return 1;
-    return b.revenue - a.revenue;
+  // Thời gian thực tế hôm nay
+  const today = new Date().toISOString().split('T')[0];
+  const formattedToday = new Date().toLocaleDateString('vi-VN', {
+    weekday: 'long',
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
   });
 
-  const totalRevenue = branchMetrics.reduce((sum, b) => sum + b.revenue, 0);
-  const totalOrders = branchMetrics.reduce((sum, b) => sum + b.orders, 0);
-  const avgOrdersPerShop = activeBranches.length > 0 ? (totalOrders / activeBranches.length).toFixed(1) : '0';
+  // 1. Phân tích chấm công GPS thực tế hôm nay
+  const todayLogs = attendanceLogs.filter(log => log.checkIn && log.checkIn.startsWith(today));
+  const activeOnShift = todayLogs.filter(log => !log.checkOut);
+  const latesCount = todayLogs.filter(log => log.isLate).length;
+  const outsideGeofenceCount = todayLogs.filter(log => log.isOutsideGeofence).length;
 
-  // Dữ liệu biểu đồ Doanh thu & Lợi nhuận (7 ngày qua)
-  const revenueData = [
-    { date: '21/09', revenue: 28000000, profit: 9500000 },
-    { date: '22/09', revenue: 32000000, profit: 11000000 },
-    { date: '23/09', revenue: 25000000, profit: 8200000 },
-    { date: '24/09', revenue: 35000000, profit: 12500000 },
-    { date: '25/09', revenue: 39000000, profit: 14000000 },
-    { date: '26/09', revenue: 34000000, profit: 11500000 },
-    { date: '27/09', revenue: totalRevenue, profit: Math.round(totalRevenue * 0.342) },
-  ];
+  // 2. Phân tích doanh thu & đơn dịch vụ thực tế từ Supabase
+  const completedTickets = tickets.filter(t => t.status === 'READY' || t.status === 'DELIVERED');
+  const inProgressTickets = tickets.filter(t => t.status === 'IN_PROGRESS' || t.status === 'RECEIVED');
+  const realRevenue = completedTickets.reduce((sum, t) => sum + (t.price || 0), 0);
+  const totalOrders = tickets.length;
 
-  // Dữ liệu Tồn kho các mặt hàng chủ lực giữa các chi nhánh
-  const isTrvActive = branches.find(b => b.code === 'PK88_TRAVINH')?.isActive;
-  const inventoryData = [
-    { name: 'Kính KK 14PM', 'Mỹ Tho': 45, 'Phú Khương': 12, 'Đồng Khởi': 18, 'Vĩnh Long': 35, 'Cần Thơ': 180, ...(isTrvActive ? { 'Trà Vinh': 25 } : {}), 'Thủ Đức': 50 },
-    { name: 'Pin Bison 11PM', 'Mỹ Tho': 20, 'Phú Khương': 8, 'Đồng Khởi': 15, 'Vĩnh Long': 22, 'Cần Thơ': 30, ...(isTrvActive ? { 'Trà Vinh': 10 } : {}), 'Thủ Đức': 15 },
-    { name: 'Ốp Magsafe 15PM', 'Mỹ Tho': 60, 'Phú Khương': 35, 'Đồng Khởi': 20, 'Vĩnh Long': 45, 'Cần Thơ': 5, ...(isTrvActive ? { 'Trà Vinh': 15 } : {}), 'Thủ Đức': 30 },
-    { name: 'Sạc 20W Zin', 'Mỹ Tho': 120, 'Phú Khương': 80, 'Đồng Khởi': 65, 'Vĩnh Long': 90, 'Cần Thơ': 150, ...(isTrvActive ? { 'Trà Vinh': 50 } : {}), 'Thủ Đức': 75 },
-  ];
-
-  const formatCurrency = (value: number) => {
-    return `${(value / 1000000).toFixed(1)}M`;
-  };
-
-  // Calculate Marketing Stats for AI Copilot (chỉ tính các shop đang hoạt động)
-  const today = new Date().toISOString().split('T')[0];
-  const todayPosts = marketingPosts.filter(p => p.created_at.startsWith(today));
+  // 3. Phân tích Marketing thực tế
+  const todayPosts = marketingPosts.filter(p => p.created_at && p.created_at.startsWith(today));
   const branchCounts = todayPosts.reduce((acc, p) => {
     acc[p.branch_id] = (acc[p.branch_id] || 0) + 1;
     return acc;
@@ -131,37 +87,164 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const topBranchName = branches.find(b => b.id === topBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'N/A';
   const missedBranches = activeBranches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
 
+  // 4. Tổng hợp CẢNH BÁO ĐỎ (Real-time Red Flags) THỰC TẾ từ hệ thống
+  const realAlerts: Array<{ id: string; type: string; branch: string; message: string; severity: 'HIGH' | 'MEDIUM'; time: string }> = [];
+
+  // A. Đơn xin nghỉ phép đang chờ duyệt (PENDING)
+  const pendingLeaves = leaveRequests.filter(r => r.status === 'PENDING');
+  if (pendingLeaves.length > 0) {
+    realAlerts.push({
+      id: 'alt-leave-pending',
+      type: 'ĐƠN PHÉP CHỜ DUYỆT',
+      branch: 'Khối Nhân Sự (AI HR)',
+      message: `Có ${pendingLeaves.length} đơn xin nghỉ phép đang chờ Cửa Hàng Trưởng / Khối HR phê duyệt`,
+      severity: 'HIGH',
+      time: 'Cần duyệt'
+    });
+  }
+
+  // B. Vi phạm khoảng cách GPS chấm công hôm nay (> 200m)
+  if (outsideGeofenceCount > 0) {
+    realAlerts.push({
+      id: 'alt-gps-violation',
+      type: 'VI PHẠM GPS',
+      branch: 'Hệ Thống Chấm Công',
+      message: `Ghi nhận ${outsideGeofenceCount} lượt check-in vượt quá bán kính GPS cho phép (> 200m)`,
+      severity: 'HIGH',
+      time: 'Hôm nay'
+    });
+  }
+
+  // C. Nhân viên quên check-out từ ca trước (> 16h hoặc từ ngày cũ)
+  const unclosedShifts = attendanceLogs.filter(l => {
+    if (l.checkOut || !l.checkIn) return false;
+    const checkInDate = l.checkIn.split('T')[0];
+    const isOldDay = checkInDate < today;
+    const hoursOpen = (Date.now() - new Date(l.checkIn).getTime()) / 3600000;
+    return isOldDay || hoursOpen > 16;
+  });
+  if (unclosedShifts.length > 0) {
+    realAlerts.push({
+      id: 'alt-unclosed-shift',
+      type: 'QUÊN CHECK-OUT',
+      branch: 'Toàn Chuỗi',
+      message: `Có ${unclosedShifts.length} ca làm việc chưa bấm check-out từ ngày trước hoặc mở quá 16h`,
+      severity: 'MEDIUM',
+      time: 'Cần đóng ca'
+    });
+  }
+
+  // D. Phiếu sửa chữa tồn đọng > 3 ngày chưa bàn giao
+  const delayedTickets = tickets.filter(t => {
+    if (t.status === 'DELIVERED' || t.status === 'READY') return false;
+    const ageDays = (Date.now() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24);
+    return ageDays > 3;
+  });
+  if (delayedTickets.length > 0) {
+    realAlerts.push({
+      id: 'alt-repair-delayed',
+      type: 'TRỄ HẸN SỬA CHỮA',
+      branch: 'Khối Kỹ Thuật',
+      message: `Có ${delayedTickets.length} phiếu sửa chữa thiết bị tồn đọng > 3 ngày chưa bàn giao khách`,
+      severity: 'HIGH',
+      time: 'Khẩn cấp'
+    });
+  }
+
+  // E. Chi nhánh đang mở nhưng chưa có ai mở ca sau 9h00 sáng
+  const currentHour = new Date().getHours();
+  if (currentHour >= 9) {
+    activeBranches.forEach(b => {
+      const hasCheckin = todayLogs.some(l => l.branchId === b.id);
+      if (!hasCheckin && b.code !== 'PK88_VANPHONG') {
+        realAlerts.push({
+          id: `alt-no-checkin-${b.id}`,
+          type: 'CHƯA MỞ CA',
+          branch: b.name.replace('Phụ Kiện 88 - ', ''),
+          message: 'Cửa hàng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca sáng',
+          severity: 'HIGH',
+          time: 'Ca sáng'
+        });
+      }
+    });
+  }
+
+  // 5. Hiệu suất thực tế theo từng chi nhánh
+  const branchMetrics = branches.map(b => {
+    const isOnline = b.isActive;
+    const shortName = b.name.replace('Phụ Kiện 88 - ', 'PK88 ');
+    const branchTickets = tickets.filter(t => t.branchId === b.id);
+    const bRevenue = branchTickets
+      .filter(t => t.status === 'READY' || t.status === 'DELIVERED')
+      .reduce((sum, t) => sum + (t.price || 0), 0);
+    const bOrders = branchTickets.length;
+    const bStaffToday = todayLogs.filter(l => l.branchId === b.id).length;
+
+    return {
+      id: b.id,
+      code: b.code,
+      name: shortName,
+      isActive: isOnline,
+      revenue: bRevenue,
+      orders: bOrders,
+      staffToday: bStaffToday
+    };
+  }).sort((a, b) => {
+    if (a.isActive && !b.isActive) return -1;
+    if (!a.isActive && b.isActive) return 1;
+    if (b.revenue !== a.revenue) return b.revenue - a.revenue;
+    return b.staffToday - a.staffToday;
+  });
+
   return (
     <div className="space-y-6">
-      {/* Overview Cards */}
+      {/* 4 Overview KPI Cards (100% Real-time Data) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        
+        {/* Card 1: Doanh Thu Dịch Vụ */}
         <div className="glass-card rounded-2xl p-4 border border-slate-800">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Doanh thu Real-time</span>
+            <span className="text-xs font-semibold text-slate-400">Doanh Thu Dịch Vụ & Sửa Chữa</span>
             <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
               <DollarSign className="w-4 h-4" />
             </span>
           </div>
           <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
-            {totalRevenue.toLocaleString('vi-VN')} đ
+            {realRevenue.toLocaleString('vi-VN')} đ
           </div>
-          <div className="flex items-center gap-1 text-xs text-emerald-400 mt-2">
-            <ArrowUpRight className="w-3.5 h-3.5" />
-            <span>+12.4% so với hôm qua</span>
+          <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+            {realRevenue > 0 ? (
+              <span className="text-emerald-400 font-medium">✓ Đã đối soát {completedTickets.length} đơn</span>
+            ) : (
+              <span className="text-slate-500">Chưa có doanh thu phát sinh (Chờ POS bán lẻ)</span>
+            )}
           </div>
         </div>
 
+        {/* Card 2: Nhân Sự Điểm Danh Hôm Nay */}
         <div className="glass-card rounded-2xl p-4 border border-slate-800">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Tổng Đơn Hàng</span>
+            <span className="text-xs font-semibold text-slate-400">Nhân Sự Đang Trực (GPS)</span>
             <span className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
-              <Smartphone className="w-4 h-4" />
+              <Users className="w-4 h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">{totalOrders} đơn</div>
-          <div className="text-xs text-slate-400 mt-2">Trung bình {avgOrdersPerShop} đơn/shop hoạt động</div>
+          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
+            {activeOnShift.length} <span className="text-sm font-normal text-slate-400">/ {todayLogs.length} ca</span>
+          </div>
+          <div className="text-xs text-slate-400 mt-2">
+            {latesCount > 0 ? (
+              <span className="text-amber-400">⚠️ {latesCount} ca trễ giờ</span>
+            ) : (
+              <span className="text-emerald-400">✓ 100% đúng giờ hôm nay</span>
+            )}
+            {outsideGeofenceCount > 0 && (
+              <span className="text-rose-400 ml-1.5">• {outsideGeofenceCount} lệch GPS</span>
+            )}
+          </div>
         </div>
 
+        {/* Card 3: Chi Nhánh Mở Cửa */}
         <div className="glass-card rounded-2xl p-4 border border-slate-800">
           <div className="flex items-center justify-between">
             <span className="text-xs font-semibold text-slate-400">Chi Nhánh Hoạt Động</span>
@@ -177,138 +260,142 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               <span>⚠️ {inactiveBranches.length} shop tạm đóng ({closedBranchNames})</span>
             </div>
           ) : (
-            <div className="text-xs text-emerald-400 mt-2">100% Online & Geofenced</div>
+            <div className="text-xs text-emerald-400 mt-2">🟢 100% Chi nhánh mở cửa & Geofenced</div>
           )}
         </div>
 
-        <div className="glass-card rounded-2xl p-4 border border-rose-500/30 bg-rose-950/10">
+        {/* Card 4: Cảnh Báo Đỏ (Real-time Red Flags) */}
+        <div className={`glass-card rounded-2xl p-4 border transition-all ${
+          realAlerts.length > 0 
+            ? 'border-rose-500/40 bg-rose-950/20 shadow-lg shadow-rose-950/30' 
+            : 'border-slate-800 bg-slate-900/40'
+        }`}>
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-rose-300">Cảnh Báo Đỏ (Red Flags)</span>
-            <span className="w-8 h-8 rounded-xl bg-rose-500/20 text-rose-400 flex items-center justify-center animate-pulse">
-              <AlertTriangle className="w-4 h-4" />
+            <span className={`text-xs font-semibold ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
+              Cảnh Báo Đỏ (Red Flags)
+            </span>
+            <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+              realAlerts.length > 0 ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-emerald-500/10 text-emerald-400'
+            }`}>
+              {realAlerts.length > 0 ? <AlertTriangle className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
             </span>
           </div>
-          <div className="text-xl font-extrabold text-rose-400 mt-2 font-mono">3 Cảnh Báo</div>
-          <div className="text-xs text-rose-300 mt-2">Tự động gửi Telegram Founder</div>
+          <div className={`text-xl font-extrabold mt-2 font-mono ${realAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+            {realAlerts.length > 0 ? `${realAlerts.length} Cảnh Báo` : '0 Cảnh Báo'}
+          </div>
+          <div className={`text-xs mt-2 ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
+            {realAlerts.length > 0 ? 'Tự động gửi Telegram Founder' : 'Toàn chuỗi vận hành an toàn'}
+          </div>
         </div>
       </div>
 
-      {/* CHARTS SECTION - BIỂU ĐỒ BÁO CÁO */}
+      {/* CHARTS SECTION - HIỂN THỊ TRẠNG THÁI DỮ LIỆU THẬT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Revenue & Profit Area Chart */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40">
+        {/* Revenue Chart State */}
+        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
             <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <Activity className="w-4 h-4 text-emerald-400" />
               <span>Biến động Doanh Thu & Lợi Nhuận (7 Ngày)</span>
             </h3>
-            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-mono">Real-time</span>
+            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-mono border border-slate-700">
+              Đồng Bộ POS
+            </span>
           </div>
           
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={revenueData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
-                  </linearGradient>
-                  <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
-                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="date" stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} tickFormatter={formatCurrency} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
-                  itemStyle={{ color: '#f1f5f9' }}
-                  formatter={(value: any) => [`${Number(value).toLocaleString('vi-VN')} đ`, '']}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                <Area type="monotone" name="Doanh Thu" dataKey="revenue" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorRevenue)" />
-                <Area type="monotone" name="Lợi Nhuận Ròng" dataKey="profit" stroke="#0ea5e9" strokeWidth={3} fillOpacity={1} fill="url(#colorProfit)" />
-              </AreaChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mb-3">
+              <DollarSign className="w-6 h-6" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-200">Chưa có luồng dữ liệu bán hàng POS bán lẻ</h4>
+            <p className="text-[11px] text-slate-400 max-w-sm mt-1.5 leading-relaxed">
+              Hệ thống đã làm sạch hoàn toàn dữ liệu giả. Biểu đồ doanh thu 7 ngày sẽ tự động vẽ đồ thị và phân tích biên lợi nhuận ròng ngay khi phát sinh hóa đơn thực tế.
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-[10px] font-mono bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
+                Trạng thái: Sẵn sàng ghi nhận đơn
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* Inventory Bar Chart */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40">
+        {/* Inventory Chart State */}
+        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/40 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-800">
             <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
               <Package className="w-4 h-4 text-sky-400" />
               <span>Theo Dõi Tồn Kho Mặt Hàng Chủ Lực</span>
             </h3>
-            <span className="text-[10px] bg-amber-500/10 text-amber-400 px-2 py-1 rounded font-mono border border-amber-500/20">Cần Luân Chuyển</span>
+            <span className="text-[10px] bg-slate-800 text-slate-400 px-2 py-1 rounded font-mono border border-slate-700">
+              Kho Tổng Chuỗi
+            </span>
           </div>
 
-          <div className="h-64 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={inventoryData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
-                <XAxis dataKey="name" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" fontSize={11} tickLine={false} axisLine={false} />
-                <Tooltip 
-                  contentStyle={{ backgroundColor: '#0f172a', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }}
-                  cursor={{ fill: '#1e293b', opacity: 0.4 }}
-                />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '12px' }} />
-                <ReferenceLine y={10} stroke="#f43f5e" strokeDasharray="3 3" label={{ position: 'top', value: 'Safety Stock (10)', fill: '#f43f5e', fontSize: 10 }} />
-                <Bar name="Mỹ Tho" dataKey="Mỹ Tho" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                <Bar name="Phú Khương" dataKey="Phú Khương" fill="#8b5cf6" radius={[4, 4, 0, 0]} />
-                <Bar name="Đồng Khởi" dataKey="Đồng Khởi" fill="#d946ef" radius={[4, 4, 0, 0]} />
-                <Bar name="Vĩnh Long" dataKey="Vĩnh Long" fill="#14b8a6" radius={[4, 4, 0, 0]} />
-                <Bar name="Cần Thơ" dataKey="Cần Thơ" fill="#f43f5e" radius={[4, 4, 0, 0]} />
-                {isTrvActive && (
-                  <Bar name="Trà Vinh" dataKey="Trà Vinh" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                )}
-                <Bar name="Thủ Đức" dataKey="Thủ Đức" fill="#6366f1" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+          <div className="h-64 w-full flex flex-col items-center justify-center text-center p-6 border border-dashed border-slate-800 rounded-xl bg-slate-950/40">
+            <div className="w-12 h-12 rounded-2xl bg-sky-500/10 border border-sky-500/20 text-sky-400 flex items-center justify-center mb-3">
+              <Package className="w-6 h-6" />
+            </div>
+            <h4 className="text-xs font-bold text-slate-200">Chưa có dữ liệu kiểm kê tồn kho thực tế</h4>
+            <p className="text-[11px] text-slate-400 max-w-sm mt-1.5 leading-relaxed">
+              Dữ liệu giả đã được gỡ bỏ. Khi bộ phận kho nhập số lượng tồn kho (Kính cường lực, Pin, Sạc, Cáp), biểu đồ cột và hạn mức Safety Stock sẽ tự động kích hoạt.
+            </p>
+            <div className="mt-4 flex items-center gap-2">
+              <span className="text-[10px] font-mono bg-slate-900 text-slate-400 px-3 py-1 rounded-full border border-slate-800">
+                Hạn mức tối thiểu: Safety Stock (10 cái)
+              </span>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Red Flags Alert Center */}
-      <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-slate-900/80">
+      {/* Red Flags Alert Center (100% Real Issues) */}
+      <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/80">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="w-5 h-5 text-rose-500" />
+            <AlertTriangle className={`w-5 h-5 ${realAlerts.length > 0 ? 'text-rose-500' : 'text-slate-500'}`} />
             <h3 className="text-sm font-bold text-slate-100">Trung Tâm Cảnh Báo Đỏ Telegram (Real-time Red Flags)</h3>
           </div>
           <span className="text-xs text-slate-400">Tự động kiểm soát bởi AI Engine</span>
         </div>
 
-        <div className="space-y-3">
-          {alerts.map((alt, idx) => (
-            <div key={idx} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 gap-2">
-              <div className="flex items-start gap-3">
-                <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 flex-shrink-0 animate-ping"></span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs font-bold text-slate-200">{alt.branch}</span>
-                    <span className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-mono">
-                      {alt.type}
-                    </span>
+        {realAlerts.length > 0 ? (
+          <div className="space-y-3">
+            {realAlerts.map(alt => (
+              <div key={alt.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 gap-2">
+                <div className="flex items-start gap-3">
+                  <span className="w-2 h-2 rounded-full bg-rose-500 mt-1.5 flex-shrink-0 animate-ping"></span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-200">{alt.branch}</span>
+                      <span className="text-[10px] bg-rose-500/10 text-rose-400 border border-rose-500/20 px-1.5 py-0.5 rounded font-mono font-bold">
+                        {alt.type}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-300 mt-0.5">{alt.message}</p>
                   </div>
-                  <p className="text-xs text-slate-300 mt-0.5">{alt.message}</p>
+                </div>
+                <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
+                  <span className="text-slate-500 text-[11px] font-mono">{alt.time}</span>
+                  <button className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg border border-rose-500/30 transition-colors">
+                    Kiểm tra
+                  </button>
                 </div>
               </div>
-              <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
-                <span className="text-slate-500 text-[11px]">{alt.time}</span>
-                <button className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg border border-rose-500/30">
-                  Xử lý ngay
-                </button>
-              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="p-6 rounded-xl bg-slate-950/40 border border-slate-800 text-center flex flex-col items-center justify-center">
+            <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 flex items-center justify-center mb-2">
+              <CheckCircle2 className="w-5 h-5" />
             </div>
-          ))}
-        </div>
+            <p className="text-xs font-bold text-slate-200">Toàn chuỗi vận hành an toàn</p>
+            <p className="text-[11px] text-slate-400 mt-0.5">Không ghi nhận vi phạm khoảng cách GPS, ca trực quên check-out hay đơn phép quá hạn lúc này.</p>
+          </div>
+        )}
       </div>
 
-      {/* Leave Requests Center (Replaced GPS Attendance Log) */}
+      {/* Leave Requests Center (AI HR Engine) */}
       <div className="glass-card rounded-2xl p-5 border border-rose-500/30 bg-slate-900/90 space-y-4">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 pb-3 border-b border-slate-800">
           <div className="flex items-center gap-2">
@@ -400,19 +487,25 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         </div>
       </div>
 
-      {/* Branch Revenue Breakdown & Executive Night Summary Preview */}
+      {/* Branch Breakdown & Real-time AI Copilot Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Branch Ranking */}
+        
+        {/* Branch Real Performance */}
         <div className="glass-card rounded-2xl p-5 border border-slate-800">
-          <h3 className="text-sm font-bold text-slate-100 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-emerald-400" />
-            <span>Xếp Hạng Doanh Số Theo Chi Nhánh</span>
-          </h3>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
+              <span>Tình Trạng Vận Hành & Doanh Số Chi Nhánh</span>
+            </h3>
+            <span className="text-[10px] font-mono text-slate-400 bg-slate-900 border border-slate-800 px-2 py-0.5 rounded">
+              Thời Gian Thực
+            </span>
+          </div>
           <div className="space-y-3">
             {branchMetrics.map((b, i) => (
               <div key={b.id || i} className={`flex items-center justify-between p-3 rounded-xl border transition-all ${b.isActive ? 'bg-slate-900/50 border-slate-800' : 'bg-slate-950/40 border-slate-900/60 opacity-60'}`}>
                 <div className="flex items-center gap-3">
-                  <span className={`w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center ${b.isActive ? 'bg-slate-800 text-slate-400' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'}`}>
+                  <span className={`w-6 h-6 rounded-full font-bold text-xs flex items-center justify-center ${b.isActive ? 'bg-slate-800 text-slate-300' : 'bg-rose-950/60 text-rose-400 border border-rose-500/30'}`}>
                     {b.isActive ? `#${i + 1}` : '✕'}
                   </span>
                   <div>
@@ -425,7 +518,11 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                       )}
                     </div>
                     <div className="text-[11px] text-slate-400">
-                      {b.isActive ? `${b.orders} đơn hàng thành công` : 'Cửa hàng đang tạm dừng hoạt động'}
+                      {b.isActive ? (
+                        <span>{b.staffToday > 0 ? `🟢 ${b.staffToday} nhân sự đã check-in` : '⚪ Chưa có check-in'}</span>
+                      ) : (
+                        <span>Cửa hàng đang tạm dừng hoạt động</span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -433,8 +530,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   <div className={`text-xs font-bold font-mono ${b.isActive ? 'text-slate-100' : 'text-slate-500'}`}>
                     {b.revenue.toLocaleString('vi-VN')} đ
                   </div>
-                  <span className={`text-[11px] font-semibold ${!b.isActive ? 'text-rose-400/80 font-mono text-[10px]' : b.growth.startsWith('+') ? 'text-emerald-400' : 'text-rose-400'}`}>
-                    {b.isActive ? b.growth : 'Offline'}
+                  <span className="text-[10px] font-medium text-slate-400">
+                    {b.isActive ? `${b.orders} đơn hoàn tất` : 'Offline'}
                   </span>
                 </div>
               </div>
@@ -442,40 +539,50 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </div>
         </div>
 
-        {/* 22h15 Night Executive Report Simulation */}
-        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/90">
-          <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
-            <div>
-              <h3 className="text-sm font-bold text-slate-100">Báo Cáo Điều Hành 22h15 (AI Copilot)</h3>
-              <p className="text-xs text-slate-400">Tóm tắt 3 gạch đầu dòng gửi về Telegram Founder</p>
+        {/* Real-time Executive Report (AI Copilot) */}
+        <div className="glass-card rounded-2xl p-5 border border-slate-800 bg-slate-900/90 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between mb-3 pb-3 border-b border-slate-800">
+              <div>
+                <h3 className="text-sm font-bold text-slate-100">Báo Cáo Điều Hành 22h15 (AI Copilot)</h3>
+                <p className="text-xs text-slate-400">Tóm tắt tự động từ dữ liệu thời gian thực gửi Telegram Founder</p>
+              </div>
+              <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono">
+                22:15 AUTO
+              </span>
             </div>
-            <span className="text-[10px] bg-sky-500/10 text-sky-400 border border-sky-500/20 px-2 py-0.5 rounded-full font-mono">
-              22:15 AUTO
-            </span>
+
+            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 font-sans text-xs space-y-3 leading-relaxed text-slate-300">
+              <p className="font-bold text-emerald-400">📊 TÌNH HÌNH VẬN HÀNH TOÀN CHUỖI PHỤ KIỆN 88 ({formattedToday}):</p>
+              <ul className="space-y-2 list-disc list-inside">
+                <li>
+                  <strong className="text-slate-100">Cửa hàng hoạt động:</strong> Có <span className="text-cyan-400 font-bold">{activeBranches.length}/{branches.length} chi nhánh</span> đang mở cửa phục vụ. {inactiveBranches.length > 0 && `(Chi nhánh ${closedBranchNames} đang tạm đóng).`}
+                </li>
+                <li>
+                  <strong className="text-slate-100">Nhân sự ca trực:</strong> Ghi nhận <span className="text-emerald-400 font-bold">{todayLogs.length} lượt check-in</span> ({activeOnShift.length} nhân sự đang trực{latesCount > 0 ? `, ${latesCount} ca đi trễ` : ', 100% đúng giờ'}).
+                </li>
+                <li>
+                  <strong className="text-slate-100">Doanh thu phát sinh:</strong> {realRevenue > 0 ? `${realRevenue.toLocaleString('vi-VN')} đ từ dịch vụ kỹ thuật.` : 'Chưa có dữ liệu giao dịch phát sinh từ máy POS bán lẻ.'}
+                </li>
+                <li>
+                  <strong className="text-slate-100">Truyền thông Marketing:</strong> Toàn chuỗi đã đăng <span className="font-bold text-blue-400">{todayPosts.length} bài</span> hôm nay. {topBranchId ? `Chi nhánh ${topBranchName} tích cực nhất.` : 'Chưa có bài đăng nào hôm nay.'} {missedBranches && missedBranches !== 'Không có' && `Chi nhánh ${missedBranches} chưa nộp bài.`}
+                </li>
+                <li>
+                  <strong className="text-slate-100">Đơn nghỉ phép (AI HR):</strong> {pendingLeaves.length > 0 ? `Đang có ${pendingLeaves.length} đơn xin nghỉ phép chờ phê duyệt.` : 'Không có đơn nghỉ phép tồn đọng.'}
+                </li>
+              </ul>
+            </div>
           </div>
 
-          <div className="bg-slate-950 p-4 rounded-xl border border-slate-800/80 font-sans text-xs space-y-3 leading-relaxed text-slate-300">
-            <p className="font-bold text-emerald-400">📊 TÌNH HÌNH KINH DOANH TOÀN CHUỖI PHỤ KIỆN 88 (27/09):</p>
-            <ul className="space-y-2 list-disc list-inside">
-              <li>
-                <strong className="text-slate-100">Tổng doanh thu:</strong> 42.900.000đ (Biên lợi nhuận ròng tạm tính: <span className="text-emerald-400 font-mono font-bold">34.2%</span>).
-              </li>
-              <li>
-                <strong className="text-slate-100">Chi nhánh xuất sắc nhất:</strong> PK88 Mỹ Tho (14.5 trđ). PK88 Cần Thơ cần điều chỉnh khuyến mãi upsell.
-              </li>
-              <li>
-                <strong className="text-slate-100">Đề xuất luân chuyển kho:</strong> Chuyển 20 ốp lưng iPhone 15 Promax từ Mỹ Tho ➔ Cần Thơ (Cần Thơ đang cháy hàng).
-              </li>
-              <li>
-                <strong className="text-slate-100">📢 Marketing:</strong> Toàn chuỗi đăng <span className="font-bold text-blue-400">{todayPosts.length} bài</span> hôm nay. Chi nhánh <span className="font-bold text-amber-400">{topBranchName}</span> tích cực nhất. Cảnh báo chi nhánh <span className="font-bold text-rose-400">{missedBranches}</span> chưa đăng bài.
-              </li>
-            </ul>
-
-            <div className="pt-2 border-t border-slate-800 flex items-center justify-end">
-              <button className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-lg transition-all shadow-md">
-                ✓ Duyệt 1-Chạm Điều Chuyển Kho
-              </button>
-            </div>
+          <div className="pt-3 border-t border-slate-800 flex items-center justify-between mt-4">
+            <span className="text-[11px] text-slate-500 font-mono">Đồng bộ tự động mỗi 5 phút</span>
+            <button 
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-lg transition-all border border-slate-700 cursor-pointer flex items-center gap-1.5"
+            >
+              <Activity className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Làm Mới Số Liệu</span>
+            </button>
           </div>
         </div>
       </div>

@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson } from '../types';
+import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson, LeaveRequest } from '../types';
 import { supabase } from '../lib/supabase';
-import { MOCK_ATTENDANCE } from '../lib/mockData';
 import { StaffDetailModal } from './StaffDetailModal';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3 } from 'lucide-react';
+import { AttendanceTimesheetView } from './AttendanceTimesheetView';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
   staffList: Staff[];
   attendanceLogs?: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
   onAddBranch?: (branch: Branch) => void;
   onToggleBranchStatus?: (branchId: string) => void;
   onRefreshStaff?: () => void;
+  onRefreshAttendance?: () => void;
   onUpdateStaff?: (updatedStaff: Staff) => void;
   currentUser?: Staff;
 }
@@ -20,9 +22,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   branches, 
   staffList, 
   attendanceLogs = [], 
+  leaveRequests = [],
   onAddBranch, 
   onToggleBranchStatus,
   onRefreshStaff,
+  onRefreshAttendance,
   onUpdateStaff,
   currentUser
 }) => {
@@ -43,6 +47,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<Staff | null>(null);
   const [staffViewMode, setStaffViewMode] = useState<'cards' | 'table'>('cards');
+  const [payrollSubView, setPayrollSubView] = useState<'timesheet' | 'salary'>('timesheet');
   
   // Store-in-a-box states
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
@@ -348,8 +353,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
       {/* Subtab Content */}
       {activeSubTab === 'payroll' && (() => {
-        // Merge Supabase logs with MOCK_ATTENDANCE so mock staff have work hours
-        const combinedLogs = [...attendanceLogs, ...MOCK_ATTENDANCE];
+        // Only use 100% real attendance logs from Supabase
+        const combinedLogs = attendanceLogs;
 
         const ROLE_PRIORITY: Record<string, number> = {
           founder: 1,
@@ -378,79 +383,124 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             return pA - pB;
           });
 
-        // Helper for role salary calculation
+        // Helper to check if staff belongs to Thu Duc branch
+        const isThuDucBranch = (branchId: string) => {
+          const b = branches.find(item => item.id === branchId);
+          return b?.code === 'PK88_THUDUC' || 
+                 b?.name.toLowerCase().includes('thủ đức') || 
+                 branchId === 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e';
+        };
+
+        // Helper to get approved leave statistics for a staff member
+        const getStaffLeaves = (staff: Staff) => {
+          const staffReqs = leaveRequests.filter(r => 
+            (r.staffId === staff.id || (staff.phone && r.phone === staff.phone)) && 
+            r.status === 'APPROVED'
+          );
+
+          let paidDays = 0;
+          let unpaidDays = 0;
+
+          staffReqs.forEach(req => {
+            const start = new Date(req.startDate);
+            const end = new Date(req.endDate);
+            const diffTime = Math.abs(end.getTime() - start.getTime());
+            const days = Math.max(1, Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1);
+
+            if (req.type === 'PAID_LEAVE') {
+              paidDays += days;
+            } else {
+              unpaidDays += days;
+            }
+          });
+
+          return { staffReqs, paidDays, unpaidDays };
+        };
+
+        // Helper for role salary calculation integrating real leave requests
         const getRoleSalaryConfig = (staff: Staff, hours: number) => {
+          const { paidDays, unpaidDays } = getStaffLeaves(staff);
+
           switch (staff.role) {
-            case 'sales': {
-              const rate = 22700;
-              return {
-                salary: hours * rate,
-                rateLabel: '22.700 đ/giờ',
-                salaryType: 'Theo giờ'
-              };
-            }
+            case 'sales':
             case 'technician': {
-              const rate = 30000;
+              const isThuDuc = isThuDucBranch(staff.branchId);
+              const rate = isThuDuc ? 25500 : 22700;
+              const rateLabel = isThuDuc ? '25.500 đ/giờ (Thủ Đức)' : '22.700 đ/giờ';
+              
+              // Approved Paid Leave credits standard shift hours (8.5h/day)
+              const paidLeaveHours = paidDays * 8.5;
+              const totalBillableHours = hours + paidLeaveHours;
+              const totalSalary = totalBillableHours * rate;
+
               return {
-                salary: hours * rate,
-                rateLabel: '30.000 đ/giờ',
-                salaryType: 'Theo giờ'
+                salary: totalSalary,
+                rateLabel,
+                salaryType: 'Theo giờ',
+                paidDays,
+                unpaidDays,
+                paidLeaveHours,
+                leaveNote: paidDays > 0 
+                  ? `+${paidDays} ngày phép (+${paidLeaveHours}h)`
+                  : (unpaidDays > 0 ? `${unpaidDays} ngày không lương (0 đ)` : null)
               };
             }
-            case 'manager': {
-              return {
-                salary: 8500000,
-                rateLabel: '8.500.000 đ/tháng',
-                salaryType: 'Lương cố định'
-              };
-            }
-            case 'admin': {
-              return {
-                salary: 19000000,
-                rateLabel: '19.000.000 đ/tháng (Chính thức)',
-                salaryType: 'Lương cố định'
-              };
-            }
-            case 'hr': {
-              return {
-                salary: 12000000,
-                rateLabel: '12.000.000 đ/tháng',
-                salaryType: 'Lương cố định'
-              };
-            }
-            case 'marketing': {
-              return {
-                salary: 14000000,
-                rateLabel: '14.000.000 đ/tháng',
-                salaryType: 'Lương cố định'
-              };
-            }
-            case 'accountant': {
-              return {
-                salary: 13500000,
-                rateLabel: '13.500.000 đ/tháng',
-                salaryType: 'Lương cố định'
-              };
-            }
+            case 'manager':
+            case 'admin':
+            case 'hr':
+            case 'marketing':
+            case 'accountant':
             case 'sales_head': {
+              let baseMonthly = 0;
+              let label = '';
+              if (staff.role === 'manager') { baseMonthly = 8500000; label = '8.500.000 đ/tháng'; }
+              else if (staff.role === 'admin') { baseMonthly = 19000000; label = '19.000.000 đ/tháng'; }
+              else if (staff.role === 'hr') { baseMonthly = 12000000; label = '12.000.000 đ/tháng'; }
+              else if (staff.role === 'marketing') { baseMonthly = 14000000; label = '14.000.000 đ/tháng'; }
+              else if (staff.role === 'accountant') { baseMonthly = 13500000; label = '13.500.000 đ/tháng'; }
+              else if (staff.role === 'sales_head') { baseMonthly = 15000000; label = '15.000.000 đ/tháng (+ KPI)'; }
+
+              // Standard: 26 working days/month. Approved unpaid leave deducts baseMonthly/26 * unpaidDays
+              const dailyRate = baseMonthly / 26;
+              const unpaidDeduction = Math.round(unpaidDays * dailyRate);
+              const netSalary = Math.max(0, baseMonthly - unpaidDeduction);
+
               return {
-                salary: 15000000,
-                rateLabel: '15.000.000 đ/tháng (+ KPI Chuỗi)',
-                salaryType: 'Lương cứng + KPI'
+                salary: netSalary,
+                rateLabel: label,
+                salaryType: 'Lương cố định',
+                paidDays,
+                unpaidDays,
+                paidLeaveHours: 0,
+                leaveNote: unpaidDays > 0 
+                  ? `-${unpaidDays} ngày không lương (-${unpaidDeduction.toLocaleString('vi-VN')} đ)`
+                  : (paidDays > 0 ? `+${paidDays} ngày phép (Hưởng đủ lương)` : null)
               };
             }
             case 'founder': {
               return {
                 salary: 0,
                 rateLabel: 'Chủ sở hữu (Không nhận lương)',
-                salaryType: 'Chủ doanh nghiệp'
+                salaryType: 'Chủ doanh nghiệp',
+                paidDays,
+                unpaidDays,
+                paidLeaveHours: 0,
+                leaveNote: 'Miễn chấm công'
               };
             }
             default: {
+              const isThuDuc = isThuDucBranch(staff.branchId);
+              const rate = isThuDuc ? 25500 : 22700;
+              const paidLeaveHours = paidDays * 8.5;
+              const totalSalary = (hours + paidLeaveHours) * rate;
               return {
-                salary: hours * 22700,
-                rateLabel: '22.700 đ/giờ',
-                salaryType: 'Theo giờ'
+                salary: totalSalary,
+                rateLabel: isThuDuc ? '25.500 đ/giờ (Thủ Đức)' : '22.700 đ/giờ',
+                salaryType: 'Theo giờ',
+                paidDays,
+                unpaidDays,
+                paidLeaveHours,
+                leaveNote: paidDays > 0 ? `+${paidDays} ngày phép` : null
               };
             }
           }
@@ -470,8 +520,46 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
         return (
           <div className="space-y-6">
-            {/* KPI Summary Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* View Mode Toggle: Timesheet Grid vs Salary Summary */}
+            <div className="flex items-center justify-between bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  onClick={() => setPayrollSubView('timesheet')}
+                  className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    payrollSubView === 'timesheet'
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-600 text-slate-950 shadow-md font-black ring-1 ring-emerald-400/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                >
+                  <FileSpreadsheet className="w-4 h-4" />
+                  <span>1.1 Nhật Ký Chấm Công Chi Tiết & Xuất Excel (.xlsx)</span>
+                </button>
+
+                <button
+                  onClick={() => setPayrollSubView('salary')}
+                  className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    payrollSubView === 'salary'
+                      ? 'bg-gradient-to-r from-rose-500 to-pink-600 text-white shadow-md font-black ring-1 ring-rose-400/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                >
+                  <DollarSign className="w-4 h-4" />
+                  <span>1.2 Bảng Tổng Hợp Lương Đa Vai Trò (Toàn Chuỗi)</span>
+                </button>
+              </div>
+            </div>
+
+            {payrollSubView === 'timesheet' ? (
+              <AttendanceTimesheetView
+                branches={branches}
+                staffList={localStaff}
+                attendanceLogs={combinedLogs}
+                onRefreshLogs={onRefreshAttendance || onRefreshStaff}
+              />
+            ) : (
+              <>
+                {/* KPI Summary Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div className="glass-card p-4 rounded-2xl border border-rose-500/20 bg-gradient-to-br from-slate-900 to-rose-950/20">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
                   <span>Tổng Nhân Sự</span>
@@ -511,7 +599,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     <DollarSign className="w-5 h-5 text-rose-400" />
                     Bảng Tổng Hợp Lương Phụ Kiện 88 (Toàn Chuỗi {branches.length} Chi Nhánh)
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Cấu trúc lương đa vai trò (Bán hàng 22.7k/h, Kỹ thuật 30k/h, Quản lý & Admin lương tháng cố định).</p>
+                  <p className="text-xs text-slate-400 mt-1">Cấu trúc lương chuẩn (Bán hàng & Kỹ thuật 22.7k/h, riêng Thủ Đức 25.5k/h; Tăng ca tính theo giờ chuẩn; Quản lý & Văn phòng lương tháng cố định).</p>
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kỳ lương hiện tại</div>
@@ -566,6 +654,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <th className="p-3 font-bold text-center">Vai Trò</th>
                       <th className="p-3 font-bold text-center">Mức Lương / Chế Độ</th>
                       <th className="p-3 font-bold text-center">Tổng Giờ Làm (GPS)</th>
+                      <th className="p-3 font-bold text-center">Nghỉ Phép Đã Duyệt</th>
                       <th className="p-3 font-bold text-right">Lương Thực Lãnh (Tạm Tính)</th>
                     </tr>
                   </thead>
@@ -613,6 +702,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {totalHours.toFixed(1)}h
                             </span>
                           </td>
+                          <td className="p-3 text-center">
+                            {config.leaveNote ? (
+                              <span className={`text-[10px] font-medium px-2 py-1 rounded-lg border inline-flex items-center gap-1 ${
+                                config.paidDays > 0 
+                                  ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30' 
+                                  : 'bg-amber-500/10 text-amber-400 border-amber-500/30'
+                              }`}>
+                                <Calendar className="w-3 h-3 flex-shrink-0" />
+                                <span>{config.leaveNote}</span>
+                              </span>
+                            ) : (
+                              <span className="text-slate-600 text-[11px] font-mono">0 ngày</span>
+                            )}
+                          </td>
                           <td className="p-3 text-right">
                             <span className="font-mono text-rose-400 font-bold text-sm">
                               {config.salary.toLocaleString('vi-VN')} đ
@@ -623,7 +726,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     })}
                     {filteredStaff.length === 0 && (
                       <tr>
-                        <td colSpan={6} className="p-8 text-center text-slate-500 font-medium">
+                        <td colSpan={7} className="p-8 text-center text-slate-500 font-medium">
                           Không tìm thấy nhân sự phù hợp với bộ lọc.
                         </td>
                       </tr>
@@ -632,9 +735,11 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 </table>
               </div>
             </div>
-          </div>
-        );
-      })()}
+          </>
+        )}
+      </div>
+    );
+  })()}
 
       {activeSubTab === 'staff' && (
         <div className="space-y-6">

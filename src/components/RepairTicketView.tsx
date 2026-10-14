@@ -1,18 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { RepairTicket, UserRole, Product } from '../types';
-import { QrCode, Search, Wrench, Plus, CheckCircle2, Clock, Smartphone, UserCheck, ArrowRight, Cpu } from 'lucide-react';
+import { RepairTicket, UserRole, Product, Branch, Staff } from '../types';
+import { QrCode, Search, Wrench, Plus, CheckCircle2, Clock, Smartphone, UserCheck, ArrowRight, Cpu, Sparkles, MapPin, Building, ShieldCheck } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { AITechnicianModal } from './AITechnicianModal';
 
 interface RepairTicketViewProps {
   tickets: RepairTicket[];
   role: UserRole;
+  currentUser?: Staff | null;
+  currentBranch?: Branch;
+  branches?: Branch[];
   onCreateTicket: (ticket: RepairTicket) => void;
   onUpdateTicket?: (ticketId: string, updates: Partial<RepairTicket>) => Promise<boolean>;
   currentUserName?: string;
 }
 
-export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, role, onCreateTicket, onUpdateTicket, currentUserName }) => {
+export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ 
+  tickets, 
+  role, 
+  currentUser,
+  currentBranch,
+  branches = [],
+  onCreateTicket, 
+  onUpdateTicket, 
+  currentUserName 
+}) => {
   const [searchCode, setSearchCode] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAIModal, setShowAIModal] = useState(false);
@@ -22,12 +34,158 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
   const [searchedTicket, setSearchedTicket] = useState<RepairTicket | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
 
+  // Auto-detect branch based on logged in staff
+  const staffBranch = branches.find(b => b.id === currentUser?.branchId) || currentBranch || branches[0];
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(staffBranch?.id || 'b1');
+
+  useEffect(() => {
+    if (currentUser?.branchId) {
+      setSelectedBranchId(currentUser.branchId);
+    } else if (currentBranch?.id) {
+      setSelectedBranchId(currentBranch.id);
+    }
+  }, [currentUser?.branchId, currentBranch?.id]);
+
   // Form state
   const [customerName, setCustomerName] = useState('');
   const [customerPhone, setCustomerPhone] = useState('');
   const [deviceModel, setDeviceModel] = useState('iPhone 13 Pro Max');
-  const [serviceType, setServiceType] = useState<RepairTicket['serviceType']>('EP_KINH');
+  const [serviceType, setServiceType] = useState<string>('Ép Kính / Ép Cảm Ứng');
   const [price, setPrice] = useState('850000');
+
+  // Popular Hardware Repair Services presets for quick 1-touch selection
+  const POPULAR_SERVICES = [
+    'Ép Kính / Ép Cảm Ứng',
+    'Thay Màn Hình Zin / Linh Kiện',
+    'Thay Pin Dung Lượng Cao (Bison / Chuẩn)',
+    'Sửa Face ID / Camera Trước & Sau',
+    'Sửa Chân Sạc / Cụm Cáp Sạc Trong Máy',
+    'Sửa Loa / Mic / Rung / Chuông',
+    'Sửa Mainboard / Mất Nguồn / Mất Sóng',
+    'Thay Vỏ / Độ Vỏ / Thay Kính Lưng',
+    'Chạy Phần Mềm / Mở Khóa / Cứu Dữ Liệu',
+    'Vệ Sinh / Sấy Nước / Bảo Dưỡng Main'
+  ];
+
+  const autoDetectServiceType = (text: string, category?: string): string => {
+    const fullText = `${text || ''} ${category || ''}`.toLowerCase();
+
+    // 1. Phụ kiện: Pin dự phòng, Sạc dự phòng (BẮT BUỘC kiểm tra đầu tiên để không bị 'pin' hay 'sạc' nuốt chửng)
+    if (
+      fullText.includes('dự phòng') || 
+      fullText.includes('powerbank') || 
+      fullText.includes('power bank') ||
+      fullText.includes('sạc dự phòng') ||
+      fullText.includes('pin dự phòng')
+    ) {
+      return 'Bán Hàng / Phụ Kiện / Pin Dự Phòng';
+    }
+
+    // 2. Phụ kiện sạc & âm thanh & đồ chơi công nghệ (Cáp sạc, củ sạc, tai nghe, loa...)
+    if (
+      fullText.includes('cáp sạc') || 
+      fullText.includes('dây sạc') || 
+      fullText.includes('củ sạc') || 
+      fullText.includes('cốc sạc') || 
+      fullText.includes('tẩu sạc') || 
+      fullText.includes('dock sạc') || 
+      fullText.includes('magsafe') || 
+      fullText.includes('sạc không dây') ||
+      fullText.includes('tai nghe') || 
+      fullText.includes('airpods') || 
+      fullText.includes('earphone') || 
+      fullText.includes('headphone') ||
+      fullText.includes('loa bluetooth') || 
+      fullText.includes('gậy chụp') || 
+      fullText.includes('giá đỡ') || 
+      fullText.includes('túi chống nước') ||
+      fullText.includes('dây đeo') ||
+      fullText.includes('chuột') || 
+      fullText.includes('bàn phím')
+    ) {
+      return 'Bán Hàng / Phụ Kiện / Pin Dự Phòng';
+    }
+
+    // 3. Phụ kiện bảo vệ màn & máy (Dán PPF, Cường lực, Ốp lưng)
+    if (
+      fullText.includes('ppf') || 
+      fullText.includes('cường lực') || 
+      fullText.includes('kính bảo vệ') || 
+      fullText.includes('dán full') || 
+      fullText.includes('ốp lưng') || 
+      fullText.includes('ốp') || 
+      fullText.includes('bao da') || 
+      fullText.includes('dán')
+    ) {
+      return 'Bán Hàng / Dán PPF / Cường Lực';
+    }
+
+    // 4. Dịch vụ Sửa chữa / Thay thế Pin điện thoại (CHỈ kích hoạt khi KHÔNG PHẢI pin dự phòng)
+    if (
+      fullText.includes('thay pin') || 
+      fullText.includes('bison') || 
+      fullText.includes('deji') || 
+      fullText.includes('pisen') || 
+      fullText.includes('eu teck') || 
+      fullText.includes('cell pin') || 
+      fullText.includes('sàng cổ pin') || 
+      fullText.includes('pin dung lượng cao') ||
+      (fullText.includes('pin') && !fullText.includes('dự phòng'))
+    ) {
+      return 'Thay Pin Dung Lượng Cao (Bison / Chuẩn)';
+    }
+
+    // 5. Ép Kính / Ép Cảm Ứng
+    if (fullText.includes('ép kính') || fullText.includes('cảm ứng') || fullText.includes('mặt kính') || fullText.includes('thay kính')) {
+      return 'Ép Kính / Ép Cảm Ứng';
+    }
+
+    // 6. Thay màn hình
+    if (fullText.includes('màn') || fullText.includes('display') || fullText.includes('lcd') || fullText.includes('oled')) {
+      return 'Thay Màn Hình Zin / Linh Kiện';
+    }
+
+    // 7. Sửa Face ID / Camera
+    if (fullText.includes('face id') || fullText.includes('faceid') || fullText.includes('camera') || fullText.includes('cam')) {
+      return 'Sửa Face ID / Camera Trước & Sau';
+    }
+
+    // 8. Sửa phần cứng chân sạc, loa, mic, rung (chỉ khi là sửa/thay cụm chân sạc máy)
+    if (
+      fullText.includes('chân sạc') || 
+      fullText.includes('cổng sạc') || 
+      fullText.includes('cụm sạc') || 
+      fullText.includes('sửa sạc') ||
+      fullText.includes('loa') || 
+      fullText.includes('mic') || 
+      fullText.includes('rung') || 
+      fullText.includes('chuông')
+    ) {
+      return 'Sửa Chân Sạc / Loa / Mic / Rung';
+    }
+
+    // 9. Mainboard / Mất nguồn / Mất sóng
+    if (fullText.includes('main') || fullText.includes('nguồn') || fullText.includes('sóng') || fullText.includes('ic') || fullText.includes('chập')) {
+      return 'Sửa Mainboard / Mất Nguồn / Mất Sóng';
+    }
+
+    // 10. Vỏ / Độ vỏ / Kính lưng
+    if (fullText.includes('vỏ') || fullText.includes('lưng') || fullText.includes('khung') || fullText.includes('sườn')) {
+      return 'Thay Vỏ / Độ Vỏ / Thay Kính Lưng';
+    }
+
+    // 11. Phần mềm
+    if (fullText.includes('phần mềm') || fullText.includes('treo táo') || fullText.includes('icloud') || fullText.includes('restore') || fullText.includes('passcode')) {
+      return 'Chạy Phần Mềm / Mở Khóa / Cứu Dữ Liệu';
+    }
+
+    // 12. Vệ sinh / Sấy nước
+    if (fullText.includes('vệ sinh') || fullText.includes('nước') || fullText.includes('sấy')) {
+      return 'Vệ Sinh / Bảo Dưỡng / Sấy Nước';
+    }
+
+    return '';
+  };
 
   // Product Search State
   const [products, setProducts] = useState<Product[]>([]);
@@ -53,7 +211,12 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
     (p.brand && p.brand.toLowerCase().includes(productSearchTerm.toLowerCase()))
   ).slice(0, 50); // Limit to 50 for performance
 
-  const filteredTickets = tickets.filter(
+  // Chỉ hiển thị các phiếu sửa chữa phần cứng (loại trừ các hóa đơn bán lẻ POS)
+  const repairTickets = tickets.filter(
+    (t) => !t.code.startsWith('PK88-POS-') && t.serviceType !== 'Bán Hàng & Dịch Vụ Nhanh (POS)'
+  );
+
+  const filteredTickets = repairTickets.filter(
     (t) =>
       t.code.toLowerCase().includes(searchCode.toLowerCase()) ||
       t.customerPhone.includes(searchCode) ||
@@ -62,10 +225,11 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
 
   const handleCreate = (e: React.FormEvent) => {
     e.preventDefault();
+    const assignedBranch = branches.find(b => b.id === selectedBranchId) || staffBranch;
     const newT: RepairTicket = {
       id: `t-${Date.now()}`,
       code: `PK88-SC-${Math.floor(1000 + Math.random() * 9000)}`,
-      branchId: 'b1', // Tạm gắn cứng b1 cho demo
+      branchId: assignedBranch?.id || staffBranch?.id || 'b1',
       customerName,
       customerPhone,
       deviceModel,
@@ -73,12 +237,15 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
       status: 'RECEIVED',
       price: Number(price),
       createdAt: new Date().toISOString(),
-      technicianName: '' // Bỏ trống KTV để họ tự nhận
+      technicianName: '', // Bỏ trống KTV để họ tự nhận
+      createdByStaffId: currentUser?.id,
+      createdByStaffName: currentUser?.fullName || currentUserName
     };
     onCreateTicket(newT);
     setShowCreateModal(false);
     setCustomerName('');
     setCustomerPhone('');
+    setProductSearchTerm('');
   };
 
   const handleCustomerSearch = (e: React.FormEvent) => {
@@ -251,80 +418,147 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
       </div>
 
       {/* Ticket List */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {filteredTickets.map((t) => (
-          <div key={t.id} className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-slate-700 transition-all">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="font-mono text-xs font-extrabold text-rose-400">{t.code}</span>
-                <span className="text-[10px] text-slate-500 font-mono">
-                  {new Date(t.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                </span>
+      {filteredTickets.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {filteredTickets.map((t) => (
+            <div key={t.id} className="glass-card rounded-2xl p-4 border border-slate-800 hover:border-slate-700 transition-all">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-mono text-xs font-extrabold text-rose-400">{t.code}</span>
+                  <span className="text-[10px] text-slate-500 font-mono">
+                    {new Date(t.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                  {(() => {
+                    const b = branches.find(item => item.id === t.branchId);
+                    return (
+                      <span className="text-[10px] font-bold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 px-2 py-0.5 rounded-full flex items-center gap-1">
+                        📍 {b ? b.name.replace('Phụ Kiện 88 - ', '') : 'Toàn Chuỗi'}
+                      </span>
+                    );
+                  })()}
+                </div>
+                {getStatusBadge(t.status)}
               </div>
-              {getStatusBadge(t.status)}
-            </div>
 
-            <div className="py-3 space-y-1.5 text-xs">
-              <div className="flex justify-between">
-                <span className="text-slate-400">Khách hàng:</span>
-                <span className="font-bold text-slate-200">{t.customerName} - {t.customerPhone}</span>
+              <div className="py-3 space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Khách hàng:</span>
+                  <span className="font-bold text-slate-200">{t.customerName} - {t.customerPhone}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Thiết bị:</span>
+                  <span className="font-semibold text-slate-300">{t.deviceModel} ({t.serviceType})</span>
+                </div>
+                <div className="flex justify-between items-center text-[11px] text-slate-400">
+                  <span>Tiếp nhận (KPI):</span>
+                  <span className="font-semibold text-slate-300">{t.createdByStaffName || 'Nhân viên quầy'}</span>
+                </div>
+                <div className="flex justify-between items-center mt-1">
+                  <span className="text-slate-400">Kỹ thuật viên:</span>
+                  {t.technicianName ? (
+                    <span className="font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">{t.technicianName}</span>
+                  ) : (
+                    <button 
+                      onClick={() => handleClaimTicket(t.id)}
+                      className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1 rounded shadow-[0_0_10px_rgba(245,158,11,0.3)] transition-all animate-pulse"
+                    >
+                      Bấm Nhận Việc
+                    </button>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-slate-400">Thiết bị:</span>
-                <span className="font-semibold text-slate-300">{t.deviceModel} ({t.serviceType})</span>
-              </div>
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-slate-400">Kỹ thuật viên:</span>
-                {t.technicianName ? (
-                  <span className="font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">{t.technicianName}</span>
-                ) : (
-                  <button 
-                    onClick={() => handleClaimTicket(t.id)}
-                    className="bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1 rounded shadow-[0_0_10px_rgba(245,158,11,0.3)] transition-all animate-pulse"
-                  >
-                    Bấm Nhận Việc
-                  </button>
-                )}
-              </div>
-            </div>
 
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
-              <span className="text-sm font-extrabold font-mono text-slate-100">{t.price.toLocaleString('vi-VN')} đ</span>
-              
-              <div className="flex gap-2">
-                {/* Staff Actions Dropdown (Simple buttons for now) */}
-                {t.technicianName && t.status !== 'DELIVERED' && (
-                  <select 
-                    value={t.status}
-                    onChange={(e) => handleUpdateStatus(t.id, e.target.value as any)}
-                    className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded px-2 outline-none focus:border-rose-500"
-                  >
-                    <option value="RECEIVED">Đã tiếp nhận</option>
-                    <option value="IN_PROGRESS">Đang sửa chữa</option>
-                    <option value="READY">Sẵn sàng giao</option>
-                    <option value="DELIVERED">Đã bàn giao</option>
-                  </select>
-                )}
+              <div className="pt-3 border-t border-slate-800 flex items-center justify-between">
+                <span className="text-sm font-extrabold font-mono text-slate-100">{t.price.toLocaleString('vi-VN')} đ</span>
                 
-                <button className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-1 rounded">
-                  <QrCode className="w-3.5 h-3.5" />
-                  <span>In QR</span>
-                </button>
+                <div className="flex gap-2">
+                  {/* Staff Actions Dropdown */}
+                  {t.technicianName && t.status !== 'DELIVERED' && (
+                    <select 
+                      value={t.status}
+                      onChange={(e) => handleUpdateStatus(t.id, e.target.value as any)}
+                      className="text-xs bg-slate-800 border border-slate-700 text-slate-300 rounded px-2 outline-none focus:border-rose-500"
+                    >
+                      <option value="RECEIVED">Đã tiếp nhận</option>
+                      <option value="IN_PROGRESS">Đang sửa chữa</option>
+                      <option value="READY">Sẵn sàng giao</option>
+                      <option value="DELIVERED">Đã bàn giao</option>
+                    </select>
+                  )}
+                  
+                  <button className="text-xs font-semibold text-rose-400 hover:text-rose-300 flex items-center gap-1 bg-slate-900 border border-slate-800 px-2 py-1 rounded">
+                    <QrCode className="w-3.5 h-3.5" />
+                    <span>In QR</span>
+                  </button>
+                </div>
               </div>
             </div>
+          ))}
+        </div>
+      ) : (
+        <div className="p-12 text-center rounded-2xl bg-slate-900/40 border border-slate-800">
+          <div className="w-12 h-12 rounded-2xl bg-slate-800 text-slate-500 mx-auto flex items-center justify-center mb-3">
+            <Wrench className="w-6 h-6" />
           </div>
-        ))}
-      </div>
+          <p className="text-sm font-bold text-slate-300">Chưa có phiếu sửa chữa nào</p>
+          <p className="text-xs text-slate-500 max-w-sm mx-auto mt-1">
+            Toàn bộ dữ liệu phiếu mẫu đã được làm sạch. Bấm "Tạo Phiếu Sửa Chữa Mới" để tiếp nhận máy thực tế từ khách hàng.
+          </p>
+        </div>
+      )}
 
       {/* Create Ticket Modal */}
       {showCreateModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="glass-card bg-slate-900 rounded-3xl max-w-md w-full p-6 border border-slate-800 shadow-2xl">
-            <h3 className="text-base font-bold text-slate-100 mb-4 pb-2 border-b border-slate-800">
-              Tạo Phiếu Dịch Vụ Sửa Chữa Mới
+            <h3 className="text-base font-bold text-slate-100 mb-4 pb-2 border-b border-slate-800 flex items-center gap-2">
+              <Wrench className="w-5 h-5 text-rose-500" />
+              <span>Tiếp Nhận Sửa Chữa Phần Cứng Mới</span>
             </h3>
 
-            <form onSubmit={handleCreate} className="space-y-3 text-xs">
+            <form onSubmit={handleCreate} className="space-y-3.5 text-xs">
+              {/* AI Branch & Staff Auto-Detection Banner */}
+              <div className="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-teal-500/10 to-cyan-500/10 border border-emerald-500/30 flex items-start gap-3">
+                <div className="w-8 h-8 rounded-xl bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  <Sparkles className="w-4 h-4 text-emerald-400 animate-pulse" />
+                </div>
+                <div className="flex-1 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[11px] font-extrabold uppercase text-emerald-400 tracking-wide flex items-center gap-1">
+                      AI Tự Động Định Danh Chi Nhánh & KPI
+                    </span>
+                    <span className="text-[9px] font-mono font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-1.5 py-0.5 rounded">
+                      +KPI Cá Nhân
+                    </span>
+                  </div>
+                  <div className="text-xs text-slate-100 font-bold flex items-center gap-1.5 flex-wrap">
+                    <span className="text-cyan-300">📍 {staffBranch?.name || 'Phụ Kiện 88'}</span>
+                    <span className="text-slate-400 font-normal">
+                      • Tiếp nhận: <strong className="text-slate-200">{currentUser?.fullName || currentUserName || 'Nhân sự'}</strong> ({currentUser?.role?.toUpperCase() || 'NV'})
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-slate-400 italic">
+                    Doanh thu và điểm tích lũy của phiếu sửa chữa này được tự động gán vào Chi nhánh & tính trực tiếp vào KPI cá nhân của bạn.
+                  </p>
+                </div>
+              </div>
+
+              {/* Tùy chọn chuyển chi nhánh cho Admin/Founder nếu cần tạo hộ */}
+              {(currentUser?.role === 'admin' || currentUser?.role === 'founder') && branches.length > 0 && (
+                <div>
+                  <label className="text-slate-400 block mb-1">Chuyển quyền tạo cho Chi nhánh (Admin/Founder tùy chọn):</label>
+                  <select
+                    value={selectedBranchId}
+                    onChange={(e) => setSelectedBranchId(e.target.value)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-medium"
+                  >
+                    {branches.map(b => (
+                      <option key={b.id} value={b.id}>{b.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
               <div>
                 <label className="text-slate-400 block mb-1">Tên khách hàng:</label>
                 <input
@@ -350,67 +584,58 @@ export const RepairTicketView: React.FC<RepairTicketViewProps> = ({ tickets, rol
               </div>
 
               <div>
-                <label className="text-slate-400 block mb-1">Sản phẩm / Dịch vụ (Gõ để tìm kiếm):</label>
+                <label className="text-slate-400 block mb-1 font-bold text-slate-200">
+                  Dòng máy khách gửi sửa chữa:
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="VD: iPhone 13 Pro Max, Samsung S24 Ultra, iPad Pro M2..."
+                  value={deviceModel}
+                  onChange={(e) => setDeviceModel(e.target.value)}
+                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-bold focus:border-rose-500"
+                />
+              </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-slate-300 font-bold flex items-center gap-1.5">
+                    <Wrench className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Lỗi / Dịch vụ kỹ thuật cần sửa chữa:</span>
+                  </label>
+                </div>
+
                 <div className="relative">
                   <input
                     type="text"
                     required
-                    placeholder="VD: Cường lực URR 15 Pro Max..."
-                    value={productSearchTerm}
-                    onChange={(e) => {
-                      setProductSearchTerm(e.target.value);
-                      setDeviceModel(e.target.value);
-                      setShowProductDropdown(true);
-                    }}
-                    onFocus={() => setShowProductDropdown(true)}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
+                    placeholder="VD: Thay Màn Hình Zin, Ép Kính, Thay Pin Bison, Sửa Face ID, Mất Nguồn..."
+                    value={serviceType}
+                    onChange={(e) => setServiceType(e.target.value)}
+                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-semibold focus:outline-none focus:border-rose-500"
                   />
-                  {showProductDropdown && productSearchTerm && filteredProducts.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 max-h-48 overflow-y-auto bg-slate-800 border border-slate-700 rounded-xl shadow-2xl custom-scrollbar">
-                      {filteredProducts.map(product => (
-                        <div 
-                          key={product.id}
-                          className="px-3 py-2 cursor-pointer hover:bg-slate-700 border-b border-slate-700/50 last:border-0"
-                          onClick={() => {
-                            setProductSearchTerm(product.name);
-                            setDeviceModel(product.name);
-                            setPrice(product.price.toString());
-                            setShowProductDropdown(false);
-                            
-                            if (product.category.toLowerCase().includes('cường lực') || product.category.toLowerCase().includes('ppf') || product.category.toLowerCase().includes('ốp')) {
-                              setServiceType('DAN_PPF');
-                            } else if (product.category.toLowerCase().includes('pin')) {
-                              setServiceType('THAY_PIN');
-                            } else {
-                              setServiceType('KHAC');
-                            }
-                          }}
-                        >
-                          <div className="font-bold text-sm text-slate-200">{product.name}</div>
-                          <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
-                            <span className="bg-slate-900 px-1.5 rounded border border-slate-700">{product.category} {product.brand ? `- ${product.brand}` : ''}</span>
-                            <span className="text-rose-400 font-mono font-bold">{product.price.toLocaleString('vi-VN')} đ</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">Loại Phiếu Dịch Vụ:</label>
-                <select
-                  value={serviceType}
-                  onChange={(e) => setServiceType(e.target.value as any)}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200"
-                >
-                  <option value="EP_KINH">Ép Kính / Ép Cảm Ứng</option>
-                  <option value="THAY_PIN">Thay Pin Dung Lượng Cao</option>
-                  <option value="DAN_PPF">Bán Hàng / Dán PPF / Cường Lực</option>
-                  <option value="THAY_MAN">Thay Màn Hình Zin</option>
-                  <option value="KHAC">Sửa Chữa Khác</option>
-                </select>
+                {/* Gợi ý chọn nhanh 1 chạm */}
+                <div className="mt-2 space-y-1">
+                  <span className="text-[10px] text-slate-400 font-medium block">⚡ Gợi ý dịch vụ sửa chữa phần cứng:</span>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto custom-scrollbar p-0.5">
+                    {POPULAR_SERVICES.map((srv) => (
+                      <button
+                        key={srv}
+                        type="button"
+                        onClick={() => setServiceType(srv)}
+                        className={`text-[10px] px-2.5 py-1 rounded-lg border font-medium transition-all cursor-pointer ${
+                          serviceType === srv 
+                            ? 'bg-rose-500/20 text-rose-300 border-rose-500 font-bold shadow-sm' 
+                            : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+                        }`}
+                      >
+                        {srv}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
 
               <div>

@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 13/10/2026 (Tính Năng Tự Upload & Nén Avatar Siêu Nhẹ ~20KB Bảo Vệ Supabase, Client-Side Canvas WebP Optimizer)*
+*Ngày cập nhật mới nhất: 14/10/2026 (Nâng Cấp Toàn Diện Phân Hệ Chấm Công & Quản Lý Ca Kíp - Bản Đồ Leaflet 200m, Live Work Timer, Chi Tiết Timesheet & Xuất Excel)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -8,15 +8,46 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
 - **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR và hệ thống LMS đào tạo nội bộ 60 ngày.
-- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React.
+- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 13/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 14/10/2026) - QUAN TRỌNG
 
-### A. Tính Năng Tự Upload & Nén Ảnh Avatar Client-Side Siêu Nhẹ (~20KB) (NEW - 13/10)
+### A. Nâng Cấp Toàn Diện Phân Hệ Chấm Công & Quản Lý Ca Kíp (Chuẩn AFOODS Hub - update-cham-cong.md) (NEW - 14/10)
+1. **Màn hình Check-in Nhân viên (`AttendanceCard.tsx`):**
+   - **Bản đồ tương tác GPS Geofencing (Leaflet):** Tích hợp bản đồ OpenStreetMap với tâm là cửa hàng, vẽ vòng tròn Geofence an toàn **200m** (màu xanh ngọc Emerald), marker định vị shop và vị trí nhân sự động (`L.divIcon` không phụ thuộc asset tĩnh).
+   - **Chế độ kiểm thử (Demo/Test Mode):** Bổ sung nút chuyển đổi tức thì: *"Tại Shop (~15m)"*, *"Ngoài Shop (~15km)"* và *"Lấy GPS Thật"* phục vụ test tính năng khi không có GPS thật hoặc ở xa chi nhánh.
+   - **Đồng hồ đếm giờ làm việc Realtime (Live Work Timer):** Khi bấm Chấm công vào thành công, kích hoạt đồng hồ số điện tử đếm giây thực tế (`HH:mm:ss`) với hiệu ứng pulse ngọc lục bảo, tự động chuyển nút chính sang *"BẤM CHẤM CÔNG TAN CA (CHỐT GIỜ LÀM)"*.
+   - **Hệ thống Ca & Tự động gắn cờ "Đi trễ":**
+     - Ca Sáng: `07:00 - 15:30` (trễ nếu sau 07:00).
+     - Ca Chiều: `13:30 - 22:00` (trễ nếu sau 13:30).
+     - Ca Văn Phòng: `07:30 - 17:30` (trễ nếu sau 07:30).
+     - Ca Tăng Cường / Part-time (linh hoạt, không tính trễ).
+     - **Ca Làm Việc Tùy Chỉnh (`TUY_CHINH` - NEW):** Nhân viên chủ động tự cấu hình ca làm việc linh hoạt, **bắt buộc nhập giờ bắt đầu và giờ kết thúc** (`input type="time"`). Hệ thống tự động so khớp giờ check-in với giờ bắt đầu tùy chỉnh để tính số phút đi trễ chính xác.
+     - Ghi nhận chính xác số phút trễ vào trường `isLate` và metadata `notes`.
+
+2. **Bảng Nhật Ký & Quản Trị Chấm Công Chi Tiết (`AttendanceTimesheetView.tsx`):**
+   - **Mặc Định Hiển Thị Thời Gian Thực Hôm Nay (`today`):** Tránh tình trạng tải các bản ghi lịch sử cũ gây rối mắt. Bổ sung các nút bấm nhanh: *[⚡ Hôm Nay]*, *[Hôm Qua]*, *[7 Ngày Qua]*, *[Tháng Này]*, *[Tất Cả Lịch Sử]*.
+   - **Phân Biệt Chuẩn Xác "Đang Trực" vs "Quên Check-out":** Nếu check-in trong hôm nay và chưa vượt 16 tiếng sẽ hiển thị `🟢 Đang trực`. Nếu bản ghi từ ngày hôm trước hoặc vượt quá 16 tiếng, hệ thống tự động gắn nhãn đỏ `⚠️ Quên check-out`.
+   - **Bổ Sung Tính Năng "Chốt Giờ Ra" Thủ Công:** Admin/HR có thể click nút *[Chốt ca]* / *[Chốt giờ ra]* để đóng ca, tự động gợi ý giờ tan ca tiêu chuẩn (15:30 / 22:00 / 17:30 hoặc giờ kết thúc ca tùy chỉnh) và lưu thẳng vào Supabase.
+   - **4 Thẻ KPI Dashboard Tổng Quan:** Hiện diện hôm nay (tổng số NV & tỷ lệ %), Lượt đi trễ hôm nay, Cảnh báo ngoài GPS (>200m), và Tổng giờ công đang lọc.
+   - **Bộ Lọc Đa Tiêu Chí:** Lọc theo Chi nhánh, Loại ca làm việc (Sáng, Chiều, Văn Phòng, Tăng Cường, Tùy Chỉnh), Khoảng ngày, Checkbox *"Chỉ lọc bản ghi Có Cảnh Báo"*, Ô tìm kiếm theo Tên, SĐT, Mã NV.
+   - **Bảng Nhật Ký Chi Tiết (Timesheet Grid):** Hiển thị chi tiết 11 cột với badge ca tùy chỉnh, giờ vào/ra, tính OT (+Xh).
+   - **Xuất Báo Cáo Excel (.xlsx):** Tích hợp SheetJS (`xlsx`) xuất toàn bộ bảng công đã lọc thành tệp Excel.
+3. **Chuẩn Hóa Tọa Độ GPS Geofencing 7 Chi Nhánh Từ Google Maps Gốc (NEW - 14/10):**
+   - Đã bóc tách tọa độ chính xác từng mét từ các liên kết Google Maps trong `google-maps.txt` và cập nhật đồng bộ 100% vào cả file code `INITIAL_BRANCHES` (`src/lib/mockData.ts`) lẫn bảng `branches` trên Supabase Cloud DB:
+     1. **Văn Phòng:** `10.252668, 106.370604` (35B5 Đoàn Hoàng Minh, P. Phú Khương)
+     2. **Phú Khương:** `10.2527211, 106.3707262` (35 B2 Đoàn Hoàng Minh)
+     3. **Đồng Khởi:** `10.2584726, 106.3616252` (173 Đại Lộ Đồng Khởi, Vòng Xoay Tân Thành)
+     4. **Mỹ Tho:** `10.355880, 106.369735` (25 Đinh Bộ Lĩnh, chân Cầu Quay)
+     5. **Cần Thơ:** `10.037976, 105.7763555` (94 Trần Hưng Đạo, P. An Nghiệp)
+     6. **Vĩnh Long:** `10.2515112, 105.9728027` (120 Trưng Nữ Vương, P. Long Châu)
+     7. **Thủ Đức:** `10.8506028, 106.762417` (178A Võ Văn Ngân, TP. Thủ Đức)
+
+### B. Tính Năng Tự Upload & Nén Ảnh Avatar Client-Side Siêu Nhẹ (~20KB) (13/10)
 - **Mục tiêu giải quyết:** Mở khóa ảnh đại diện cho nhân sự tự đổi ảnh, đồng thời ngăn chặn nguy cơ đầy bộ nhớ Supabase do người dùng tải ảnh dung lượng lớn (3MB - 10MB) từ camera điện thoại.
 - **Cơ chế nén bằng HTML5 Canvas (`src/lib/imageCompression.ts`):**
   - Tự động crop vuông căn giữa (1:1 Center Square Crop), resize chuẩn avatar tối đa 400x400 px.
@@ -96,6 +127,25 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
   - **Gửi đơn:** Đơn nộp qua form hoặc qua Chị 8 AI HR được `INSERT` ngay lập tức lên Supabase.
   - **Duyệt / Từ chối đơn:** Thao tác *"Duyệt Cho Nghỉ"* hoặc *"Từ Chối Đơn"* tự động `UPSERT` trực tiếp lên Supabase và lưu đệm `localStorage`. F5 hoặc đóng trình duyệt không bị mất dữ liệu.
 
+### G. Tách Biệt Quy Trình POS & Sửa Chữa, Tích Hợp Supabase Realtime, Đổi Trả / Hoàn Tiền & Tối Ưu UX (14/10)
+1. **Tách Biệt 2 Luồng Nghiệp Vụ Hoàn Chỉnh:**
+   - **Tab `🛠️ Tiếp Nhận Sửa Chữa` (`RepairTicketView.tsx`):** Dành riêng cho thiết bị nhận gửi lại sửa chữa phần cứng/phần mềm. Quy trình chuẩn 4 bước (Tiếp nhận ➔ Đang sửa ➔ Đã xong ➔ Hoàn tất), phân công Kỹ Thuật Viên, in biên nhận kèm mã QR tra cứu tiến độ độc lập.
+   - **Tab `🛒 Bán Hàng & Dịch Vụ Nhanh (POS)` (`POSView.tsx`):** Dành cho khách mua phụ kiện, pin dự phòng, dán kính cường lực, PPF, lens camera... Chọn món, tính tiền trong 30 giây, in hóa đơn lấy ngay và tự động cộng KPI cho nhân viên.
+2. **Loại Bỏ Hoàn Toàn Dữ Liệu Ảo (Mock Data) - Đồng Bộ Supabase Cloud 100%:**
+   - Dọn sạch toàn bộ dữ liệu mock/fake trước đây trên Dashboard và danh sách phiếu sửa chữa/bán hàng.
+   - Tự động nhận diện Chi nhánh theo nhân viên đăng nhập (`staffBranch`), tự động gán chi nhánh vào đơn bán và phiếu sửa chữa.
+   - Khi tạo đơn bán hàng hoặc hoàn tất phiếu sửa chữa, dữ liệu tự động `INSERT` lên bảng `repair_tickets` trên Supabase với các metadata chi tiết (`items`, `customer_phone`, `service_type = 'Bán Hàng & Dịch Vụ Nhanh (POS)'`).
+   - Doanh thu thực hôm nay, số đơn hoàn tất, và bảng lịch sử đơn hàng tại chi nhánh được tính toán động từ dữ liệu Supabase theo thời gian thực.
+3. **Nghiệp Vụ Đổi Trả & Hoàn Tiền (Refund & Exchange):**
+   - Bổ sung nút `[Đổi / Trả]` tại từng đơn hàng trong lịch sử bán lẻ chi nhánh.
+   - Modal xử lý chuyên nghiệp hỗ trợ 2 hình thức: **Hoàn tiền** hoặc **Đổi hàng**.
+   - Khi xác nhận, đơn hàng được cập nhật trạng thái `REFUNDED` lên Supabase, đồng thời **tự động giảm trừ doanh thu chi nhánh và điểm KPI cá nhân của nhân viên**.
+4. **Tối Ưu Trải Nghiệm Giao Diện Cả PC & Điện Thoại (Eliminate Native Scrollbars):**
+   - Loại bỏ triệt để 2 thanh cuộn Windows thô kệch ở bộ lọc danh mục và danh sách sản phẩm.
+   - Bộ lọc danh mục sử dụng `no-scrollbar` kèm nút trượt nhanh `<` và `>` trên Desktop; hỗ trợ vuốt chạm 60fps trên Mobile.
+   - Danh sách sản phẩm áp dụng **Phân trang thông minh (Pagination)** (12 sản phẩm/trang, có hiển thị số lượng và nút `Trước`/`Sau`), loại bỏ hoàn toàn hiện tượng kẹt chuột (scroll-trap).
+   - **Tối ưu Mobile POS:** Bổ sung thanh chuyển đổi nhanh giữa *Danh Mục* và *Giỏ Hàng*, cùng thanh nổi thanh toán ghim đáy màn hình (*Sticky Bottom Floating Bar*) khi có sản phẩm trong giỏ.
+
 ---
 
 ## 3. THÀNH TỰU TRƯỚC ĐÓ (07/10/2026)
@@ -144,7 +194,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 - Kiểm tra bán kính 35m từ tọa độ 7 cửa hàng, tự động dò tìm nhân viên theo Số Điện Thoại (`phone`).
 
 ### H. Quản Lý Nhân Sự & Bảng Lương Đa Vai Trò (Multi-Role Payroll Engine)
-- Hệ số lương đa dạng theo vị trí (Sales: 22.7k/h, Technician: 30k/h, Manager: 8.5M, HR: 12M, Accountant: 13.5M, Marketing: 14M, Sales Head: 15M, Admin: 19M, Founder: 0đ).
+- Hệ số lương đa dạng theo vị trí:
+  - **Bán Hàng & Kỹ Thuật Viên:** `22.700 đ/giờ` (Áp dụng cho 6 chi nhánh: Phú Khương, Đồng Khởi, Mỹ Tho, Vĩnh Long, Cần Thơ, Văn Phòng).
+  - **Riêng Chi Nhánh Thủ Đức:** Bán Hàng & Kỹ Thuật Viên được áp dụng mức `25.500 đ/giờ`.
+  - **Tăng ca (OT):** Tính theo đơn giá giờ chuẩn thông thường (1.0x), hệ thống tự động bóc tách số giờ làm thêm và hiển thị badge `⭐ OT: +X.Xh`.
+  - **Khối Quản Lý & Văn Phòng (Cố định):** Quản lý cửa hàng: 8.5M, HR: 12M, Kế toán: 13.5M, Marketing: 14M, TP. Kinh doanh: 15M, Admin: 19M, Founder: 0đ.
 
 ---
 
