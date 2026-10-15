@@ -317,6 +317,7 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
       {/* Staff Detail Profile Modal */}
       <StaffDetailModal
         staff={selectedColleague}
+        currentUser={currentUser}
         branch={currentBranch}
         branches={[currentBranch]}
         attendanceLogs={attendanceLogs}

@@ -1597,6 +1597,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         return (
           <StaffDetailModal
             staff={selectedStaffForDetail}
+            currentUser={currentUser}
             branch={branches.find(b => b.id === selectedStaffForDetail.branchId)}
             branches={branches}
             totalHours={hours}

@@ -20,6 +20,7 @@ interface StaffDetailModalProps {
   onUpdateStaff?: (updatedStaff: Staff) => void;
   canEdit?: boolean;
   initialEditMode?: boolean;
+  currentUser?: Staff | null;
 }
 
 // Curated high quality avatar placeholders for demonstration
@@ -173,7 +174,8 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   onUpdateScores,
   onUpdateStaff,
   canEdit = true,
-  initialEditMode = false
+  initialEditMode = false,
+  currentUser
 }) => {
   if (!staff) return null;
 
@@ -997,82 +999,91 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                   </div>
                 </div>
 
-                {/* Password Change Form or Button */}
-                {showPasswordChange ? (
-                  <form onSubmit={handleChangePassword} className="bg-slate-950 border border-amber-500/40 rounded-2xl p-4 space-y-3 text-xs shadow-xl shadow-amber-500/10 animate-fade-in">
-                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                      <span className="font-extrabold text-amber-300 flex items-center gap-1.5 uppercase text-[11px]">
-                        <KeyRound className="w-3.5 h-3.5" /> Đổi Mật Khẩu Riêng
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowPasswordChange(false);
-                          setPasswordNotice(null);
-                        }}
-                        className="text-[10px] text-slate-400 hover:text-white cursor-pointer"
-                      >
-                        Hủy
-                      </button>
-                    </div>
+                {/* Password Change Form or Button - CHỈ CHÍNH CHỦ HOẶC ADMIN/HR/FOUNDER MỚI ĐƯỢC PHÉP ĐỔI */}
+                {(() => {
+                  const isSelf = currentUser ? (staff.id === currentUser.id || staff.phone === currentUser.phone) : false;
+                  const isPrivileged = currentUser ? ['founder', 'admin', 'hr'].includes(currentUser.role) : false;
+                  // Nếu không có currentUser truyền vào (VD mở từ ngoài), fallback chỉ cho phép nếu canEdit === true và là chính chủ
+                  const allowedToChange = isSelf || isPrivileged;
 
-                    {passwordNotice && (
-                      <div className={`p-2.5 rounded-xl text-[11px] font-medium ${
-                        passwordNotice.type === 'success' 
-                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
-                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
-                      }`}>
-                        {passwordNotice.text}
+                  if (!allowedToChange) return null;
+
+                  return showPasswordChange ? (
+                    <form onSubmit={handleChangePassword} className="bg-slate-950 border border-amber-500/40 rounded-2xl p-4 space-y-3 text-xs shadow-xl shadow-amber-500/10 animate-fade-in">
+                      <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                        <span className="font-extrabold text-amber-300 flex items-center gap-1.5 uppercase text-[11px]">
+                          <KeyRound className="w-3.5 h-3.5" /> {isSelf ? 'Đổi Mật Khẩu Của Bạn' : `Cấp Lại Mật Khẩu (${staff.fullName})`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setShowPasswordChange(false);
+                            setPasswordNotice(null);
+                          }}
+                          className="text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                        >
+                          Hủy
+                        </button>
                       </div>
-                    )}
 
-                    <div>
-                      <label className="text-slate-400 text-[10px] font-semibold block mb-1">Mật khẩu mới:</label>
-                      <input
-                        type="password"
-                        required
-                        value={newPassword}
-                        onChange={(e) => setNewPassword(e.target.value)}
-                        placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
+                      {passwordNotice && (
+                        <div className={`p-2.5 rounded-xl text-[11px] font-medium ${
+                          passwordNotice.type === 'success' 
+                            ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                            : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                        }`}>
+                          {passwordNotice.text}
+                        </div>
+                      )}
 
-                    <div>
-                      <label className="text-slate-400 text-[10px] font-semibold block mb-1">Nhập lại mật khẩu mới:</label>
-                      <input
-                        type="password"
-                        required
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        placeholder="Xác nhận lại mật khẩu mới"
-                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
-                      />
-                    </div>
+                      <div>
+                        <label className="text-slate-400 text-[10px] font-semibold block mb-1">Mật khẩu mới:</label>
+                        <input
+                          type="password"
+                          required
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
+                          placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
 
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        type="submit"
-                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
-                      >
-                        <Lock className="w-3.5 h-3.5" />
-                        <span>Lưu Mật Khẩu Mới</span>
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowPasswordChange(true);
-                      setPasswordNotice(null);
-                    }}
-                    className="w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
-                  >
-                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
-                    <span>ĐỔI MẬT KHẨU TÀI KHOẢN</span>
-                  </button>
-                )}
+                      <div>
+                        <label className="text-slate-400 text-[10px] font-semibold block mb-1">Nhập lại mật khẩu mới:</label>
+                        <input
+                          type="password"
+                          required
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          placeholder="Xác nhận lại mật khẩu mới"
+                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2 pt-1">
+                        <button
+                          type="submit"
+                          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                        >
+                          <Lock className="w-3.5 h-3.5" />
+                          <span>Lưu Mật Khẩu Mới</span>
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPasswordChange(true);
+                        setPasswordNotice(null);
+                      }}
+                      className="w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                      <span>{isSelf ? 'ĐỔI MẬT KHẨU TÀI KHOẢN CỦA BẠN' : 'CẤP LẠI MẬT KHẨU CHO NHÂN SỰ'}</span>
+                    </button>
+                  );
+                })()}
 
                 {/* Edit Button for Founder / Admin */}
                 {canEdit !== false && (
