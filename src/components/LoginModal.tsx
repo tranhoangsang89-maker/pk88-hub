@@ -11,9 +11,26 @@ interface LoginModalProps {
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup, onRecruitmentApply, staffList = MOCK_STAFF }) => {
-  const [phone, setPhone] = useState('0888003205'); // Default Admin Sang phone for fast testing
-  const [password, setPassword] = useState('123456');
+  const [phone, setPhone] = useState(''); // Mặc định để trống để bảo mật
+  const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [showQuickLogins, setShowQuickLogins] = useState<boolean>(false); // Mặc định ẩn danh sách test
+
+  // Helper lấy mật khẩu của nhân viên (ưu tiên mật khẩu cá nhân đã đổi, nếu chưa đổi thì mặc định 123456)
+  const getStaffPassword = (staffPhone: string): string => {
+    try {
+      const stored = localStorage.getItem('pk88_passwords');
+      if (stored) {
+        const passMap = JSON.parse(stored);
+        if (passMap && passMap[staffPhone.trim()]) {
+          return passMap[staffPhone.trim()];
+        }
+      }
+    } catch (e) {
+      console.warn('Lỗi đọc mật khẩu:', e);
+    }
+    return '123456';
+  };
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -33,8 +50,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
       return;
     }
 
-    if (password !== '123456') {
-      setErrorMsg('Mật khẩu không chính xác. (Mặc định test: 123456)');
+    const expectedPassword = getStaffPassword(foundStaff.phone);
+
+    if (password !== expectedPassword) {
+      setErrorMsg('Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       return;
     }
 
@@ -71,8 +90,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
 
         {/* Error Alert */}
         {errorMsg && (
-          <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/30 rounded-xl text-xs text-amber-300 flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <div className="mb-4 p-3 bg-rose-500/15 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0 text-rose-400" />
             <span>{errorMsg}</span>
           </div>
         )}
@@ -88,7 +107,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}
-                placeholder="Nhập SĐT nhân sự (VD: 0888003205)"
+                placeholder="Nhập SĐT nhân sự của bạn"
                 className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-amber-500 transition-all"
               />
             </div>
@@ -103,7 +122,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
                 required
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Nhập mật khẩu (Mặc định: 123456)"
+                placeholder="Nhập mật khẩu tài khoản"
                 className="w-full pl-10 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-slate-100 font-mono text-xs focus:outline-none focus:border-amber-500 transition-all"
               />
             </div>
@@ -118,29 +137,50 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
           </button>
         </form>
 
-        {/* Quick Login Shortcuts for Demo testing */}
-        <div className="mt-6 pt-5 border-t border-slate-800">
-          <span className="text-[11px] font-semibold text-slate-400 block mb-2 text-center uppercase tracking-wider">
-            Chọn tài khoản Đăng Nhập mẫu (Fast Test)
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            {quickLogins.map((ql, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setPhone(ql.phone);
-                  setPassword('123456');
-                }}
-                className="p-2 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all group"
-              >
-                <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
-                  {ql.label}
-                </div>
-                <div className="text-[10px] text-slate-500 font-mono">{ql.phone}</div>
-              </button>
-            ))}
+        {/* Toggle Fast Test Login Shortcuts (Bảo Mật: Mặc định ẩn, bấm nút mới bung ra) */}
+        <div className="mt-5 pt-4 border-t border-slate-800/80">
+          <div className="flex items-center justify-between">
+            <span className="text-[11px] text-slate-500 flex items-center gap-1">
+              <Lock className="w-3 h-3 text-slate-500" />
+              Chế độ nội bộ:
+            </span>
+            <button
+              type="button"
+              onClick={() => setShowQuickLogins(!showQuickLogins)}
+              className="text-[11px] font-bold text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
+            >
+              <span>{showQuickLogins ? '▲ Ẩn danh sách Test' : '▼ Bật đăng nhập Test mẫu'}</span>
+            </button>
           </div>
+
+          {showQuickLogins && (
+            <div className="mt-3 animate-fade-in space-y-2">
+              <div className="text-[10px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
+                ⚠️ Chế độ dùng để kiểm thử nhanh phân quyền. Khi vận hành thật nên ẩn phần này.
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                {quickLogins.map((ql, idx) => {
+                  const pass = getStaffPassword(ql.phone);
+                  return (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setPhone(ql.phone);
+                        setPassword(pass);
+                      }}
+                      className="p-2 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all group cursor-pointer"
+                    >
+                      <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
+                        {ql.label}
+                      </div>
+                      <div className="text-[10px] text-slate-500 font-mono">{ql.phone}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Guest / Customer Lookup & Recruitment Shortcuts */}

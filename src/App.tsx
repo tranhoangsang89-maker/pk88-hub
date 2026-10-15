@@ -15,8 +15,9 @@ import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { POSView } from './components/POSView';
 import { PublicRecruitmentView } from './components/PublicRecruitmentView';
 import { ShiftSchedulingMatrix } from './components/ShiftSchedulingMatrix';
+import { StaffDetailModal } from './components/StaffDetailModal';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl } from './lib/router';
 
@@ -63,6 +64,7 @@ export function App() {
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
+  const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
 
   // Refs để xử lý đóng modal khi người dùng bấm nút Back trên điện thoại
   const showAIHRModalRef = useRef(showAIHRModal);
@@ -1094,15 +1096,23 @@ export function App() {
             {/* Authenticated User Status */}
             {currentUser && !isCustomerMode ? (
               <div className="flex items-center gap-2">
-                <div className="bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
-                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30">
+                <button
+                  type="button"
+                  onClick={() => setShowProfileModal(true)}
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all text-left group"
+                  title="Bấm để xem hồ sơ cá nhân và đổi mật khẩu"
+                >
+                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform">
                     {currentUser.fullName.charAt(0)}
                   </div>
                   <div className="text-left hidden md:block">
-                    <div className="text-xs font-bold text-slate-200">{currentUser.fullName}</div>
+                    <div className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-1">
+                      <span>{currentUser.fullName}</span>
+                      <KeyRound className="w-3 h-3 text-amber-400/70" />
+                    </div>
                     <div className="text-[10px] text-slate-400 uppercase font-mono">{currentUser.role}</div>
                   </div>
-                </div>
+                </button>
 
                 <button
                   onClick={handleLogout}
@@ -1437,6 +1447,23 @@ export function App() {
           </>
         )}
       </main>
+
+      {/* Personal Staff Profile & Password Change Modal */}
+      {showProfileModal && currentUser && (
+        <StaffDetailModal
+          staff={currentUser}
+          branch={branches.find(b => b.id === currentUser.branchId) || selectedBranch}
+          branches={branches}
+          attendanceLogs={attendanceHistory}
+          canEdit={currentUser.role === 'admin' || currentUser.role === 'founder'}
+          onClose={() => setShowProfileModal(false)}
+          onUpdateStaff={(updatedStaff) => {
+            setCurrentUser(updatedStaff);
+            localStorage.setItem('pk88_current_user', JSON.stringify(updatedStaff));
+            setStaffList(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+          }}
+        />
+      )}
 
       {/* Floating AI Chat Assistant */}
       <AIChatDrawer currentUser={currentUser} isCustomerMode={isCustomerMode} />

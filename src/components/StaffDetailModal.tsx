@@ -3,7 +3,7 @@ import { Staff, Branch, UserRole, CompetencyScores, AttendanceRecord } from '../
 import { 
   X, Phone, Mail, Calendar, Award, CheckCircle2, ShieldCheck, 
   MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw,
-  Gift, Cake, PartyPopper, Camera, UploadCloud, RefreshCw
+  Gift, Cake, PartyPopper, Camera, UploadCloud, RefreshCw, KeyRound, Lock
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { compressAvatarImage, CompressedImageResult } from '../lib/imageCompression';
@@ -265,6 +265,44 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [editEmail, setEditEmail] = useState<string>('');
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
+
+  // Password Change State
+  const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
+  const [newPassword, setNewPassword] = useState<string>('');
+  const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [passwordNotice, setPasswordNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Helper đổi mật khẩu cá nhân cho nhân sự
+  const handleChangePassword = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordNotice(null);
+
+    if (!newPassword || newPassword.trim().length < 4) {
+      setPasswordNotice({ type: 'error', text: 'Mật khẩu mới phải có tối thiểu 4 ký tự!' });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordNotice({ type: 'error', text: 'Mật khẩu xác nhận không trùng khớp!' });
+      return;
+    }
+
+    try {
+      const stored = localStorage.getItem('pk88_passwords');
+      const passMap = stored ? JSON.parse(stored) : {};
+      passMap[staff.phone.trim()] = newPassword.trim();
+      localStorage.setItem('pk88_passwords', JSON.stringify(passMap));
+      setPasswordNotice({ type: 'success', text: `Đã đổi mật khẩu thành công cho ${staff.fullName}!` });
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => {
+        setShowPasswordChange(false);
+        setPasswordNotice(null);
+      }, 1500);
+    } catch (err: any) {
+      setPasswordNotice({ type: 'error', text: 'Lỗi lưu mật khẩu: ' + err.message });
+    }
+  };
 
   // Avatar Upload & Compression State
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -958,6 +996,83 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                     )}
                   </div>
                 </div>
+
+                {/* Password Change Form or Button */}
+                {showPasswordChange ? (
+                  <form onSubmit={handleChangePassword} className="bg-slate-950 border border-amber-500/40 rounded-2xl p-4 space-y-3 text-xs shadow-xl shadow-amber-500/10 animate-fade-in">
+                    <div className="flex items-center justify-between pb-2 border-b border-slate-800">
+                      <span className="font-extrabold text-amber-300 flex items-center gap-1.5 uppercase text-[11px]">
+                        <KeyRound className="w-3.5 h-3.5" /> Đổi Mật Khẩu Riêng
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowPasswordChange(false);
+                          setPasswordNotice(null);
+                        }}
+                        className="text-[10px] text-slate-400 hover:text-white cursor-pointer"
+                      >
+                        Hủy
+                      </button>
+                    </div>
+
+                    {passwordNotice && (
+                      <div className={`p-2.5 rounded-xl text-[11px] font-medium ${
+                        passwordNotice.type === 'success' 
+                          ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                          : 'bg-rose-500/20 text-rose-300 border border-rose-500/40'
+                      }`}>
+                        {passwordNotice.text}
+                      </div>
+                    )}
+
+                    <div>
+                      <label className="text-slate-400 text-[10px] font-semibold block mb-1">Mật khẩu mới:</label>
+                      <input
+                        type="password"
+                        required
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-slate-400 text-[10px] font-semibold block mb-1">Nhập lại mật khẩu mới:</label>
+                      <input
+                        type="password"
+                        required
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        placeholder="Xác nhận lại mật khẩu mới"
+                        className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="submit"
+                        className="w-full py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black text-xs flex items-center justify-center gap-1.5 shadow-lg shadow-amber-500/20 transition-all cursor-pointer"
+                      >
+                        <Lock className="w-3.5 h-3.5" />
+                        <span>Lưu Mật Khẩu Mới</span>
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPasswordChange(true);
+                      setPasswordNotice(null);
+                    }}
+                    className="w-full py-2 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 text-slate-300 hover:text-amber-300 font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ĐỔI MẬT KHẨU TÀI KHOẢN</span>
+                  </button>
+                )}
 
                 {/* Edit Button for Founder / Admin */}
                 {canEdit !== false && (
