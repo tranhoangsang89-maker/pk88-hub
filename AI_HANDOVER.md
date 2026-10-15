@@ -36,7 +36,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 5. **Bảo Vệ Tài Khoản, Đổi Mật Khẩu Cá Nhân & Hỗ Trợ Quên Mật Khẩu:**
    - **Ẩn mặc định danh sách Đăng nhập mẫu (Fast Test):** Chuyển sang nút bấm toggle `▼ Bật đăng nhập Test mẫu` (chỉ mở khi kỹ thuật cần test nhanh, người ngoài hoặc nhân viên bình thường mở link sẽ không thấy danh sách tài khoản).
    - **Form đăng nhập bảo mật:** Ô SĐT và Mật khẩu mặc định để trống, không tự điền sẵn tài khoản Admin.
-   - **Tính năng Đổi Mật Khẩu Cá Nhân:** Bấm vào tên nhân viên trên thanh Header (hoặc trong Hồ Sơ Nhân Sự `StaffDetailModal.tsx`) sẽ mở mục `[🔑 Đổi Mật Khẩu Riêng]`. Nhân viên tự đặt mật khẩu riêng từ 4 ký tự trở lên (lưu ưu tiên theo SĐT). Hệ thống sẽ xác thực mật khẩu riêng trước, nếu chưa đổi thì mới dùng mật khẩu khởi tạo mặc định.
+   - **Tính năng Đổi Mật Khẩu Cá Nhân & Khóa Chặt Phân Quyền (`StaffDetailModal.tsx`):**
+     - **Chính chủ:** Nhân viên chỉ được phép đổi mật khẩu cho **chính tài khoản của mình** (`isSelf`).
+     - **Đồng nghiệp khác:** Khi một nhân viên vào xem hồ sơ của đồng nghiệp (như ảnh chụp Danh Sách Nhân Sự Chi Nhánh `tab=nhan-vien`), hệ thống **tuyệt đối ẩn form và nút đổi mật khẩu**.
+     - **Quản trị cấp cao:** Chỉ duy nhất **Founder, Admin và HR** mới có quyền cấp lại mật khẩu cho nhân viên cấp dưới trong trường hợp nhân viên quên mật khẩu.
    - **Tính năng Hỗ Trợ Quên Mật Khẩu (`LoginModal.tsx`):** Ngay dưới ô mật khẩu có nút `[❓ Quên mật khẩu?]` dẫn tới Popup hỗ trợ: hiển thị thông tin liên hệ Hotline/Zalo của **Admin Quản Trị (Trần Hoàng Sang - 0888003205)** và **Nhân Sự HR (Phan Hoàng Khánh - 0394336726)**. Hệ thống **tuyệt đối không cho phép tự reset từ bên ngoài** để triệt tiêu hoàn toàn nguy cơ kẻ gian chiếm quyền tài khoản; việc reset mật khẩu bắt buộc phải do Admin hoặc HR thực hiện sau khi xác minh nhân thân.
 
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
