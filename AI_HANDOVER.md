@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 15/10/2026 (Nâng Cấp Đột Phá: Giải Trình Chấm Công GPS 100m, Đồng Bộ URL & Nút Back Điện Thoại, Bộ Máy Trạng Thái Nhân Sự Realtime, Phân Hệ Tuyển Dụng & Chatbot Bé 8 AI Gemini Flash Lite)*
+*Ngày cập nhật mới nhất: 15/10/2026 (Nâng Cấp Toàn Diện: Ma Trận Chia Ca & Điều Động 15 Ngày, Tùy Biến Khung Ca Chi Nhánh, Xuất Excel Chuẩn A4, Bảo Mật Lương & Founder, Chuẩn Hóa Ngôn Ngữ Miền Tây)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,7 +7,7 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, và phân hệ Tuyển dụng Onboarding thông minh.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, và Ma trận Phân chia ca & Điều động nhân sự 15 ngày.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
@@ -15,6 +15,24 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ---
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 15/10/2026) - QUAN TRỌNG
+
+### E. Ma Trận Chia Ca & Điều Động 15 Ngày & Xuất Excel Khổ A4 (NEW - 15/10)
+1. **Chuẩn Hóa Ngôn Ngữ Miền Tây & Bản Sắc Doanh Nghiệp:**
+   - Thay thế toàn bộ thuật ngữ hàn lâm: `Bán Nguyệt` ➔ **Lịch Chia Ca / Ma Trận Chia Ca & Điều Động (Kỳ 15 Ngày)** (`chia-ca`, `chiaca`).
+   - Xóa bỏ từ ngữ hành chính `Cơ hữu` ➔ Đổi thành **`Tại shop`** (nhân viên chính của cửa hàng) và **`Tăng cường từ shop khác`**.
+2. **Khung Giờ Ca Làm Việc & Tính Công Chuẩn Xác:**
+   - Nút **`[⚙️ Tùy Biến Khung Ca]`** được phóng to, nổi bật với viền phát sáng cyan trên toolbar chính.
+   - **Ca Hành Chính Văn Phòng:** Khung giờ `07:30 - 17:30`, tính chuẩn **8 tiếng công thực tế** (đã trừ 2 tiếng nghỉ trưa từ `11:30 - 13:30`).
+   - Sửa nhãn hiển thị ca văn phòng: hiển thị chuẩn `Văn Phòng (07:30 - 17:30)`, không bị hiển thị nhầm thành ca `T.Cường`.
+3. **Bảo Mật Lương & Khóa Tài Khoản Founder (Chủ Doanh Nghiệp):**
+   - Đã ẩn toàn bộ số tiền lương cụ thể tại bảng phân ca và Admin Panel (chuyển sang hiển thị bảo mật: `💼 Đủ công chuẩn (13 ngày)`, `💼 Lương Cứng (Bảo mật)`, `🔒 ĐANG BẢO MẬT`, `🔒 Chờ quy chế`).
+   - **Bảo vệ tài khoản Founder (Ngô Hồng Thao - `PK88-FOUNDER`):** Khóa hoàn toàn nút Xóa tài khoản, hiển thị huy hiệu vương miện hoàng gia 👑, cột công ghi nhận `Miễn công` (Chủ Doanh Nghiệp).
+4. **Công Cụ Xuất File Excel Lịch Chia Ca (.xlsx) Chuẩn A4:**
+   - Tích hợp nút **`[📥 Xuất Excel]`** trực tiếp trên thanh công cụ ma trận.
+   - Tích hợp banner thông tin: Tiêu đề chuỗi, Tên chi nhánh, Kỳ chia ca (01-15 hoặc 16-cuối tháng), Ngày xuất, Đơn vị tính.
+   - Header các ngày được định dạng rõ ràng: `T5 (01)`, `T6 (02)`, `T7 (03)`, `CN (04)`...
+   - Toàn bộ chức vụ được dịch sang tiếng Việt: `Kế Toán Kho`, `Kế Toán`, `Cửa Hàng Trưởng`, `Nhân Viên Bán Hàng`, `Kỹ Thuật Viên`...
+   - Tên ca làm rút gọn tinh tế (`VP (7h30-17h30)`, `Sáng (7h-15h30)`, `Chiều (14h30-22h)`), bật `wrapText` và cấu hình độ rộng cột tối ưu `!cols` sẵn sàng cho việc in ấn A4 dán tại quầy thu ngân.
 
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
