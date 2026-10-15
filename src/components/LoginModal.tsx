@@ -252,56 +252,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
               </div>
             </div>
 
-            {resetSuccessMsg ? (
-              <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{resetSuccessMsg}</span>
-              </div>
-            ) : (
-              <div className="mb-4 pt-1 border-t border-slate-800">
-                <p className="text-[10px] text-slate-500 mb-2">Hoặc nếu bạn đang thao tác trên thiết bị cá nhân của mình:</p>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!phone.trim()) {
-                      alert('⚠️ Vui lòng nhập Số điện thoại của bạn ở màn hình đăng nhập trước!');
-                      setShowForgotModal(false);
-                      return;
-                    }
-                    try {
-                      const stored = localStorage.getItem('pk88_passwords');
-                      if (stored) {
-                        const passMap = JSON.parse(stored);
-                        delete passMap[phone.trim()];
-                        localStorage.setItem('pk88_passwords', JSON.stringify(passMap));
-                      }
-                      setResetSuccessMsg(`Đã khôi phục mật khẩu tài khoản ${phone.trim()} về mặc định (123456)!`);
-                      setTimeout(() => {
-                        setShowForgotModal(false);
-                        setResetSuccessMsg(null);
-                        setPassword('123456');
-                      }, 2000);
-                    } catch (e: any) {
-                      alert('Lỗi: ' + e.message);
-                    }
-                  }}
-                  className="w-full py-2 px-3 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/40 text-amber-300 font-bold rounded-xl text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
-                  <span>Khôi phục về mật khẩu ban đầu (123456)</span>
-                </button>
-              </div>
-            )}
+            <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-2xl mb-4 text-[11px] text-amber-300 leading-relaxed">
+              🔒 <strong>Quy định bảo mật chuỗi:</strong> Để ngăn chặn xâm nhập trái phép, hệ thống <u>không cho phép</u> tự đặt lại mật khẩu từ bên ngoài. Vui lòng nhắn tin trực tiếp cho Admin hoặc HR để được xác minh danh tính và cấp lại mật khẩu.
+            </div>
 
             <button
               type="button"
-              onClick={() => {
-                setShowForgotModal(false);
-                setResetSuccessMsg(null);
-              }}
+              onClick={() => setShowForgotModal(false)}
               className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-all cursor-pointer"
             >
-              Đóng Cửa Sổ
+              Đã Hiểu & Đóng Cửa Sổ
             </button>
           </div>
         </div>
