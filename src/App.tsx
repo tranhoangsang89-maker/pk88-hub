@@ -14,8 +14,9 @@ import { AIHRModal } from './components/AIHRModal';
 import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { POSView } from './components/POSView';
 import { PublicRecruitmentView } from './components/PublicRecruitmentView';
+import { ShiftSchedulingMatrix } from './components/ShiftSchedulingMatrix';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl } from './lib/router';
 
@@ -1155,8 +1156,8 @@ export function App() {
         {/* Navigation Tabs for Logged-In Users (2 Rows: 4 tabs on Row 1, balanced per Role) */}
         {!isCustomerMode && currentUser && (
           <div className="bg-slate-900/90 border border-slate-800/90 p-2.5 rounded-2xl space-y-2 shadow-lg">
-            {/* Row 1: 4 Tabs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            {/* Row 1: 5 Tabs */}
+            <div className={`grid gap-2 ${(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-5'}`}>
               {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <button
                   onClick={() => handleNavigateTab('admin')}
@@ -1185,6 +1186,19 @@ export function App() {
                 </button>
               )}
 
+              {/* Phân Ca Làm Việc & Điều Động */}
+              <button
+                onClick={() => handleNavigateTab('shifts')}
+                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  activeTab === 'shifts'
+                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold ring-1 ring-cyan-400/50'
+                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
+                }`}
+              >
+                <Calendar className="w-4 h-4 flex-shrink-0 text-cyan-400" />
+                <span className="truncate">Lịch Chia Ca</span>
+              </button>
+
               <button
                 onClick={() => handleNavigateTab('attendance')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
@@ -1194,7 +1208,7 @@ export function App() {
                 }`}
               >
                 <Clock className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Chấm Công GPS Geofence</span>
+                <span className="truncate">Chấm Công GPS</span>
               </button>
 
               <button
@@ -1338,6 +1352,15 @@ export function App() {
                 leaveRequests={leaveRequests}
                 tickets={tickets}
                 onOpenAIHRModal={handleOpenAIHRModal}
+              />
+            )}
+
+            {activeTab === 'shifts' && currentUser && (
+              <ShiftSchedulingMatrix
+                branches={branches}
+                staffList={staffList}
+                currentUser={currentUser}
+                onRefreshStaff={fetchStaff}
               />
             )}
 

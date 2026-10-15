@@ -9,10 +9,21 @@ export type AppTab =
   | 'pos' 
   | 'training' 
   | 'marketing'
-  | 'recruitment';
+  | 'recruitment'
+  | 'shifts';
 
 // Bảng ánh xạ slug URL tiếng Việt và tiếng Anh sang AppTab nội bộ
 const SLUG_TO_TAB: Record<string, AppTab> = {
+  // Lịch chia ca & điều động
+  'chia-ca': 'shifts',
+  'chiaca': 'shifts',
+  'phan-ca': 'shifts',
+  'phanca': 'shifts',
+  'lich-lam-viec': 'shifts',
+  'lichlamviec': 'shifts',
+  'ca-kip': 'shifts',
+  'shifts': 'shifts',
+
   // Tuyển dụng công khai
   'tuyen-dung': 'recruitment',
   'tuyendung': 'recruitment',
@@ -67,6 +78,7 @@ const SLUG_TO_TAB: Record<string, AppTab> = {
 
 // Bảng ánh xạ AppTab sang slug hiển thị trên thanh địa chỉ URL
 const TAB_TO_SLUG: Record<AppTab, string> = {
+  shifts: 'phan-ca',
   attendance: 'cham-cong',
   tickets: 'sua-chua',
   pos: 'pos',

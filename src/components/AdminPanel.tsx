@@ -4,6 +4,7 @@ import { supabase } from '../lib/supabase';
 import { StaffDetailModal } from './StaffDetailModal';
 import { AttendanceTimesheetView } from './AttendanceTimesheetView';
 import { RecruitmentManagement } from './RecruitmentManagement';
+import { ShiftSchedulingMatrix } from './ShiftSchedulingMatrix';
 import { getStaffRealtimeStatus } from '../lib/staffStatus';
 import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar, Briefcase } from 'lucide-react';
 
@@ -53,7 +54,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<Staff | null>(null);
   const [staffViewMode, setStaffViewMode] = useState<'cards' | 'table'>('cards');
-  const [payrollSubView, setPayrollSubView] = useState<'timesheet' | 'salary'>('timesheet');
+  const [payrollSubView, setPayrollSubView] = useState<'shifts' | 'timesheet' | 'salary'>('shifts');
   
   // Store-in-a-box states
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
@@ -154,6 +155,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   };
 
   const handleDeleteStaff = async (staffId: string, name: string) => {
+    const target = localStaff.find(s => s.id === staffId);
+    if (target?.role?.toLowerCase() === 'founder' || target?.code === 'PK88-FOUNDER' || target?.role?.toLowerCase() === 'admin') {
+      alert('🛡️ BẢO VỆ TỐI CAO: Không thể xóa tài khoản Founder hoặc Admin hệ thống!');
+      return;
+    }
+
     if (confirm(`Bạn có chắc chắn muốn xóa nhân sự ${name} khỏi hệ thống?`)) {
       // Optimistic UI update
       setLocalStaff(prev => prev.filter(s => s.id !== staffId));
@@ -438,90 +445,63 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         // Helper for role salary calculation integrating real leave requests
         const getRoleSalaryConfig = (staff: Staff, hours: number) => {
           const { paidDays, unpaidDays } = getStaffLeaves(staff);
+          const role = staff.role?.toLowerCase() || '';
 
-          switch (staff.role) {
-            case 'sales':
-            case 'technician': {
-              const isThuDuc = isThuDucBranch(staff.branchId);
-              const rate = isThuDuc ? 25500 : 22700;
-              const rateLabel = isThuDuc ? '25.500 đ/giờ (Thủ Đức)' : '22.700 đ/giờ';
-              
-              // Approved Paid Leave credits standard shift hours (8.5h/day)
-              const paidLeaveHours = paidDays * 8.5;
-              const totalBillableHours = hours + paidLeaveHours;
-              const totalSalary = totalBillableHours * rate;
-
-              return {
-                salary: totalSalary,
-                rateLabel,
-                salaryType: 'Theo giờ',
-                paidDays,
-                unpaidDays,
-                paidLeaveHours,
-                leaveNote: paidDays > 0 
-                  ? `+${paidDays} ngày phép (+${paidLeaveHours}h)`
-                  : (unpaidDays > 0 ? `${unpaidDays} ngày không lương (0 đ)` : null)
-              };
-            }
-            case 'manager':
-            case 'admin':
-            case 'hr':
-            case 'marketing':
-            case 'accountant':
-            case 'sales_head': {
-              let baseMonthly = 0;
-              let label = '';
-              if (staff.role === 'manager') { baseMonthly = 8500000; label = '8.500.000 đ/tháng'; }
-              else if (staff.role === 'admin') { baseMonthly = 19000000; label = '19.000.000 đ/tháng'; }
-              else if (staff.role === 'hr') { baseMonthly = 12000000; label = '12.000.000 đ/tháng'; }
-              else if (staff.role === 'marketing') { baseMonthly = 14000000; label = '14.000.000 đ/tháng'; }
-              else if (staff.role === 'accountant') { baseMonthly = 13500000; label = '13.500.000 đ/tháng'; }
-              else if (staff.role === 'sales_head') { baseMonthly = 15000000; label = '15.000.000 đ/tháng (+ KPI)'; }
-
-              // Standard: 26 working days/month. Approved unpaid leave deducts baseMonthly/26 * unpaidDays
-              const dailyRate = baseMonthly / 26;
-              const unpaidDeduction = Math.round(unpaidDays * dailyRate);
-              const netSalary = Math.max(0, baseMonthly - unpaidDeduction);
-
-              return {
-                salary: netSalary,
-                rateLabel: label,
-                salaryType: 'Lương cố định',
-                paidDays,
-                unpaidDays,
-                paidLeaveHours: 0,
-                leaveNote: unpaidDays > 0 
-                  ? `-${unpaidDays} ngày không lương (-${unpaidDeduction.toLocaleString('vi-VN')} đ)`
-                  : (paidDays > 0 ? `+${paidDays} ngày phép (Hưởng đủ lương)` : null)
-              };
-            }
-            case 'founder': {
-              return {
-                salary: 0,
-                rateLabel: 'Chủ sở hữu (Không nhận lương)',
-                salaryType: 'Chủ doanh nghiệp',
-                paidDays,
-                unpaidDays,
-                paidLeaveHours: 0,
-                leaveNote: 'Miễn chấm công'
-              };
-            }
-            default: {
-              const isThuDuc = isThuDucBranch(staff.branchId);
-              const rate = isThuDuc ? 25500 : 22700;
-              const paidLeaveHours = paidDays * 8.5;
-              const totalSalary = (hours + paidLeaveHours) * rate;
-              return {
-                salary: totalSalary,
-                rateLabel: isThuDuc ? '25.500 đ/giờ (Thủ Đức)' : '22.700 đ/giờ',
-                salaryType: 'Theo giờ',
-                paidDays,
-                unpaidDays,
-                paidLeaveHours,
-                leaveNote: paidDays > 0 ? `+${paidDays} ngày phép` : null
-              };
-            }
+          // 1. Founder
+          if (role === 'founder' || staff.code === 'PK88-FOUNDER') {
+            return {
+              salary: 0,
+              salaryDisplay: 'Miễn công',
+              rateLabel: '👑 Chủ sở hữu (Miễn lương)',
+              salaryType: 'Chủ doanh nghiệp',
+              paidDays,
+              unpaidDays,
+              paidLeaveHours: 0,
+              leaveNote: 'Miễn chấm công'
+            };
           }
+
+          // 2. Khối Văn Phòng / Ban Chuyên Môn (Bảo mật thông tin lương)
+          const isOffice = ['admin', 'hr', 'marketing', 'accountant', 'media', 'warehouse_accountant', 'sales_head'].includes(role) ||
+                           staff.branchId === '11111111-2222-3333-4444-555555555555';
+          if (isOffice) {
+            return {
+              salary: 0,
+              salaryDisplay: '🔒 Chờ quy chế',
+              rateLabel: '💼 Lương Cứng (Bảo mật)',
+              salaryType: 'Lương cố định',
+              paidDays,
+              unpaidDays,
+              paidLeaveHours: 0,
+              leaveNote: paidDays > 0 ? `+${paidDays} ngày phép` : (unpaidDays > 0 ? `-${unpaidDays} ngày không lương` : null)
+            };
+          }
+
+          // 3. Quản lý / Cửa hàng trưởng
+          if (role === 'manager' || staff.salaryType === 'monthly') {
+            return {
+              salary: 0,
+              salaryDisplay: '🔒 Chờ quy chế',
+              rateLabel: '💼 Lương Cứng (Quản Lý)',
+              salaryType: 'Lương cố định',
+              paidDays,
+              unpaidDays,
+              paidLeaveHours: 0,
+              leaveNote: paidDays > 0 ? `+${paidDays} ngày phép` : (unpaidDays > 0 ? `-${unpaidDays} ngày không lương` : null)
+            };
+          }
+
+          // 4. Nhân viên bán hàng / kỹ thuật cửa hàng (Ẩn số tiền vì chưa có bảng lương chính thức)
+          return {
+            salary: 0,
+            salaryDisplay: '🔒 Chờ quy chế',
+            rateLabel: '🛒 Nhân Viên Cửa Hàng',
+            salaryType: 'Theo quy chế shop',
+            paidDays,
+            unpaidDays,
+            paidLeaveHours: paidDays * 8.5,
+            leaveNote: paidDays > 0 ? `+${paidDays} ngày phép` : (unpaidDays > 0 ? `-${unpaidDays} ngày không lương` : null)
+          };
         };
 
         // Calculate totals across filtered staff
@@ -547,6 +527,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             <div className="flex items-center justify-between bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <button
+                  onClick={() => setPayrollSubView('shifts')}
+                  className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                    payrollSubView === 'shifts'
+                      ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md font-black ring-1 ring-cyan-400/40'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4 text-slate-950" />
+                  <span>1.1 Ma Trận Chia Ca & Điều Động (Kỳ 15 Ngày)</span>
+                </button>
+
+                <button
                   onClick={() => setPayrollSubView('timesheet')}
                   className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
                     payrollSubView === 'timesheet'
@@ -555,7 +547,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   }`}
                 >
                   <FileSpreadsheet className="w-4 h-4" />
-                  <span>1.1 Nhật Ký Chấm Công Chi Tiết & Xuất Excel (.xlsx)</span>
+                  <span>1.2 Nhật Ký Chấm Công Chi Tiết & Xuất Excel (.xlsx)</span>
                 </button>
 
                 <button
@@ -567,12 +559,19 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   }`}
                 >
                   <DollarSign className="w-4 h-4" />
-                  <span>1.2 Bảng Tổng Hợp Lương Đa Vai Trò (Toàn Chuỗi)</span>
+                  <span>1.3 Bảng Tổng Hợp Lương Đa Vai Trò (Toàn Chuỗi)</span>
                 </button>
               </div>
             </div>
 
-            {payrollSubView === 'timesheet' ? (
+            {payrollSubView === 'shifts' ? (
+              <ShiftSchedulingMatrix
+                branches={branches}
+                staffList={localStaff}
+                currentUser={currentUser}
+                onRefreshStaff={onRefreshStaff}
+              />
+            ) : payrollSubView === 'timesheet' ? (
               <AttendanceTimesheetView
                 branches={branches}
                 staffList={localStaff}
@@ -608,11 +607,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
               <div className="glass-card p-4 rounded-2xl border border-amber-500/20 bg-gradient-to-br from-slate-900 to-amber-950/20">
                 <div className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center justify-between">
-                  <span>Tổng Quỹ Lương Tạm Tính</span>
-                  <DollarSign className="w-4 h-4 text-amber-400" />
+                  <span>Quy Chế Bảng Lương</span>
+                  <ShieldCheck className="w-4 h-4 text-amber-400" />
                 </div>
-                <div className="text-2xl font-extrabold text-amber-400 font-mono">
-                  {grandTotalSalary.toLocaleString('vi-VN')} <span className="text-xs font-normal">đ</span>
+                <div className="text-xl font-extrabold text-amber-400 font-mono tracking-wide">
+                  🔒 ĐANG BẢO MẬT
+                </div>
+                <div className="text-[10px] text-slate-400 mt-1">
+                  Chưa ban hành bảng lương chính thức
                 </div>
               </div>
             </div>
@@ -623,9 +625,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 <div>
                   <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
                     <DollarSign className="w-5 h-5 text-rose-400" />
-                    Bảng Tổng Hợp Lương Phụ Kiện 88 (Toàn Chuỗi {branches.length} Chi Nhánh)
+                    Bảng Tổng Hợp Chấm Công & Quỹ Giờ Phụ Kiện 88 (Toàn Chuỗi {branches.length} Chi Nhánh)
                   </h3>
-                  <p className="text-xs text-slate-400 mt-1">Cấu trúc lương chuẩn (Bán hàng & Kỹ thuật 22.7k/h, riêng Thủ Đức 25.5k/h; Tăng ca tính theo giờ chuẩn; Quản lý & Văn phòng lương tháng cố định).</p>
+                  <p className="text-xs text-slate-400 mt-1">Hệ thống ghi nhận tổng giờ làm việc thực tế qua định vị GPS & phân ca. Cơ chế bảng lương và thu nhập chính thức đang được Ban Điều Hành hoàn thiện ban hành (bảo mật dữ liệu tiền lương).</p>
                 </div>
                 <div className="text-right">
                   <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">Kỳ lương hiện tại</div>
@@ -681,7 +683,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                       <th className="p-3 font-bold text-center">Mức Lương / Chế Độ</th>
                       <th className="p-3 font-bold text-center">Tổng Giờ Làm (GPS)</th>
                       <th className="p-3 font-bold text-center">Nghỉ Phép Đã Duyệt</th>
-                      <th className="p-3 font-bold text-right">Lương Thực Lãnh (Tạm Tính)</th>
+                      <th className="p-3 font-bold text-right">Tình Trạng Chi Trả</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/80">
@@ -746,8 +748,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                             )}
                           </td>
                           <td className="p-3 text-right">
-                            <span className="font-mono text-rose-400 font-bold text-sm">
-                              {config.salary.toLocaleString('vi-VN')} đ
+                            <span className="font-mono text-slate-400 font-bold text-xs bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 inline-flex items-center gap-1">
+                              {config.salaryDisplay}
                             </span>
                           </td>
                         </tr>
@@ -1066,13 +1068,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {s.isActive ? 'Tắt' : 'Bật'}
                             </button>
 
-                            <button
-                              onClick={() => handleDeleteStaff(s.id, s.fullName)}
-                              className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-slate-950 text-slate-500 hover:text-rose-400 border border-slate-800 hover:border-rose-500/40 text-[9px] sm:text-[10px] transition-colors cursor-pointer"
-                              title="Xóa nhân sự"
-                            >
-                              Xóa
-                            </button>
+                            {s.role?.toLowerCase() !== 'founder' && s.code !== 'PK88-FOUNDER' && (
+                              <button
+                                onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                                className="p-1 sm:p-1.5 rounded-lg sm:rounded-xl bg-slate-950 text-slate-500 hover:text-rose-400 border border-slate-800 hover:border-rose-500/40 text-[9px] sm:text-[10px] transition-colors cursor-pointer"
+                                title="Xóa nhân sự"
+                              >
+                                Xóa
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -1160,12 +1164,14 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               >
                                 Sửa
                               </button>
-                              <button
-                                onClick={() => handleDeleteStaff(s.id, s.fullName)}
-                                className="text-slate-500 hover:text-rose-400 font-medium text-[11px] cursor-pointer"
-                              >
-                                Xóa
-                              </button>
+                              {s.role?.toLowerCase() !== 'founder' && s.code !== 'PK88-FOUNDER' && (
+                                <button
+                                  onClick={() => handleDeleteStaff(s.id, s.fullName)}
+                                  className="text-slate-500 hover:text-rose-400 font-medium text-[11px] cursor-pointer"
+                                >
+                                  Xóa
+                                </button>
+                              )}
                             </td>
                           </tr>
                         );

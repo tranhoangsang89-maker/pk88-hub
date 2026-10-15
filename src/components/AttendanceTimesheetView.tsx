@@ -187,7 +187,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         const diffMs = new Date(record.checkOut).getTime() - new Date(record.checkIn).getTime();
         hours = Math.max(0.1, +(diffMs / (1000 * 60 * 60)).toFixed(1));
       } else {
-        hours = record.shiftType === 'HANH_CHINH' ? 8.5 : 8.0;
+        hours = record.shiftType === 'HANH_CHINH' ? 8.0 : 8.5;
       }
     }
 

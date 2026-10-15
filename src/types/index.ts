@@ -42,9 +42,65 @@ export interface Staff {
   birthDate?: string;
   email?: string;
   competencyScores?: CompetencyScores;
+  homeBranchId?: string;
+  workingBranchId?: string;
+  hourlyRate?: number;
+  salaryType?: 'hourly' | 'monthly' | 'probation';
 }
 
-export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'TANG_CUONG' | 'TUY_CHINH';
+export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'CA_TRUA' | 'CA_THU_VIEC' | 'TANG_CUONG' | 'TUY_CHINH';
+
+export interface ShiftDefinition {
+  id: string;
+  branchId?: string | null; // null/undefined = Company default; string = Branch custom
+  code: string;
+  name: string;
+  startTime: string; // '07:00'
+  endTime: string; // '15:30'
+  hours: number; // 8.5
+  color?: string; // Tailwind color token
+  isCompanyDefault?: boolean;
+  notes?: string;
+}
+
+export type ShiftAssignmentStatus = 'SCHEDULED' | 'OPEN_SHIFT' | 'SICK_LEAVE' | 'SWAPPED' | 'COMPLETED' | 'OFF';
+
+export interface ShiftAssignment {
+  id: string;
+  staffId: string;
+  staffName: string;
+  staffPhone?: string;
+  staffRole?: UserRole;
+  homeBranchId: string;
+  workingBranchId: string;
+  workingBranchName?: string;
+  date: string; // 'YYYY-MM-DD'
+  shiftDefinitionId: string;
+  shiftCode: string;
+  shiftName: string;
+  startTime: string;
+  endTime: string;
+  hours: number;
+  status: ShiftAssignmentStatus;
+  isCrossBranch?: boolean;
+  originalStaffId?: string;
+  notes?: string;
+  bountyBonus?: number; // Tiền thưởng nóng gánh ca đột xuất (VND)
+  createdAt?: string;
+}
+
+export interface ShiftSwapRequest {
+  id: string;
+  fromAssignmentId: string;
+  fromStaffId: string;
+  fromStaffName: string;
+  toStaffId?: string;
+  toStaffName?: string;
+  reason: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED';
+  bonusOffered?: number;
+  createdAt: string;
+}
 
 export type AttendanceDisputeStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type DisputeType = 'OUTSIDE_GEOFENCE' | 'FORGOT_CHECKIN' | 'FORGOT_CHECKOUT' | 'OFFSITE_DUTY';

@@ -21,9 +21,11 @@ import {
   Sliders,
   ShieldAlert,
   FileText,
-  Camera
+  Camera,
+  Calendar
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
+import { getAllAssignments } from '../lib/shiftService';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
@@ -58,9 +60,42 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [disputeInitialType, setDisputeInitialType] = useState<any>('OUTSIDE_GEOFENCE');
   const [disputeExistingRecord, setDisputeExistingRecord] = useState<AttendanceRecord | null>(null);
 
+  const todayYmd = React.useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }, []);
+  const todayAssignment = React.useMemo(() => {
+    try {
+      const all = getAllAssignments();
+      return all.find(a => {
+        const matchId = a.staffId === currentStaff.id;
+        const matchPhone = !!a.staffPhone && !!currentStaff.phone && a.staffPhone.trim() === currentStaff.phone.trim();
+        const matchName = !!a.staffName && !!currentStaff.fullName && a.staffName.trim().toLowerCase() === currentStaff.fullName.trim().toLowerCase();
+        return (matchId || matchPhone || matchName) && a.date === todayYmd && a.status !== 'OFF';
+      });
+    } catch (e) {
+      return null;
+    }
+  }, [currentStaff.id, currentStaff.phone, currentStaff.fullName, todayYmd]);
+
   useEffect(() => {
-    setSelectedShift(isOffice ? 'HANH_CHINH' : 'CA_SANG');
-  }, [isOffice, currentStaff.id, currentBranch.id]);
+    if (todayAssignment) {
+      if (todayAssignment.shiftCode === 'CA_SANG') setSelectedShift('CA_SANG');
+      else if (todayAssignment.shiftCode === 'CA_CHIEU') setSelectedShift('CA_CHIEU');
+      else if (todayAssignment.shiftCode === 'HANH_CHINH') setSelectedShift('HANH_CHINH');
+      else if (todayAssignment.shiftCode === 'TANG_CUONG') setSelectedShift('TANG_CUONG');
+      else {
+        setSelectedShift('TUY_CHINH');
+        setCustomStartTime(todayAssignment.startTime);
+        setCustomEndTime(todayAssignment.endTime);
+      }
+    } else {
+      setSelectedShift(isOffice ? 'HANH_CHINH' : 'CA_SANG');
+    }
+  }, [isOffice, currentStaff.id, currentBranch.id, todayAssignment]);
 
   const getShiftDisplayName = (shift: ShiftType) => {
     switch (shift) {
@@ -598,6 +633,35 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
             <span>•</span>
             <span>Ca: <strong className="text-slate-200">{getShiftDisplayName(activeRecord.shiftType || selectedShift)}</strong></span>
           </div>
+        </div>
+      )}
+
+      {/* TODAY'S ASSIGNED SHIFT BANNER */}
+      {!isCurrentlyCheckedIn && todayAssignment && (
+        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900 to-indigo-950/70 border border-cyan-500/40 shadow-lg flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+              <Calendar className="w-5 h-5 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-100">
+                  Lịch Phân Hôm Nay: {todayAssignment.shiftName}
+                </span>
+                {todayAssignment.isCrossBranch && (
+                  <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/40">
+                    ✈️ Tăng Cường
+                  </span>
+                )}
+              </div>
+              <p className="text-[11px] text-cyan-300/80 font-mono mt-0.5">
+                Khung giờ: {todayAssignment.startTime} - {todayAssignment.endTime} ({todayAssignment.hours}h) • Tại {todayAssignment.workingBranchName || currentBranch.name}
+              </p>
+            </div>
+          </div>
+          <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 whitespace-nowrap">
+            ĐÃ LÊN LỊCH
+          </span>
         </div>
       )}
 
