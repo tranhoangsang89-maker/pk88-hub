@@ -3,7 +3,9 @@ import { Branch, Staff, AttendanceRecord, StaffProgress, Course, Lesson, LeaveRe
 import { supabase } from '../lib/supabase';
 import { StaffDetailModal } from './StaffDetailModal';
 import { AttendanceTimesheetView } from './AttendanceTimesheetView';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar } from 'lucide-react';
+import { RecruitmentManagement } from './RecruitmentManagement';
+import { getStaffRealtimeStatus } from '../lib/staffStatus';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar, Briefcase } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -16,6 +18,8 @@ interface AdminPanelProps {
   onRefreshAttendance?: () => void;
   onUpdateStaff?: (updatedStaff: Staff) => void;
   currentUser?: Staff;
+  onApproveDispute?: (recordId: string, approverName: string) => Promise<void> | void;
+  onRejectDispute?: (recordId: string, rejecterName: string, reason: string) => Promise<void> | void;
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ 
@@ -28,10 +32,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onRefreshStaff,
   onRefreshAttendance,
   onUpdateStaff,
-  currentUser
+  currentUser,
+  onApproveDispute,
+  onRejectDispute
 }) => {
   const isHR = currentUser?.role === 'hr';
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms'>(isHR ? 'staff' : 'payroll');
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms' | 'recruitment'>(isHR ? 'staff' : 'payroll');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
@@ -311,30 +317,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
           </button>
         </div>
 
-        {/* Row 2: 3 Tabs */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        {/* Row 2: 4 Tabs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
           <button
-            onClick={() => setActiveSubTab('ai')}
+            onClick={() => setActiveSubTab('recruitment')}
             className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'ai'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+              activeSubTab === 'recruitment'
+                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
                 : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
             }`}
           >
-            <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">5. Tham Số AI Engine</span>
-          </button>
-
-          <button
-            onClick={() => setActiveSubTab('logs')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'logs'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">6. System Logs</span>
+            <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">5. Tuyển Dụng & Onboard</span>
           </button>
 
           <button
@@ -346,7 +340,31 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             }`}
           >
             <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">7. Đào Tạo LMS 60 Ngày</span>
+            <span className="truncate">6. Đào Tạo LMS 60 Ngày</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('ai')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'ai'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">7. Tham Số AI Engine</span>
+          </button>
+
+          <button
+            onClick={() => setActiveSubTab('logs')}
+            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              activeSubTab === 'logs'
+                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
+            <span className="truncate">8. System Logs</span>
           </button>
         </div>
       </div>
@@ -511,7 +529,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         let grandTotalSalary = 0;
 
         filteredStaff.forEach(s => {
-          const logs = combinedLogs.filter(log => log.staffId === s.id || (log.notes && log.notes.includes(s.phone)));
+          const logs = combinedLogs.filter(log => 
+            (log.staffId === s.id || (log.notes && log.notes.includes(s.phone))) &&
+            (log.isVerified !== false || log.disputeStatus === 'APPROVED') &&
+            log.disputeStatus !== 'PENDING' &&
+            log.disputeStatus !== 'REJECTED'
+          );
           const h = logs.reduce((sum, log) => sum + (log.workHours || 0), 0);
           const config = getRoleSalaryConfig(s, h);
           grandTotalHours += h;
@@ -555,6 +578,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 staffList={localStaff}
                 attendanceLogs={combinedLogs}
                 onRefreshLogs={onRefreshAttendance || onRefreshStaff}
+                currentUser={currentUser}
+                onApproveDispute={onApproveDispute}
+                onRejectDispute={onRejectDispute}
               />
             ) : (
               <>
@@ -662,7 +688,10 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                     {filteredStaff.map(staff => {
                       const branch = branches.find(b => b.id === staff.branchId);
                       const logs = combinedLogs.filter(log => 
-                        log.staffId === staff.id || (log.notes && log.notes.includes(staff.phone))
+                        (log.staffId === staff.id || (log.notes && log.notes.includes(staff.phone))) &&
+                        (log.isVerified !== false || log.disputeStatus === 'APPROVED') &&
+                        log.disputeStatus !== 'PENDING' &&
+                        log.disputeStatus !== 'REJECTED'
                       );
                       const totalHours = logs.reduce((sum, log) => sum + (log.workHours || 0), 0);
                       const config = getRoleSalaryConfig(staff, totalHours);
@@ -993,11 +1022,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
                         {/* Card Footer Info */}
                         <div className="p-2 sm:p-3 space-y-1.5 sm:space-y-2 text-[10px] sm:text-[11px]">
-                          <div className="flex items-center justify-between text-slate-400 font-mono text-[9px] sm:text-[10px]">
+                          <div className="flex items-center justify-between text-slate-400 font-mono text-[9px] sm:text-[10px] gap-1">
                             <span className="truncate">SĐT: <strong className="text-slate-200">{s.phone}</strong></span>
-                            <span className="text-[8px] sm:text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-1 py-0.2 rounded font-bold shrink-0">
-                              {s.isActive ? 'Đang làm' : 'Đã nghỉ'}
-                            </span>
+                            {(() => {
+                              const status = getStaffRealtimeStatus(s, attendanceLogs, leaveRequests);
+                              return (
+                                <span 
+                                  className={`text-[8px] sm:text-[9px] px-1.5 py-0.5 rounded-full font-bold border shrink-0 flex items-center gap-1 ${status.colorClass}`}
+                                  title={status.description}
+                                >
+                                  <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+                                  <span>{status.label}</span>
+                                </span>
+                              );
+                            })()}
                           </div>
 
                           <div className="pt-1.5 sm:pt-2 border-t border-slate-800/80 flex items-center gap-1">
@@ -1096,11 +1134,18 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               </span>
                             </td>
                             <td className="p-3 text-center">
-                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
-                                s.isActive ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                              }`}>
-                                {s.isActive ? '🟢 Đang làm' : '🔴 Đã nghỉ'}
-                              </span>
+                              {(() => {
+                                const status = getStaffRealtimeStatus(s, attendanceLogs, leaveRequests);
+                                return (
+                                  <span 
+                                    className={`inline-flex items-center gap-1.5 text-[10px] px-2.5 py-0.5 rounded-full font-bold border ${status.colorClass}`}
+                                    title={status.description}
+                                  >
+                                    <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+                                    <span>{status.label}</span>
+                                  </span>
+                                );
+                              })()}
                             </td>
                             <td className="p-3 text-right space-x-2">
                               <button
@@ -1405,6 +1450,16 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       )}
 
+      {/* Recruitment Management Subtab */}
+      {activeSubTab === 'recruitment' && (
+        <RecruitmentManagement
+          branches={branches}
+          staffList={localStaff}
+          onRefreshStaff={onRefreshStaff}
+          currentUser={currentUser}
+        />
+      )}
+
       {/* Add Branch Modal */}
       {showAddBranchModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1508,26 +1563,57 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
       )}
 
       {/* Staff Detail Profile Modal */}
-      <StaffDetailModal
-        staff={selectedStaffForDetail}
-        branch={branches.find(b => b.id === selectedStaffForDetail?.branchId)}
-        branches={branches}
-        canEdit={true}
-        initialEditMode={initialEditMode}
-        onClose={() => {
-          setSelectedStaffForDetail(null);
-          setInitialEditMode(false);
-        }}
-        onUpdateStaff={(updatedStaff) => {
-          setLocalStaff(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
-          setSelectedStaffForDetail(updatedStaff);
-          if (onUpdateStaff) onUpdateStaff(updatedStaff);
-        }}
-        onUpdateScores={(staffId, updatedScores) => {
-          setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, competencyScores: updatedScores } : s));
-          setSelectedStaffForDetail(prev => prev && prev.id === staffId ? { ...prev, competencyScores: updatedScores } : prev);
-        }}
-      />
+      {(() => {
+        if (!selectedStaffForDetail) return null;
+        const logs = attendanceLogs.filter(log => 
+          (log.staffId === selectedStaffForDetail.id || (log.notes && log.notes.includes(selectedStaffForDetail.phone))) &&
+          (log.isVerified !== false || log.disputeStatus === 'APPROVED') &&
+          log.disputeStatus !== 'PENDING' &&
+          log.disputeStatus !== 'REJECTED'
+        );
+        const hours = logs.reduce((sum, log) => sum + (log.workHours || 0), 0);
+        
+        // Tính lương tạm tính
+        let salary = 0;
+        if (selectedStaffForDetail.role === 'manager') salary = 8500000;
+        else if (selectedStaffForDetail.role === 'admin') salary = 19000000;
+        else if (selectedStaffForDetail.role === 'hr') salary = 12000000;
+        else if (selectedStaffForDetail.role === 'marketing') salary = 14000000;
+        else if (selectedStaffForDetail.role === 'accountant') salary = 13500000;
+        else if (selectedStaffForDetail.role === 'sales_head') salary = 15000000;
+        else if (selectedStaffForDetail.role === 'founder') salary = 0;
+        else {
+          const isThuDuc = branches.find(b => b.id === selectedStaffForDetail.branchId)?.code === 'PK88_THUDUC';
+          const rate = isThuDuc ? 25500 : 22700;
+          salary = Math.round(hours * rate);
+        }
+
+        return (
+          <StaffDetailModal
+            staff={selectedStaffForDetail}
+            branch={branches.find(b => b.id === selectedStaffForDetail.branchId)}
+            branches={branches}
+            totalHours={hours}
+            totalSalary={salary}
+            attendanceLogs={attendanceLogs}
+            canEdit={true}
+            initialEditMode={initialEditMode}
+            onClose={() => {
+              setSelectedStaffForDetail(null);
+              setInitialEditMode(false);
+            }}
+            onUpdateStaff={(updatedStaff) => {
+              setLocalStaff(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+              setSelectedStaffForDetail(updatedStaff);
+              if (onUpdateStaff) onUpdateStaff(updatedStaff);
+            }}
+            onUpdateScores={(staffId, updatedScores) => {
+              setLocalStaff(prev => prev.map(s => s.id === staffId ? { ...s, competencyScores: updatedScores } : s));
+              setSelectedStaffForDetail(prev => prev && prev.id === staffId ? { ...prev, competencyScores: updatedScores } : prev);
+            }}
+          />
+        );
+      })()}
     </div>
   );
 };

@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Staff, Branch, UserRole, CompetencyScores } from '../types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Staff, Branch, UserRole, CompetencyScores, AttendanceRecord } from '../types';
 import { 
   X, Phone, Mail, Calendar, Award, CheckCircle2, ShieldCheck, 
   MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw,
@@ -14,6 +14,7 @@ interface StaffDetailModalProps {
   branches?: Branch[];
   totalHours?: number;
   totalSalary?: number;
+  attendanceLogs?: AttendanceRecord[];
   onClose: () => void;
   onUpdateScores?: (staffId: string, updatedScores: CompetencyScores) => void;
   onUpdateStaff?: (updatedStaff: Staff) => void;
@@ -165,8 +166,9 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   staff,
   branch,
   branches = [],
-  totalHours = 176.0,
+  totalHours,
   totalSalary = 0,
+  attendanceLogs = [],
   onClose,
   onUpdateScores,
   onUpdateStaff,
@@ -174,6 +176,67 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   initialEditMode = false
 }) => {
   if (!staff) return null;
+
+  // Tính tổng giờ làm thực tế từ attendanceLogs nếu totalHours không được chỉ định
+  const effectiveHours = useMemo(() => {
+    if (totalHours !== undefined && totalHours !== null) {
+      return totalHours;
+    }
+    if (attendanceLogs && attendanceLogs.length > 0 && staff) {
+      const logs = attendanceLogs.filter(log => 
+        (log.staffId === staff.id || (log.notes && log.notes.includes(staff.phone))) &&
+        (log.isVerified !== false || log.disputeStatus === 'APPROVED') &&
+        log.disputeStatus !== 'PENDING' &&
+        log.disputeStatus !== 'REJECTED'
+      );
+      return logs.reduce((sum, log) => sum + (log.workHours || 0), 0);
+    }
+    return 0;
+  }, [totalHours, attendanceLogs, staff]);
+
+  // Tính lương tạm tính phù hợp theo vai trò hoặc theo giờ thực tế
+  const effectiveSalaryInfo = useMemo(() => {
+    if (totalSalary > 0) {
+      return {
+        label: totalSalary.toLocaleString('vi-VN') + ' đ',
+        subText: 'Tính theo giờ thực tế'
+      };
+    }
+
+    if (staff.role === 'manager') {
+      return { label: '8.500.000 đ', subText: 'Lương quản lý cố định/tháng' };
+    }
+    if (staff.role === 'admin') {
+      return { label: '19.000.000 đ', subText: 'Lương admin cố định/tháng' };
+    }
+    if (staff.role === 'hr') {
+      return { label: '12.000.000 đ', subText: 'Lương HR cố định/tháng' };
+    }
+    if (staff.role === 'marketing') {
+      return { label: '14.000.000 đ', subText: 'Lương marketing cố định/tháng' };
+    }
+    if (staff.role === 'accountant') {
+      return { label: '13.500.000 đ', subText: 'Lương kế toán cố định/tháng' };
+    }
+    if (staff.role === 'founder') {
+      return { label: 'Chủ Doanh Nghiệp', subText: 'Miễn chấm công' };
+    }
+
+    // Nhân viên theo giờ (sales, technician)
+    const isThuDuc = branch?.code === 'PK88_THUDUC';
+    const rate = isThuDuc ? 25500 : 22700;
+    const calculated = Math.round(effectiveHours * rate);
+    if (calculated > 0) {
+      return {
+        label: calculated.toLocaleString('vi-VN') + ' đ',
+        subText: `${rate.toLocaleString('vi-VN')} đ/h × ${effectiveHours.toFixed(1)}h`
+      };
+    }
+    return {
+      label: '0 đ',
+      subText: `${rate.toLocaleString('vi-VN')} đ/giờ (Chưa có ca làm)`
+    };
+  }, [totalSalary, staff, effectiveHours, branch]);
 
   // Role config for 5D Competency
   const roleConfig = ROLE_COMPETENCY_CONFIG[staff.role] || ROLE_COMPETENCY_CONFIG.sales;
@@ -1070,13 +1133,21 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
             <div className="grid grid-cols-2 gap-3 text-center">
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
                 <div className="text-[10px] text-slate-400 font-semibold mb-0.5">TỔNG GIỜ LÀM THÁNG NÀY</div>
-                <div className="text-lg font-black text-emerald-400 font-mono">{totalHours.toFixed(1)}h</div>
+                <div className="text-lg font-black text-emerald-400 font-mono">
+                  {effectiveHours.toFixed(1)}h
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5">
+                  {effectiveHours > 0 ? 'Dữ liệu GPS thực tế' : 'Chưa ghi nhận ca làm'}
+                </div>
               </div>
 
               <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
                 <div className="text-[10px] text-slate-400 font-semibold mb-0.5">LƯƠNG TẠM TÍNH (THÁNG)</div>
                 <div className="text-lg font-black text-rose-400 font-mono">
-                  {totalSalary > 0 ? totalSalary.toLocaleString('vi-VN') + ' đ' : 'Cố định'}
+                  {effectiveSalaryInfo.label}
+                </div>
+                <div className="text-[10px] text-slate-500 mt-0.5 truncate" title={effectiveSalaryInfo.subText}>
+                  {effectiveSalaryInfo.subText}
                 </div>
               </div>
             </div>

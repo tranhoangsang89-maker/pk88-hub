@@ -46,6 +46,9 @@ export interface Staff {
 
 export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'TANG_CUONG' | 'TUY_CHINH';
 
+export type AttendanceDisputeStatus = 'NONE' | 'PENDING' | 'APPROVED' | 'REJECTED';
+export type DisputeType = 'OUTSIDE_GEOFENCE' | 'FORGOT_CHECKIN' | 'FORGOT_CHECKOUT' | 'OFFSITE_DUTY';
+
 export interface AttendanceRecord {
   id: string;
   staffId: string;
@@ -61,6 +64,14 @@ export interface AttendanceRecord {
   notes?: string;
   isLate?: boolean;
   isOutsideGeofence?: boolean;
+  disputeStatus?: AttendanceDisputeStatus;
+  disputeType?: DisputeType;
+  disputeReason?: string;
+  proofImageUrl?: string;
+  disputedAt?: string;
+  disputeHandledBy?: string;
+  disputeHandledAt?: string;
+  rejectionReason?: string;
 }
 
 export interface RepairTicket {
@@ -174,5 +185,20 @@ export interface POSOrder {
   refundedBy?: string;
   createdAt: string;
   note?: string;
+}
+
+export type JobApplicationStatus = 'pending' | 'interview' | 'hired' | 'rejected';
+
+export interface JobApplication {
+  id: string;
+  branch_id: string;
+  full_name: string;
+  phone: string;
+  role_applied: string;
+  experience_note?: string;
+  status: JobApplicationStatus;
+  created_at: string;
+  interview_date?: string;
+  notes?: string;
 }
 

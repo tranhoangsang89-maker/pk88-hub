@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 14/10/2026 (Nâng Cấp Toàn Diện: Tách Riêng Tiếp Nhận Sửa Chữa & POS Nhanh, Tự Nhận Diện Chi Nhánh, Fix Trùng Lặp & Tự Nhận Diện Kênh Marketing, Chuẩn Hóa AI Quét Facebook Bóc Tách 100% Số Liệu Thật)*
+*Ngày cập nhật mới nhất: 15/10/2026 (Nâng Cấp Đột Phá: Giải Trình Chấm Công GPS 100m, Đồng Bộ URL & Nút Back Điện Thoại, Bộ Máy Trạng Thái Nhân Sự Realtime, Phân Hệ Tuyển Dụng & Chatbot Bé 8 AI Gemini Flash Lite)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,14 +7,44 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR và hệ thống LMS đào tạo nội bộ 60 ngày.
-- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx).
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, và phân hệ Tuyển dụng Onboarding thông minh.
+- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 14/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 15/10/2026) - QUAN TRỌNG
+
+### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
+1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
+   - Lưu trữ hồ sơ ứng viên: `id`, `branch_id`, `full_name`, `phone`, `role_applied`, `experience_note`, `status` (`pending` | `interview` | `hired` | `rejected`), `interview_date`, `notes`, `created_at`.
+   - Cấu hình Row Level Security (RLS) cho phép ứng viên nộp hồ sơ tự do từ bên ngoài (`anon insert`) mà không bị chặn auth.
+2. **Trang Ứng Tuyển Công Khai Mobile-First (`PublicRecruitmentView.tsx` - `/tuyen-dung`):**
+   - Giao diện thân thiện tối ưu hiển thị cho ứng viên từ liên kết QR / Zalo / TikTok / Facebook.
+   - Thẻ hiển thị các vị trí đang tuyển tại 8 chi nhánh (Bán hàng 7-12tr, Kỹ thuật sửa chữa 9-18tr, Quản lý 12-22tr, Media 8-15tr).
+   - Form nộp hồ sơ 1 phút: Nhập Họ tên, SĐT Zalo, Chi nhánh mong muốn, Vị trí, Kinh nghiệm ngắn. Ghi trực tiếp vào Supabase và có cache offline.
+3. **Phân Khu "Quản Lý Tuyển Dụng" Trong Admin / HR (`RecruitmentManagement.tsx`):**
+   - Subtab **"5. Tuyển Dụng & Onboard"** trong Admin Panel.
+   - **Kanban Board 4 cột trực quan**: `Chờ xét duyệt ⏳` ➔ `Hẹn phỏng vấn 📞` ➔ `Đã nhận việc 🎉` ➔ `Không phù hợp ❌`. Hỗ trợ chuyển đổi dạng Bảng dữ liệu (Table view).
+   - **Nút 1-Click "Chuyển thành nhân viên" (Onboard)**: Kiểm tra trùng lặp SĐT, tự động sao chép hồ sơ sang bảng `staff` với trạng thái thử việc (`probation`), phân quyền role và chi nhánh. Nhân viên mới có thể lập tức dùng SĐT đăng nhập chấm công GPS và học LMS.
+4. **Chatbot Tuyển Dụng AI Bé 8 (`RecruitmentChatBot.tsx`):**
+   - Sử dụng ảnh đại diện Robot cam đáng yêu (`public/be8-avatar.jpg`).
+   - Sử dụng mô hình **`gemini-flash-lite-latest`** xoay tua ngẫu nhiên (Round-Robin) danh sách API Keys trong `VITE_GEMINI_API_KEY`.
+   - Nạp tri thức tuyển dụng: giải đáp ca linh hoạt cho sinh viên, đào tạo ép kính từ đầu không cần kinh nghiệm, cam kết không giữ bằng gốc / không cọc tiền, địa chỉ 8 chi nhánh.
+   - Nút gợi ý câu hỏi nhanh (Quick Chips) và nút điều hướng *"📝 Điền form ứng tuyển ngay"*.
+
+### D. Giải Trình Chấm Công GPS & Đồng Bộ Điều Hướng Trình Duyệt (NEW - 15/10)
+1. **Giải Trình Chấm Công Ngoài Bán Kính 100m (`AttendanceDisputeModal.tsx`):**
+   - Thu hẹp bán kính Geofencing từ 200m xuống **100m** chuẩn xác theo yêu cầu thực tế.
+   - Khi nhân viên bị báo ngoài bán kính hoặc quên chấm công: hiển thị nút nộp đơn giải trình kèm ảnh quầy được nén tự động chống tràn bộ nhớ.
+   - Luồng Quản lý / HR duyệt công 1-click trên bảng công chi tiết (`AttendanceTimesheetView.tsx`).
+2. **Đồng Bộ Hóa URL & Xử Lý Nút Back Điện Thoại (`router.ts`):**
+   - Tích hợp `syncTabToUrl`, `getTabFromUrl` với `window.history` (`?tab=cham-cong`, `?tab=quan-tri`, `?tab=tuyen-dung`...).
+   - Bấm nút Back trên điện thoại lùi lại phân khu trước đó hoặc đóng modal thay vì thoát hẳn khỏi ứng dụng.
+3. **Chuẩn Hóa Bộ Máy Trạng Thái Nhân Sự Realtime (`staffStatus.ts`):**
+   - Tự động nhận diện thời gian thực: `🟢 Đang trong ca`, `🏠 Đã tan ca`, `🏖️ Nghỉ phép` (dựa trên đơn duyệt trong `leave_requests`), `🌙 Ngoài giờ làm` (từ sau 22:00 đến trước 07:30 hôm sau), `⏳ Chưa vào ca`, `🔴 Đã thôi việc`.
+   - Sửa lỗi hardcode 176h trong `StaffDetailModal.tsx`, tính toán động theo giờ công thực tế từ `attendanceLogs`.
 
 ### A. Nâng Cấp Toàn Diện Phân Hệ Chấm Công & Quản Lý Ca Kíp (Chuẩn AFOODS Hub - update-cham-cong.md) (NEW - 14/10)
 1. **Màn hình Check-in Nhân viên (`AttendanceCard.tsx`):**

@@ -18,14 +18,19 @@ import {
   Play,
   StopCircle,
   AlertTriangle,
-  Sliders
+  Sliders,
+  ShieldAlert,
+  FileText,
+  Camera
 } from 'lucide-react';
+import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
   currentStaff: Staff;
   onCheckInSuccess: (record: AttendanceRecord) => void;
   attendanceHistory: AttendanceRecord[];
+  onDisputeSubmit?: (record: AttendanceRecord) => Promise<void> | void;
 }
 
 export const AttendanceCard: React.FC<AttendanceCardProps> = ({
@@ -33,6 +38,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   currentStaff,
   onCheckInSuccess,
   attendanceHistory,
+  onDisputeSubmit,
 }) => {
   const isOffice = 
     currentBranch.code === 'PK88_VANPHONG' || 
@@ -46,6 +52,11 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   // Custom Shift Time states (Bắt buộc giờ bắt đầu & kết thúc)
   const [customStartTime, setCustomStartTime] = useState<string>('');
   const [customEndTime, setCustomEndTime] = useState<string>('');
+
+  // Attendance Dispute Modal States
+  const [isDisputeModalOpen, setIsDisputeModalOpen] = useState<boolean>(false);
+  const [disputeInitialType, setDisputeInitialType] = useState<any>('OUTSIDE_GEOFENCE');
+  const [disputeExistingRecord, setDisputeExistingRecord] = useState<AttendanceRecord | null>(null);
 
   useEffect(() => {
     setSelectedShift(isOffice ? 'HANH_CHINH' : 'CA_SANG');
@@ -97,8 +108,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const activeRecord = todayRecords.find(r => !r.checkOut);
   const isCurrentlyCheckedIn = !!activeRecord;
 
-  // Geofence Radius: 200 meters standard
-  const ALLOWED_RADIUS = 200;
+  // Geofence Radius: 100 meters standard (cập nhật từ 200m xuống 100m)
+  const ALLOWED_RADIUS = 100;
   const hasRealGps = userCoords !== null;
   const currentLat = userCoords ? userCoords.lat : currentBranch.lat + (simulatedOffsetMeters / 111000);
   const currentLng = userCoords ? userCoords.lng : currentBranch.lng;
@@ -414,6 +425,106 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     }
   };
 
+  const handleDisputeSubmit = async (disputeData: {
+    disputeType: any;
+    shiftType: ShiftType;
+    workDate: string;
+    checkInTime: string;
+    checkOutTime?: string;
+    disputeReason: string;
+    proofImageUrl: string;
+    lat?: number;
+    lng?: number;
+    distanceMeters?: number;
+    existingRecordId?: string;
+  }) => {
+    const checkInDateTime = `${disputeData.workDate}T${disputeData.checkInTime}:00`;
+    const checkInIso = new Date(checkInDateTime).toISOString();
+    let checkOutIso: string | undefined = undefined;
+    let workHours: number | undefined = undefined;
+
+    if (disputeData.checkOutTime) {
+      const checkOutDateTime = `${disputeData.workDate}T${disputeData.checkOutTime}:00`;
+      const outD = new Date(checkOutDateTime);
+      const inD = new Date(checkInDateTime);
+      if (outD.getTime() < inD.getTime()) {
+        outD.setDate(outD.getDate() + 1);
+      }
+      checkOutIso = outD.toISOString();
+      const diffMs = outD.getTime() - inD.getTime();
+      workHours = Math.max(0.1, +(diffMs / (1000 * 60 * 60)).toFixed(1));
+    }
+
+    const dist = disputeData.distanceMeters ?? distance;
+    const isOut = dist > ALLOWED_RADIUS;
+    const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - [GIẢI TRÌNH CHỜ DUYỆT]: ${disputeData.disputeReason}`;
+
+    const record: AttendanceRecord = {
+      id: disputeData.existingRecordId || `att-disp-${Date.now()}`,
+      staffId: currentStaff.id,
+      branchId: currentBranch.id,
+      checkIn: checkInIso,
+      checkOut: checkOutIso,
+      shiftType: disputeData.shiftType,
+      workHours,
+      lat: disputeData.lat ?? currentLat,
+      lng: disputeData.lng ?? currentLng,
+      distanceMeters: Math.round(dist),
+      isVerified: false,
+      isOutsideGeofence: isOut,
+      notes: noteText,
+      disputeStatus: 'PENDING',
+      disputeType: disputeData.disputeType,
+      disputeReason: disputeData.disputeReason,
+      proofImageUrl: disputeData.proofImageUrl,
+      disputedAt: new Date().toISOString()
+    };
+
+    try {
+      let dbBranchId = null;
+      const { data: bData } = await supabase.from('branches').select('id').eq('name', currentBranch.name).single();
+      if (bData) dbBranchId = bData.id;
+      else {
+        const { data: bFallback } = await supabase.from('branches').select('id').limit(1).single();
+        dbBranchId = bFallback?.id;
+      }
+
+      let dbStaffId = null;
+      const { data: sData } = await supabase.from('staff').select('id').eq('phone', currentStaff.phone).single();
+      if (sData) dbStaffId = sData.id;
+      else {
+        const { data: newStaff } = await supabase.from('staff').insert([{ full_name: currentStaff.fullName, phone: currentStaff.phone, role: currentStaff.role }]).select().single();
+        if (newStaff) dbStaffId = newStaff.id;
+      }
+
+      if (dbBranchId && dbStaffId) {
+        await supabase.from('attendance').insert([{
+          staff_id: dbStaffId,
+          branch_id: dbBranchId,
+          check_in: checkInIso,
+          check_out: checkOutIso || null,
+          shift_type: disputeData.shiftType,
+          work_hours: workHours || null,
+          lat: record.lat,
+          lng: record.lng,
+          distance_meters: Math.round(dist),
+          is_verified: false,
+          notes: noteText
+        }]);
+      }
+    } catch (err) {
+      console.error('Supabase dispute insert error:', err);
+    }
+
+    if (onDisputeSubmit) {
+      await onDisputeSubmit(record);
+    } else {
+      onCheckInSuccess(record);
+    }
+
+    showToast('✅ Đã gửi phiếu giải trình chấm công! Quản lý sẽ sớm phê duyệt.');
+  };
+
   return (
     <div className="glass-card rounded-2xl p-5 border border-cyan-500/30 bg-slate-900/95 shadow-2xl space-y-4">
       {/* Toast Notification */}
@@ -665,7 +776,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       <div className="space-y-2">
         <div className="flex items-center justify-between text-xs">
           <label className="font-extrabold text-slate-300 uppercase tracking-wider block">
-            2. BẢN ĐỒ GEOFENCING (BÁN KÍNH 200M)
+            2. BẢN ĐỒ GEOFENCING (BÁN KÍNH 100M)
           </label>
           <span className={`font-mono text-xs font-black ${isValidGeofence ? 'text-emerald-400' : 'text-rose-400'}`}>
             Khoảng cách: {formatDistance(distance)}
@@ -685,12 +796,12 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
             {isValidGeofence ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-emerald-300 font-extrabold">Trong phạm vi hợp lệ (&le; 200m)</span>
+                <span className="text-emerald-300 font-extrabold">Trong phạm vi hợp lệ (&le; 100m)</span>
               </>
             ) : (
               <>
                 <AlertTriangle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
-                <span className="text-rose-400 font-extrabold">Ngoài phạm vi (&gt; 200m)</span>
+                <span className="text-rose-400 font-extrabold">Ngoài phạm vi (&gt; 100m)</span>
               </>
             )}
           </div>
@@ -717,32 +828,32 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
               onClick={() => {
                 setUserCoords(null);
                 setSimulatedOffsetMeters(15);
-                showToast('🧪 Đã chuyển sang tọa độ: Tại Shop (~15m)');
+                showToast('🧪 Đã chuyển sang chế độ: Tại Shop');
               }}
               className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                !hasRealGps && simulatedOffsetMeters <= 200
+                !hasRealGps && simulatedOffsetMeters <= 100
                   ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
               }`}
             >
               <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Tại Shop (~15m)</span>
+              <span>Tại Shop</span>
             </button>
 
             <button
               onClick={() => {
                 setUserCoords(null);
-                setSimulatedOffsetMeters(15000);
-                showToast('🧪 Đã chuyển sang tọa độ: Ngoài Shop (~15km)');
+                setSimulatedOffsetMeters(250);
+                showToast('🧪 Đã chuyển sang chế độ: Ngoài Shop');
               }}
               className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                !hasRealGps && simulatedOffsetMeters > 200
+                !hasRealGps && simulatedOffsetMeters > 100
                   ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow'
                   : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
               }`}
             >
               <XCircle className="w-3.5 h-3.5 text-rose-400" />
-              <span>Ngoài Shop (~15km)</span>
+              <span>Ngoài Shop</span>
             </button>
           </div>
 
@@ -752,62 +863,134 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* 3. Action Button (Chấm Công Vào / Tan Ca) */}
-      {showSuccessMsg ? (
-        <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-1 animate-in fade-in">
-          <div className="flex items-center justify-center gap-2 text-emerald-400 font-extrabold text-sm">
-            <ShieldCheck className="w-5 h-5" />
-            <span>{actionMessage}</span>
+      {/* 3. Action Buttons (Chấm Công Vào / Tan Ca / Giải Trình Chấm Công) */}
+      <div className="space-y-2">
+        {showSuccessMsg ? (
+          <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 text-center space-y-1 animate-in fade-in">
+            <div className="flex items-center justify-center gap-2 text-emerald-400 font-extrabold text-sm">
+              <ShieldCheck className="w-5 h-5" />
+              <span>{actionMessage}</span>
+            </div>
+            <p className="text-[11px] text-slate-400">Dữ liệu đã được ghi nhận an toàn và đồng bộ tức thời lên Supabase.</p>
           </div>
-          <p className="text-[11px] text-slate-400">Dữ liệu đã được ghi nhận an toàn và đồng bộ tức thời lên Supabase.</p>
-        </div>
-      ) : (
-        <button
-          onClick={handleCheckAction}
-          disabled={!canCheckIn}
-          className={`w-full py-4 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95 ${
-            canCheckIn
-              ? isCurrentlyCheckedIn 
-                ? 'bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black ring-2 ring-rose-500/40 shadow-rose-900/30'
-                : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black ring-2 ring-emerald-500/40 shadow-emerald-900/30'
-              : 'bg-slate-800 text-slate-500 border border-slate-700/50 cursor-not-allowed'
-          }`}
-        >
-          {isCurrentlyCheckedIn ? (
-            <>
-              <StopCircle className="w-5 h-5 text-white" />
-              <span>BẤM CHẤM CÔNG TAN CA (CHỐT GIỜ LÀM)</span>
-            </>
-          ) : (
-            <>
-              <Play className="w-5 h-5" />
-              <span>
-                {isValidGeofence
-                  ? `BẤM CHẤM CÔNG VÀO CA (${currentBranch.code})`
-                  : `NGOÀI VÙNG GEOFENCE (>200M) - KHÔNG THỂ CHẤM CÔNG`}
-              </span>
-            </>
-          )}
-        </button>
-      )}
+        ) : (
+          <>
+            {canCheckIn ? (
+              <button
+                onClick={handleCheckAction}
+                className={`w-full py-4 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95 ${
+                  isCurrentlyCheckedIn 
+                    ? 'bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black ring-2 ring-rose-500/40 shadow-rose-900/30'
+                    : 'bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black ring-2 ring-emerald-500/40 shadow-emerald-900/30'
+                }`}
+              >
+                {isCurrentlyCheckedIn ? (
+                  <>
+                    <StopCircle className="w-5 h-5 text-white" />
+                    <span>BẤM CHẤM CÔNG TAN CA (CHỐT GIỜ LÀM)</span>
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    <span>BẤM CHẤM CÔNG VÀO CA ({currentBranch.code})</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              /* Khi ngoài bán kính 100m: Mở nút Giải Trình Chấm Công */
+              <button
+                type="button"
+                onClick={() => {
+                  setDisputeInitialType('OUTSIDE_GEOFENCE');
+                  setDisputeExistingRecord(null);
+                  setIsDisputeModalOpen(true);
+                }}
+                className="w-full py-4 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-600 hover:from-amber-400 hover:to-rose-500 text-white ring-2 ring-amber-400/50 shadow-amber-950/40"
+              >
+                <ShieldAlert className="w-5 h-5 text-amber-200 animate-pulse" />
+                <span>BẤM CHẤM CÔNG KÈM GIẢI TRÌNH (&gt; 100M)</span>
+              </button>
+            )}
+
+            {/* Nút phụ: Gửi giải trình chấm công bù hoặc quên chấm công */}
+            <button
+              type="button"
+              onClick={() => {
+                setDisputeInitialType('FORGOT_CHECKIN');
+                setDisputeExistingRecord(null);
+                setIsDisputeModalOpen(true);
+              }}
+              className="w-full py-2.5 px-3 rounded-xl border border-slate-800 hover:border-cyan-500/50 bg-slate-950/60 hover:bg-slate-950 text-slate-400 hover:text-cyan-300 text-xs font-semibold flex items-center justify-center gap-2 transition-all cursor-pointer"
+            >
+              <FileText className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Quên chấm công hoặc làm việc ngoài cửa hàng? Gửi giải trình bổ sung</span>
+            </button>
+          </>
+        )}
+      </div>
 
       {/* 4. Personal Attendance History */}
       <div className="mt-3 pt-3 border-t border-slate-800">
-        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2">Lịch sử chấm công gần nhất</h4>
+        <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center justify-between">
+          <span>Lịch sử chấm công gần nhất</span>
+          <span className="text-[10px] text-slate-500 font-normal">Hiển thị ca trực & giải trình</span>
+        </h4>
         <div className="space-y-2">
-          {visibleAttendanceHistory.slice(0, 3).map((item) => (
-            <div key={item.id} className="flex items-center justify-between text-xs bg-slate-950/70 p-2.5 rounded-xl border border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <div className={`w-2 h-2 rounded-full ${item.checkOut ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`}></div>
+          {visibleAttendanceHistory.slice(0, 4).map((item) => (
+            <div key={item.id} className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs bg-slate-950/70 p-3 rounded-xl border border-slate-800">
+              <div className="flex items-start sm:items-center gap-2.5">
+                <div className={`w-2.5 h-2.5 rounded-full mt-1 sm:mt-0 shrink-0 ${
+                  item.disputeStatus === 'PENDING'
+                    ? 'bg-amber-400 animate-ping'
+                    : item.disputeStatus === 'REJECTED'
+                    ? 'bg-rose-500'
+                    : item.checkOut 
+                    ? 'bg-emerald-400' 
+                    : 'bg-cyan-400 animate-pulse'
+                }`}></div>
                 <div className="flex flex-col">
-                  <span className="text-slate-200 font-semibold">
-                    Vào: {new Date(item.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
-                    {item.checkOut && ` ➔ Ra: ${new Date(item.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
-                  </span>
-                  <span className="text-[10px] text-slate-400">{item.notes}</span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-slate-200 font-bold">
+                      Vào: {new Date(item.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                      {item.checkOut && ` ➔ Ra: ${new Date(item.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`}
+                    </span>
+
+                    {/* Dispute Status Badges */}
+                    {item.disputeStatus === 'PENDING' && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1">
+                        <Clock className="w-3 h-3 text-amber-400 animate-spin" />
+                        <span>Chờ Quản lý duyệt</span>
+                      </span>
+                    )}
+                    {item.disputeStatus === 'APPROVED' && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                        <span>Đã duyệt hợp lệ</span>
+                      </span>
+                    )}
+                    {item.disputeStatus === 'REJECTED' && (
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1">
+                        <XCircle className="w-3 h-3 text-rose-400" />
+                        <span>Từ chối</span>
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] text-slate-400 mt-0.5 line-clamp-1">{item.notes}</span>
                 </div>
               </div>
-              <span className="font-mono text-emerald-400 font-bold">{item.distanceMeters !== undefined ? `${Math.round(item.distanceMeters)}m` : ''}</span>
+
+              <div className="flex items-center gap-2 self-end sm:self-center">
+                {item.distanceMeters !== undefined && (
+                  <span className={`font-mono text-xs font-bold ${item.distanceMeters <= ALLOWED_RADIUS ? 'text-emerald-400' : 'text-rose-400'}`}>
+                    {Math.round(item.distanceMeters)}m
+                  </span>
+                )}
+                {item.proofImageUrl && (
+                  <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-cyan-300 border border-cyan-500/30 flex items-center gap-1">
+                    <Camera className="w-2.5 h-2.5" /> Có ảnh
+                  </span>
+                )}
+              </div>
             </div>
           ))}
           {visibleAttendanceHistory.length === 0 && (
@@ -815,6 +998,20 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           )}
         </div>
       </div>
+
+      {/* Attendance Dispute Modal */}
+      <AttendanceDisputeModal
+        isOpen={isDisputeModalOpen}
+        onClose={() => setIsDisputeModalOpen(false)}
+        currentStaff={currentStaff}
+        currentBranch={currentBranch}
+        currentCoords={userCoords}
+        distanceMeters={distance}
+        initialDisputeType={disputeInitialType}
+        existingRecord={disputeExistingRecord}
+        onSubmitDispute={handleDisputeSubmit}
+      />
     </div>
   );
 };
+

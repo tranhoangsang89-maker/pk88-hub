@@ -59,8 +59,25 @@ CREATE TABLE IF NOT EXISTS attendance (
     lng DOUBLE PRECISION NOT NULL,
     distance_meters INT NOT NULL,
     is_verified BOOLEAN DEFAULT FALSE,
-    notes TEXT
+    notes TEXT,
+    -- Phân hệ Giải trình chấm công GPS (Dispute Attendance)
+    dispute_status VARCHAR(20) DEFAULT 'NONE', -- 'NONE', 'PENDING', 'APPROVED', 'REJECTED'
+    dispute_type VARCHAR(30), -- 'OUTSIDE_100M', 'FORGOT_CHECKIN', 'FORGOT_CHECKOUT', 'OFFSITE_WORK'
+    dispute_reason TEXT,
+    proof_image_url TEXT,
+    disputed_at TIMESTAMP WITH TIME ZONE,
+    dispute_handled_by VARCHAR(100),
+    rejection_reason TEXT
 );
+
+-- Migration nếu bảng attendance đã tồn tại từ trước:
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS dispute_status VARCHAR(20) DEFAULT 'NONE';
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS dispute_type VARCHAR(30);
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS dispute_reason TEXT;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS proof_image_url TEXT;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS disputed_at TIMESTAMP WITH TIME ZONE;
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS dispute_handled_by VARCHAR(100);
+ALTER TABLE attendance ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
 
 -- SEED 6 CHI NHÁNH PHỤ KIỆN 88
 INSERT INTO branches (code, name, address, lat, lng) VALUES

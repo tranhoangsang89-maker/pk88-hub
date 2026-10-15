@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff, LeaveRequest, LeaveStatus } from './types';
 import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS } from './lib/mockData';
 import { AttendanceCard } from './components/AttendanceCard';
@@ -13,21 +13,61 @@ import { MarketingModal } from './components/MarketingModal';
 import { AIHRModal } from './components/AIHRModal';
 import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { POSView } from './components/POSView';
+import { PublicRecruitmentView } from './components/PublicRecruitmentView';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
+import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl } from './lib/router';
 
 export function App() {
-  const [currentUser, setCurrentUser] = useState<Staff | null>(null);
-  const [isCustomerMode, setIsCustomerMode] = useState<boolean>(false);
+  // 1. Phục hồi user từ localStorage nếu đã đăng nhập trước đó
+  const [currentUser, setCurrentUser] = useState<Staff | null>(() => {
+    try {
+      const saved = localStorage.getItem('pk88_current_user');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {
+      console.warn('Lỗi đọc user từ localStorage:', e);
+    }
+    return null;
+  });
+
+  // 2. Kiểm tra xem URL có param ?mode=tra-cuu không
+  const [isCustomerMode, setIsCustomerMode] = useState<boolean>(() => {
+    return isCustomerModeFromUrl();
+  });
+
   const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'admin' | 'attendance' | 'staff_directory' | 'tickets' | 'pos' | 'training' | 'marketing'>('attendance');
+
+  // 3. Khởi tạo activeTab từ URL Search Params (?tab=cham-cong, ?tab=pos...)
+  const initialUrlTab = getTabFromUrl();
+  const [activeTab, setActiveTab] = useState<AppTab>(() => {
+    if (initialUrlTab) return initialUrlTab;
+    return 'attendance';
+  });
+
+  // Ghi nhớ tab dự định truy cập nếu người dùng truy cập trực tiếp URL khi chưa đăng nhập
+  const [pendingDirectTab, setPendingDirectTab] = useState<AppTab | null>(() => initialUrlTab);
+
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
-  const [showLoginModal, setShowLoginModal] = useState<boolean>(true);
+  
+  // Chỉ hiện modal đăng nhập nếu chưa có phiên đăng nhập, không ở chế độ khách tra cứu và không ở trang tuyển dụng
+  const [showLoginModal, setShowLoginModal] = useState<boolean>(() => {
+    const isGuest = isCustomerModeFromUrl();
+    const isRecruit = isRecruitmentModeFromUrl();
+    const hasSavedUser = typeof window !== 'undefined' && !!localStorage.getItem('pk88_current_user');
+    return !isGuest && !isRecruit && !hasSavedUser;
+  });
+
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
+
+  // Refs để xử lý đóng modal khi người dùng bấm nút Back trên điện thoại
+  const showAIHRModalRef = useRef(showAIHRModal);
+  showAIHRModalRef.current = showAIHRModal;
+  const showMarketingModalRef = useRef(showMarketingModal);
+  showMarketingModalRef.current = showMarketingModal;
   const [leaveRequests, setLeaveRequests] = useState<LeaveRequest[]>(() => {
     const cached = localStorage.getItem('pk88_leave_requests');
     if (cached) {
@@ -76,7 +116,27 @@ export function App() {
       } else if (data) {
         const formatted: AttendanceRecord[] = data.map((item: any) => {
           const isLate = item.is_late || item.notes?.toLowerCase().includes('đi trễ') || false;
-          const isOutsideGeofence = item.is_outside_geofence || (item.distance_meters !== undefined && item.distance_meters > 200) || false;
+          // Bán kính chuẩn hệ thống: 100m
+          const isOutsideGeofence = item.is_outside_geofence || (item.distance_meters !== undefined && item.distance_meters > 100) || false;
+
+          let disputeStatus = item.dispute_status || 'NONE';
+          let disputeReason = item.dispute_reason || undefined;
+          let proofImageUrl = item.proof_image_url || undefined;
+          let disputeType = item.dispute_type || undefined;
+          let disputeHandledBy = item.dispute_handled_by || undefined;
+          let rejectionReason = item.rejection_reason || undefined;
+
+          // Fallback parser từ chuỗi notes nếu database chưa migrate cột mới
+          if (disputeStatus === 'NONE' && item.notes) {
+            if (item.notes.includes('[GIẢI TRÌNH CHỜ DUYỆT]')) {
+              disputeStatus = 'PENDING';
+              disputeReason = item.notes.replace(/^.*\[GIẢI TRÌNH CHỜ DUYỆT\]:?/, '').trim();
+            } else if (item.notes.includes('[ĐÃ DUYỆT GIẢI TRÌNH')) {
+              disputeStatus = 'APPROVED';
+            } else if (item.notes.includes('[TỪ CHỐI GIẢI TRÌNH')) {
+              disputeStatus = 'REJECTED';
+            }
+          }
 
           return {
             id: item.id,
@@ -92,7 +152,14 @@ export function App() {
             isVerified: item.is_verified,
             notes: item.notes || 'Check-in GPS Hợp lệ',
             isLate,
-            isOutsideGeofence
+            isOutsideGeofence,
+            disputeStatus,
+            disputeType,
+            disputeReason,
+            proofImageUrl,
+            disputedAt: item.disputed_at,
+            disputeHandledBy,
+            rejectionReason
           };
         });
         setAttendanceHistory(formatted);
@@ -299,10 +366,159 @@ export function App() {
     fetchLeaveRequests();
   }, []);
 
+  // Lắng nghe sự kiện nút "Back" / "Forward" trên điện thoại và trình duyệt
+  useEffect(() => {
+    const handlePopState = (e: PopStateEvent) => {
+      // 1. Nếu có Modal đang mở, bấm Back trên điện thoại sẽ đóng modal trước
+      if (showAIHRModalRef.current) {
+        setShowAIHRModal(false);
+        return;
+      }
+      if (showMarketingModalRef.current) {
+        setShowMarketingModal(false);
+        return;
+      }
+
+      // 2. Kiểm tra URL xem là Chế độ khách hay Tab nào
+      const urlIsCustomer = isCustomerModeFromUrl();
+      const urlTab = getTabFromUrl();
+
+      if (urlIsCustomer) {
+        setIsCustomerMode(true);
+        return;
+      } else {
+        setIsCustomerMode(false);
+      }
+
+      if (urlTab) {
+        if (urlTab === 'recruitment') {
+          setActiveTab('recruitment');
+          setShowLoginModal(false);
+          return;
+        }
+        if (currentUser) {
+          if (canAccessTab(urlTab, currentUser.role)) {
+            setActiveTab(urlTab);
+          } else {
+            setActiveTab('attendance');
+          }
+        } else {
+          setPendingDirectTab(urlTab);
+          setShowLoginModal(true);
+        }
+      } else {
+        // Nếu không có param URL (về trang chủ)
+        if (currentUser) {
+          if (currentUser.role === 'admin') setActiveTab('admin');
+          else if (currentUser.role === 'founder') setActiveTab('dashboard');
+          else setActiveTab('attendance');
+        }
+      }
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [currentUser]);
+
+  // Đồng bộ URL lúc khởi động trang lần đầu (Hỗ trợ truy cập trực tiếp bằng URL)
+  useEffect(() => {
+    if (isCustomerMode) {
+      syncTabToUrl('tickets', true, true);
+    } else if (activeTab === 'recruitment' || getTabFromUrl() === 'recruitment' || isRecruitmentModeFromUrl()) {
+      setActiveTab('recruitment');
+      syncTabToUrl('recruitment', false, true);
+      setShowLoginModal(false);
+    } else if (currentUser) {
+      // Đã đăng nhập: ưu tiên tab yêu cầu từ URL nếu có quyền
+      const targetTab = (pendingDirectTab && canAccessTab(pendingDirectTab, currentUser.role))
+        ? pendingDirectTab
+        : (canAccessTab(activeTab, currentUser.role) ? activeTab : (currentUser.role === 'admin' ? 'admin' : currentUser.role === 'founder' ? 'dashboard' : 'attendance'));
+      
+      setActiveTab(targetTab);
+      syncTabToUrl(targetTab, false, true);
+      setPendingDirectTab(null);
+    } else {
+      // Chưa đăng nhập: nếu có URL tab thì yêu cầu đăng nhập
+      const urlTab = getTabFromUrl();
+      if (urlTab === 'recruitment') {
+        setActiveTab('recruitment');
+        syncTabToUrl('recruitment', false, true);
+        setShowLoginModal(false);
+      } else if (urlTab) {
+        setPendingDirectTab(urlTab);
+        setShowLoginModal(true);
+      }
+    }
+  }, []);
+
+  const handleNavigateTab = (tab: AppTab, replace: boolean = false) => {
+    if (isCustomerMode) {
+      setIsCustomerMode(false);
+    }
+
+    if (tab === 'recruitment') {
+      setActiveTab('recruitment');
+      syncTabToUrl('recruitment', false, replace);
+      setShowLoginModal(false);
+      return;
+    }
+
+    if (!currentUser) {
+      setPendingDirectTab(tab);
+      setShowLoginModal(true);
+      return;
+    }
+
+    // Kiểm tra quyền truy cập tab theo role
+    if (!canAccessTab(tab, currentUser.role)) {
+      alert(`Tài khoản (${currentUser.role}) không có quyền truy cập vào phân khu này.`);
+      return;
+    }
+
+    setActiveTab(tab);
+    syncTabToUrl(tab, false, replace);
+  };
+
+  const handleOpenAIHRModal = () => {
+    setShowAIHRModal(true);
+    window.history.pushState({ modal: 'ai-hr', tab: activeTab }, '', window.location.href);
+  };
+
+  const handleCloseAIHRModal = () => {
+    setShowAIHRModal(false);
+    if (window.history.state?.modal === 'ai-hr') {
+      window.history.back();
+    }
+  };
+
+  const handleOpenMarketingModal = () => {
+    setShowMarketingModal(true);
+    window.history.pushState({ modal: 'marketing', tab: activeTab }, '', window.location.href);
+  };
+
+  const handleCloseMarketingModal = () => {
+    setShowMarketingModal(false);
+    if (window.history.state?.modal === 'marketing') {
+      window.history.back();
+    }
+  };
+
+  const handleToggleCustomerMode = () => {
+    const nextMode = !isCustomerMode;
+    setIsCustomerMode(nextMode);
+    if (nextMode) {
+      syncTabToUrl('tickets', true, false);
+    } else {
+      const target = currentUser ? activeTab : 'attendance';
+      syncTabToUrl(target, false, false);
+    }
+  };
+
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
 
   const handleLoginSuccess = (staff: Staff) => {
     setCurrentUser(staff);
+    localStorage.setItem('pk88_current_user', JSON.stringify(staff));
     setIsCustomerMode(false);
     setShowLoginModal(false);
     
@@ -318,18 +534,158 @@ export function App() {
     fetchMarketingPosts();
     fetchLeaveRequests();
 
-    if (staff.role === 'admin') setActiveTab('admin');
-    else if (staff.role === 'founder') setActiveTab('dashboard');
-    else setActiveTab('attendance');
+    // Quyết định tab sau đăng nhập: Ưu tiên tab người dùng vừa click hoặc gõ trên URL (?tab=...)
+    const intendedTab = pendingDirectTab || getTabFromUrl();
+    let finalTab: AppTab;
+
+    if (intendedTab && canAccessTab(intendedTab, staff.role)) {
+      finalTab = intendedTab;
+    } else {
+      if (staff.role === 'admin') finalTab = 'admin';
+      else if (staff.role === 'founder') finalTab = 'dashboard';
+      else finalTab = 'attendance';
+    }
+
+    setActiveTab(finalTab);
+    syncTabToUrl(finalTab, false, false);
+    setPendingDirectTab(null);
   };
 
   const handleLogout = () => {
+    localStorage.removeItem('pk88_current_user');
     setCurrentUser(null);
+    setPendingDirectTab(null);
     setShowLoginModal(true);
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete('tab');
+    url.searchParams.delete('mode');
+    window.history.replaceState({}, '', url.pathname);
   };
 
   const handleCheckInSuccess = (record: AttendanceRecord) => {
     fetchRealAttendance();
+  };
+
+  const handleAttendanceDisputeSubmit = async (record: AttendanceRecord) => {
+    try {
+      // 1. Optimistic update local state
+      setAttendanceHistory(prev => {
+        const existingIdx = prev.findIndex(r => r.id === record.id);
+        if (existingIdx >= 0) {
+          const next = [...prev];
+          next[existingIdx] = record;
+          return next;
+        } else {
+          return [record, ...prev];
+        }
+      });
+
+      // 2. Cố gắng ghi lên Supabase
+      const isExistingDbRecord = record.id && !record.id.startsWith('local-') && !record.id.startsWith('dispute-') && !record.id.startsWith('mock-');
+      
+      const payload: any = {
+        dispute_status: 'PENDING',
+        dispute_type: record.disputeType || 'OUTSIDE_100M',
+        dispute_reason: record.disputeReason || '',
+        proof_image_url: record.proofImageUrl || null,
+        disputed_at: record.disputedAt || new Date().toISOString(),
+        notes: `[GIẢI TRÌNH CHỜ DUYỆT]: ${record.disputeReason || 'Chấm công ngoài bán kính 100m'}`
+      };
+
+      if (isExistingDbRecord) {
+        // Cập nhật record hiện có
+        await supabase
+          .from('attendance')
+          .update(payload)
+          .eq('id', record.id);
+      } else {
+        // Tạo record chấm công giải trình mới (chấm bù hoặc ngoài bán kính)
+        const insertPayload: any = {
+          staff_id: record.staffId,
+          branch_id: record.branchId,
+          check_in: record.checkIn,
+          check_out: record.checkOut || null,
+          shift_type: record.shiftType,
+          work_hours: record.workHours || 0,
+          lat: record.lat || selectedBranch.lat,
+          lng: record.lng || selectedBranch.lng,
+          distance_meters: record.distanceMeters || 0,
+          is_verified: false,
+          ...payload
+        };
+        const { data, error } = await supabase.from('attendance').insert([insertPayload]).select();
+        if (data && data.length > 0) {
+          // Thay id tạm thời bằng ID thật từ CSDL
+          setAttendanceHistory(prev => prev.map(r => r.id === record.id ? { ...r, id: data[0].id } : r));
+        }
+      }
+    } catch (err) {
+      console.warn('Lỗi đồng bộ giải trình lên Supabase (vẫn lưu cục bộ):', err);
+    }
+  };
+
+  const handleApproveDispute = async (recordId: string, approverName: string) => {
+    try {
+      // 1. Optimistic update
+      setAttendanceHistory(prev => prev.map(rec => {
+        if (rec.id === recordId) {
+          return {
+            ...rec,
+            isVerified: true,
+            isOutsideGeofence: false,
+            disputeStatus: 'APPROVED',
+            disputeHandledBy: approverName,
+            notes: `${rec.notes?.replace(/\[GIẢI TRÌNH CHỜ DUYỆT\].*$/, '').trim() || ''} [ĐÃ DUYỆT GIẢI TRÌNH bởi ${approverName}]`.trim()
+          };
+        }
+        return rec;
+      }));
+
+      // 2. Supabase update
+      if (!recordId.startsWith('local-') && !recordId.startsWith('mock-') && !recordId.startsWith('dispute-')) {
+        await supabase.from('attendance').update({
+          is_verified: true,
+          dispute_status: 'APPROVED',
+          dispute_handled_by: approverName,
+          notes: `[ĐÃ DUYỆT GIẢI TRÌNH bởi ${approverName}]`
+        }).eq('id', recordId);
+      }
+    } catch (err) {
+      console.error('Lỗi khi duyệt giải trình:', err);
+    }
+  };
+
+  const handleRejectDispute = async (recordId: string, rejecterName: string, reason: string) => {
+    try {
+      // 1. Optimistic update
+      setAttendanceHistory(prev => prev.map(rec => {
+        if (rec.id === recordId) {
+          return {
+            ...rec,
+            isVerified: false,
+            disputeStatus: 'REJECTED',
+            disputeHandledBy: rejecterName,
+            rejectionReason: reason,
+            notes: `${rec.notes?.replace(/\[GIẢI TRÌNH CHỜ DUYỆT\].*$/, '').trim() || ''} [TỪ CHỐI GIẢI TRÌNH bởi ${rejecterName}: ${reason}]`.trim()
+          };
+        }
+        return rec;
+      }));
+
+      // 2. Supabase update
+      if (!recordId.startsWith('local-') && !recordId.startsWith('mock-') && !recordId.startsWith('dispute-')) {
+        await supabase.from('attendance').update({
+          is_verified: false,
+          dispute_status: 'REJECTED',
+          dispute_handled_by: rejecterName,
+          rejection_reason: reason,
+          notes: `[TỪ CHỐI GIẢI TRÌNH bởi ${rejecterName}: ${reason}]`
+        }).eq('id', recordId);
+      }
+    } catch (err) {
+      console.error('Lỗi khi từ chối giải trình:', err);
+    }
   };
 
   const handleCreateTicket = async (newTicket: RepairTicket) => {
@@ -607,6 +963,18 @@ export function App() {
     }
   };
 
+  // Nếu đang ở trang tuyển dụng công khai (/tuyen-dung hoặc ?tab=tuyen-dung)
+  if (activeTab === 'recruitment') {
+    return (
+      <PublicRecruitmentView
+        branches={branches}
+        onBackToApp={() => {
+          handleNavigateTab(currentUser ? (currentUser.role === 'hr' || currentUser.role === 'admin' ? 'admin' : 'attendance') : 'attendance');
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
       {/* Login Modal Popup */}
@@ -617,6 +985,10 @@ export function App() {
           onGuestLookup={() => {
             setIsCustomerMode(true);
             setShowLoginModal(false);
+            syncTabToUrl('tickets', true, false);
+          }}
+          onRecruitmentApply={() => {
+            handleNavigateTab('recruitment');
           }}
         />
       )}
@@ -625,7 +997,7 @@ export function App() {
       {currentUser && (
         <MarketingModal
           isOpen={showMarketingModal}
-          onClose={() => setShowMarketingModal(false)}
+          onClose={handleCloseMarketingModal}
           currentUser={currentUser}
           currentBranch={selectedBranch}
           onSubmit={handleMarketingSubmit}
@@ -637,7 +1009,7 @@ export function App() {
       {currentUser && (
         <AIHRModal
           isOpen={showAIHRModal}
-          onClose={() => setShowAIHRModal(false)}
+          onClose={handleCloseAIHRModal}
           currentUser={currentUser}
           branches={branches}
           staffList={staffList}
@@ -674,7 +1046,7 @@ export function App() {
             {/* Quick Post Button for Staff */}
             {currentUser && !isCustomerMode && (
               <button
-                onClick={() => setShowMarketingModal(true)}
+                onClick={handleOpenMarketingModal}
                 className="hidden sm:flex px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs items-center gap-1.5 shadow-md shadow-blue-500/20 transition-colors animate-pulse hover:animate-none"
               >
                 <Send className="w-3.5 h-3.5" />
@@ -754,10 +1126,7 @@ export function App() {
 
             {/* Toggle Customer Mode View */}
             <button
-              onClick={() => {
-                setIsCustomerMode(!isCustomerMode);
-                if (!isCustomerMode) setActiveTab('tickets');
-              }}
+              onClick={handleToggleCustomerMode}
               className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
                 isCustomerMode
                   ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
@@ -766,6 +1135,16 @@ export function App() {
             >
               <QrCode className="w-4 h-4" />
               <span>{isCustomerMode ? 'Thoát Khách QR' : 'Khách Tra Cứu QR'}</span>
+            </button>
+
+            {/* Nút xem trang Tuyển Dụng Công Khai */}
+            <button
+              onClick={() => handleNavigateTab('recruitment')}
+              className="px-3 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+              title="Cổng ứng tuyển việc làm tại chuỗi Phụ Kiện 88"
+            >
+              <Briefcase className="w-4 h-4 text-amber-400" />
+              <span className="hidden sm:inline">Tuyển Dụng PK88</span>
             </button>
           </div>
         </div>
@@ -780,7 +1159,7 @@ export function App() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <button
-                  onClick={() => setActiveTab('admin')}
+                  onClick={() => handleNavigateTab('admin')}
                   className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'admin'
                       ? (currentUser.role === 'hr' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/20 font-extrabold' : 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold')
@@ -794,7 +1173,7 @@ export function App() {
 
               {(currentUser.role === 'founder' || currentUser.role === 'admin') && (
                 <button
-                  onClick={() => setActiveTab('dashboard')}
+                  onClick={() => handleNavigateTab('dashboard')}
                   className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     activeTab === 'dashboard'
                       ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
@@ -807,7 +1186,7 @@ export function App() {
               )}
 
               <button
-                onClick={() => setActiveTab('attendance')}
+                onClick={() => handleNavigateTab('attendance')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'attendance'
                     ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
@@ -819,7 +1198,7 @@ export function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('staff_directory')}
+                onClick={() => handleNavigateTab('staff_directory')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'staff_directory'
                     ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
@@ -833,7 +1212,7 @@ export function App() {
               {!(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <>
                   <button
-                    onClick={() => setActiveTab('tickets')}
+                    onClick={() => handleNavigateTab('tickets')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'tickets'
                         ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
@@ -845,7 +1224,7 @@ export function App() {
                   </button>
 
                   <button
-                    onClick={() => setActiveTab('pos')}
+                    onClick={() => handleNavigateTab('pos')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'pos'
                         ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
@@ -864,7 +1243,7 @@ export function App() {
               {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
                 <>
                   <button
-                    onClick={() => setActiveTab('tickets')}
+                    onClick={() => handleNavigateTab('tickets')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'tickets'
                         ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
@@ -876,7 +1255,7 @@ export function App() {
                   </button>
 
                   <button
-                    onClick={() => setActiveTab('pos')}
+                    onClick={() => handleNavigateTab('pos')}
                     className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                       activeTab === 'pos'
                         ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
@@ -890,7 +1269,7 @@ export function App() {
               )}
 
               <button
-                onClick={() => setActiveTab('marketing')}
+                onClick={() => handleNavigateTab('marketing')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'marketing'
                     ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
@@ -902,7 +1281,7 @@ export function App() {
               </button>
 
               <button
-                onClick={() => setActiveTab('training')}
+                onClick={() => handleNavigateTab('training')}
                 className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                   activeTab === 'training'
                     ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-extrabold'
@@ -914,7 +1293,7 @@ export function App() {
               </button>
 
               <button
-                onClick={() => setShowAIHRModal(true)}
+                onClick={handleOpenAIHRModal}
                 className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 shadow-sm"
               >
                 <UserCheck className="w-4 h-4 text-rose-400 animate-pulse flex-shrink-0" />
@@ -945,6 +1324,8 @@ export function App() {
                 onRefreshStaff={fetchStaff}
                 onRefreshAttendance={fetchRealAttendance}
                 onUpdateStaff={handleUpdateStaff}
+                onApproveDispute={handleApproveDispute}
+                onRejectDispute={handleRejectDispute}
                 currentUser={currentUser}
               />
             )}
@@ -956,7 +1337,7 @@ export function App() {
                 marketingPosts={marketingPosts}
                 leaveRequests={leaveRequests}
                 tickets={tickets}
-                onOpenAIHRModal={() => setShowAIHRModal(true)}
+                onOpenAIHRModal={handleOpenAIHRModal}
               />
             )}
 
@@ -966,6 +1347,7 @@ export function App() {
                   currentBranch={selectedBranch}
                   currentStaff={currentUser}
                   onCheckInSuccess={handleCheckInSuccess}
+                  onDisputeSubmit={handleAttendanceDisputeSubmit}
                   attendanceHistory={attendanceHistory}
                 />
               </div>
@@ -976,6 +1358,8 @@ export function App() {
                 currentBranch={selectedBranch}
                 currentUser={currentUser}
                 staffList={staffList}
+                attendanceLogs={attendanceHistory}
+                leaveRequests={leaveRequests}
                 onUpdateStaff={handleUpdateStaff}
               />
             )}
@@ -1014,7 +1398,7 @@ export function App() {
                 posts={marketingPosts} 
                 currentBranch={selectedBranch}
                 currentUser={currentUser}
-                onOpenSubmitModal={() => setShowMarketingModal(true)}
+                onOpenSubmitModal={handleOpenMarketingModal}
                 onUpdatePost={handleUpdateMarketingPost}
                 onDeletePost={handleDeleteMarketingPost}
               />

@@ -23,7 +23,13 @@ import {
   LogOut,
   X,
   Check,
-  Sliders
+  Sliders,
+  ShieldAlert,
+  Eye,
+  Camera,
+  ThumbsUp,
+  ThumbsDown,
+  XCircle
 } from 'lucide-react';
 
 interface AttendanceTimesheetViewProps {
@@ -31,6 +37,9 @@ interface AttendanceTimesheetViewProps {
   staffList: Staff[];
   attendanceLogs: AttendanceRecord[];
   onRefreshLogs?: () => void;
+  currentUser?: Staff;
+  onApproveDispute?: (recordId: string, approverName: string) => Promise<void> | void;
+  onRejectDispute?: (recordId: string, rejecterName: string, reason: string) => Promise<void> | void;
 }
 
 const getLocalYMD = (d: Date = new Date()): string => {
@@ -44,7 +53,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   branches,
   staffList,
   attendanceLogs,
-  onRefreshLogs
+  onRefreshLogs,
+  currentUser,
+  onApproveDispute,
+  onRejectDispute
 }) => {
   // Default filter is strictly TODAY for real-time tracking
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | '7days' | 'month' | 'all' | 'custom'>('today');
@@ -53,8 +65,14 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
   const [selectedShift, setSelectedShift] = useState<string>('ALL');
   const [warningOnly, setWarningOnly] = useState<boolean>(false);
+  const [disputeFilter, setDisputeFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Dispute actions & Lightbox modal states
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [rejectingDispute, setRejectingDispute] = useState<AttendanceRecord | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
 
   // Manual Checkout modal states for Admin / HR to close open or forgotten shifts
   const [checkoutTarget, setCheckoutTarget] = useState<AttendanceRecord | null>(null);
@@ -150,6 +168,92 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         setCheckoutTarget(null);
         onRefreshLogs?.();
       }
+    } catch (err: any) {
+      showToast(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setIsUpdatingDb(false);
+    }
+  };
+
+  // Manager Approve Dispute Action
+  const handleApproveDisputeAction = async (record: AttendanceRecord) => {
+    setIsUpdatingDb(true);
+    const handler = currentUser?.fullName || 'Quản lý Chi Nhánh';
+
+    // Calculate workHours if not present
+    let hours = record.workHours;
+    if (!hours || hours <= 0) {
+      if (record.checkIn && record.checkOut) {
+        const diffMs = new Date(record.checkOut).getTime() - new Date(record.checkIn).getTime();
+        hours = Math.max(0.1, +(diffMs / (1000 * 60 * 60)).toFixed(1));
+      } else {
+        hours = record.shiftType === 'HANH_CHINH' ? 8.5 : 8.0;
+      }
+    }
+
+    const noteAdd = ` | [ĐÃ DUYỆT GIẢI TRÌNH bởi ${handler}]`;
+    const updatedNotes = record.notes ? `${record.notes}${noteAdd}` : noteAdd;
+
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({
+          is_verified: true,
+          work_hours: hours,
+          notes: updatedNotes
+        })
+        .eq('id', record.id);
+
+      if (error) {
+        console.warn('Supabase update attendance error:', error.message);
+      }
+
+      if (onApproveDispute) {
+        await onApproveDispute(record.id, handler);
+      } else {
+        onRefreshLogs?.();
+      }
+
+      showToast(`✅ Đã phê duyệt hợp lệ ca làm việc của ${getStaffInfo(record).name}!`);
+    } catch (err: any) {
+      showToast(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setIsUpdatingDb(false);
+    }
+  };
+
+  // Manager Reject Dispute Action
+  const handleConfirmRejectDispute = async () => {
+    if (!rejectingDispute) return;
+    setIsUpdatingDb(true);
+    const handler = currentUser?.fullName || 'Quản lý Chi Nhánh';
+    const reason = rejectionReasonInput.trim() || 'Không đủ bằng chứng xác thực';
+
+    const noteAdd = ` | [TỪ CHỐI GIẢI TRÌNH bởi ${handler}: ${reason}]`;
+    const updatedNotes = rejectingDispute.notes ? `${rejectingDispute.notes}${noteAdd}` : noteAdd;
+
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .update({
+          is_verified: false,
+          notes: updatedNotes
+        })
+        .eq('id', rejectingDispute.id);
+
+      if (error) {
+        console.warn('Supabase update attendance error:', error.message);
+      }
+
+      if (onRejectDispute) {
+        await onRejectDispute(rejectingDispute.id, handler, reason);
+      } else {
+        onRefreshLogs?.();
+      }
+
+      showToast(`❌ Đã từ chối giải trình của ${getStaffInfo(rejectingDispute).name}!`);
+      setRejectingDispute(null);
+      setRejectionReasonInput('');
     } catch (err: any) {
       showToast(`❌ Lỗi: ${err.message}`);
     } finally {
@@ -259,9 +363,9 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
     }
   };
 
-  // Helper to determine status flags and overtime
+  // Helper to determine status flags and overtime (Bán kính 100m)
   const getStatusFlags = (record: AttendanceRecord) => {
-    const isOutside = record.isOutsideGeofence || (record.distanceMeters !== undefined && record.distanceMeters > 200);
+    const isOutside = record.isOutsideGeofence || (record.distanceMeters !== undefined && record.distanceMeters > 100);
     const isLate = record.isLate || record.notes?.toLowerCase().includes('đi trễ') || false;
 
     // Check elapsed hours and check-out status
@@ -294,6 +398,11 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
     return { isOutside, isLate, otHours, isCurrentlyWorking, isMissedCheckout };
   };
 
+  // Pending disputes count across all logs
+  const pendingDisputesCount = useMemo(() => {
+    return attendanceLogs.filter(r => r.disputeStatus === 'PENDING').length;
+  }, [attendanceLogs]);
+
   // Filtered attendance records
   const filteredRecords = useMemo(() => {
     return attendanceLogs.filter(record => {
@@ -307,18 +416,28 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         return false;
       }
 
-      // 3. Date range filter (Strict local date comparison)
-      const checkInDateStr = getLocalYMD(new Date(record.checkIn));
-      if (startDate && checkInDateStr < startDate) return false;
-      if (endDate && checkInDateStr > endDate) return false;
+      // 3. Dispute filter
+      if (disputeFilter !== 'ALL') {
+        if (disputeFilter === 'PENDING' && record.disputeStatus !== 'PENDING') return false;
+        if (disputeFilter === 'APPROVED' && record.disputeStatus !== 'APPROVED') return false;
+        if (disputeFilter === 'REJECTED' && record.disputeStatus !== 'REJECTED') return false;
+      }
 
-      // 4. Warning only filter
+      // 4. Date range filter (Strict local date comparison)
+      // When specifically looking at PENDING disputes with 'all' preset, show all pending disputes regardless of date
+      if (!(disputeFilter === 'PENDING' && datePreset === 'all')) {
+        const checkInDateStr = getLocalYMD(new Date(record.checkIn));
+        if (startDate && checkInDateStr < startDate) return false;
+        if (endDate && checkInDateStr > endDate) return false;
+      }
+
+      // 5. Warning only filter
       const { isOutside, isLate, isMissedCheckout } = getStatusFlags(record);
-      if (warningOnly && !isOutside && !isLate && !isMissedCheckout) {
+      if (warningOnly && !isOutside && !isLate && !isMissedCheckout && record.disputeStatus !== 'PENDING') {
         return false;
       }
 
-      // 5. Search filter (Name, Phone, Code)
+      // 6. Search filter (Name, Phone, Code, Dispute reason)
       if (searchTerm.trim()) {
         const term = searchTerm.toLowerCase();
         const staff = getStaffInfo(record);
@@ -326,12 +445,13 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         const matchPhone = staff.phone.includes(term);
         const matchCode = staff.code.toLowerCase().includes(term);
         const matchNote = record.notes?.toLowerCase().includes(term) || false;
-        if (!matchName && !matchPhone && !matchCode && !matchNote) return false;
+        const matchDispute = record.disputeReason?.toLowerCase().includes(term) || false;
+        if (!matchName && !matchPhone && !matchCode && !matchNote && !matchDispute) return false;
       }
 
       return true;
     });
-  }, [attendanceLogs, selectedBranch, selectedShift, startDate, endDate, warningOnly, searchTerm, staffMap, branchMap]);
+  }, [attendanceLogs, selectedBranch, selectedShift, startDate, endDate, warningOnly, disputeFilter, datePreset, searchTerm, staffMap, branchMap]);
 
   // KPI Calculations
   const todayRecords = useMemo(() => {
@@ -629,16 +749,35 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
             type="button"
             onClick={() => handleSelectPreset('all')}
             className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-              datePreset === 'all'
+              datePreset === 'all' && disputeFilter !== 'PENDING'
                 ? 'bg-emerald-500 text-slate-950 shadow-md font-black ring-1 ring-emerald-400'
                 : 'bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700'
             }`}
           >
             Tất Cả Lịch Sử
           </button>
+
+          {/* Quick Dispute Filter Preset Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setDatePreset('all');
+              setStartDate('');
+              setEndDate('');
+              setDisputeFilter('PENDING');
+            }}
+            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+              disputeFilter === 'PENDING'
+                ? 'bg-gradient-to-r from-amber-500 to-rose-600 text-slate-950 font-black shadow-lg shadow-amber-500/30 ring-1 ring-amber-300'
+                : 'bg-amber-950/40 border border-amber-500/40 text-amber-300 hover:bg-amber-900/40'
+            }`}
+          >
+            <ShieldAlert className="w-3.5 h-3.5 text-amber-400" />
+            <span>🚨 Giải Trình Chờ Duyệt ({pendingDisputesCount})</span>
+          </button>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5 text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 text-xs">
           {/* Filter 1: Chi nhánh */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Chi Nhánh</label>
@@ -671,7 +810,22 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
             </select>
           </div>
 
-          {/* Filter 3: Từ ngày */}
+          {/* Filter 3: Trạng thái Giải trình */}
+          <div>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Giải Trình</label>
+            <select
+              value={disputeFilter}
+              onChange={(e) => setDisputeFilter(e.target.value as any)}
+              className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-semibold focus:outline-none focus:border-amber-400"
+            >
+              <option value="ALL">📋 Tất Cả Trạng Thái</option>
+              <option value="PENDING">⏳ Chờ Quản Lý Duyệt ({pendingDisputesCount})</option>
+              <option value="APPROVED">✅ Đã Duyệt Hợp Lệ</option>
+              <option value="REJECTED">❌ Bị Từ Chối</option>
+            </select>
+          </div>
+
+          {/* Filter 4: Từ ngày */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Từ Ngày</label>
             <input
@@ -685,7 +839,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
             />
           </div>
 
-          {/* Filter 4: Đến ngày */}
+          {/* Filter 5: Đến ngày */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Đến Ngày</label>
             <input
@@ -699,7 +853,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
             />
           </div>
 
-          {/* Filter 5: Tìm kiếm */}
+          {/* Filter 6: Tìm kiếm */}
           <div>
             <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Tìm Nhân Viên</label>
             <div className="relative">
@@ -726,11 +880,11 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
             />
             <span className={`text-xs font-bold flex items-center gap-1 ${warningOnly ? 'text-rose-400' : 'text-slate-400'}`}>
               <AlertTriangle className="w-3.5 h-3.5" />
-              <span>Chỉ lọc bản ghi Có Cảnh Báo (Đi trễ hoặc Ngoài vùng GPS &gt; 200m)</span>
+              <span>Chỉ lọc bản ghi Có Cảnh Báo (Đi trễ, Ngoài vùng GPS &gt; 100m, hoặc Chờ duyệt)</span>
             </span>
           </label>
 
-          {(selectedBranch !== 'ALL' || selectedShift !== 'ALL' || startDate || endDate || warningOnly || searchTerm) && (
+          {(selectedBranch !== 'ALL' || selectedShift !== 'ALL' || startDate || endDate || warningOnly || disputeFilter !== 'ALL' || searchTerm) && (
             <button
               onClick={() => {
                 setSelectedBranch('ALL');
@@ -738,6 +892,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                 setStartDate('');
                 setEndDate('');
                 setWarningOnly(false);
+                setDisputeFilter('ALL');
                 setSearchTerm('');
               }}
               className="text-[11px] font-medium text-slate-400 hover:text-emerald-400 underline cursor-pointer"
@@ -764,7 +919,8 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                 <th className="p-3.5 text-center">Giờ Ra</th>
                 <th className="p-3.5 text-center">Tổng Giờ</th>
                 <th className="p-3.5 text-center">Khoảng Cách GPS</th>
-                <th className="p-3.5 text-center">Trạng Thái Đối Soát</th>
+                <th className="p-3.5 text-center">Trạng Thái &amp; Bằng Chứng</th>
+                <th className="p-3.5 text-center">Thao Tác Quản Lý</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-800/80">
@@ -776,9 +932,12 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                 const timeIn = checkInDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const timeOut = record.checkOut ? new Date(record.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
                 const { isOutside, isLate, otHours, isCurrentlyWorking, isMissedCheckout } = getStatusFlags(record);
+                const isPendingDispute = record.disputeStatus === 'PENDING';
+                const isApprovedDispute = record.disputeStatus === 'APPROVED';
+                const isRejectedDispute = record.disputeStatus === 'REJECTED';
 
                 return (
-                  <tr key={record.id || idx} className="hover:bg-slate-800/40 transition-colors">
+                  <tr key={record.id || idx} className={`transition-colors ${isPendingDispute ? 'bg-amber-950/20 hover:bg-amber-950/30' : 'hover:bg-slate-800/40'}`}>
                     {/* STT */}
                     <td className="p-3.5 text-center text-slate-500 font-mono text-[11px]">
                       {idx + 1}
@@ -865,10 +1024,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                       )}
                     </td>
 
-                    {/* Khoảng Cách GPS */}
+                    {/* Khoảng Cách GPS (Chuẩn 100m) */}
                     <td className="p-3.5 text-center font-mono">
                       {record.distanceMeters !== undefined ? (
-                        <span className={`font-bold ${record.distanceMeters <= 200 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <span className={`font-bold ${record.distanceMeters <= 100 ? 'text-emerald-400' : 'text-rose-400'}`}>
                           {Math.round(record.distanceMeters)}m
                         </span>
                       ) : (
@@ -876,37 +1035,129 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                       )}
                     </td>
 
-                    {/* Trạng Thái Badge */}
+                    {/* Trạng Thái & Bằng Chứng */}
                     <td className="p-3.5 text-center">
                       <div className="flex flex-col items-center gap-1">
-                        {isMissedCheckout && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                        {/* Dispute status badges */}
+                        {isPendingDispute && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse">
+                            <Clock className="w-3 h-3 text-amber-400 animate-spin" />
+                            <span>Chờ Quản lý duyệt</span>
+                          </span>
+                        )}
+
+                        {isApprovedDispute && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                            <span>Đã duyệt hợp lệ</span>
+                          </span>
+                        )}
+
+                        {isRejectedDispute && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/20 text-rose-300 border border-rose-500/40">
+                            <XCircle className="w-3 h-3 text-rose-400" />
+                            <span>Bị từ chối</span>
+                          </span>
+                        )}
+
+                        {/* Normal flags */}
+                        {!isPendingDispute && isMissedCheckout && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
                             <AlertTriangle className="w-3 h-3" />
                             <span>Quên Check-out</span>
                           </span>
                         )}
 
-                        {isOutside ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
+                        {!isPendingDispute && isOutside && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30">
                             <AlertTriangle className="w-3 h-3" />
-                            <span>Ngoài GPS (&gt;200m)</span>
+                            <span>Ngoài GPS (&gt;100m)</span>
                           </span>
-                        ) : null}
+                        )}
 
-                        {isLate ? (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
+                        {!isPendingDispute && isLate && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
                             <Clock className="w-3 h-3" />
                             <span>Đi trễ</span>
                           </span>
-                        ) : null}
+                        )}
 
-                        {!isOutside && !isLate && !isMissedCheckout ? (
+                        {!isPendingDispute && !isOutside && !isLate && !isMissedCheckout && !isApprovedDispute && !isRejectedDispute && (
                           <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
                             <CheckCircle2 className="w-3 h-3" />
                             <span>Đúng giờ / Hợp lệ</span>
                           </span>
-                        ) : null}
+                        )}
+
+                        {/* Dispute Reason preview */}
+                        {record.disputeReason && (
+                          <div className="text-[10px] text-amber-300/90 italic max-w-[170px] truncate cursor-help mt-0.5" title={record.disputeReason}>
+                            💬 "{record.disputeReason}"
+                          </div>
+                        )}
+
+                        {/* Proof image lightbox trigger */}
+                        {record.proofImageUrl && (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImageUrl(record.proofImageUrl!)}
+                            className="mt-0.5 inline-flex items-center gap-1 text-[10px] font-bold text-cyan-300 hover:text-cyan-200 bg-cyan-950/60 border border-cyan-500/40 px-2 py-0.5 rounded-lg cursor-pointer hover:bg-cyan-900/60 transition-colors"
+                          >
+                            <Camera className="w-3 h-3" />
+                            <span>Xem ảnh quầy</span>
+                          </button>
+                        )}
                       </div>
+                    </td>
+
+                    {/* Thao Tác Quản Lý (1-chạm Duyệt hoặc Từ chối) */}
+                    <td className="p-3.5 text-center">
+                      {isPendingDispute ? (
+                        <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                          <button
+                            type="button"
+                            onClick={() => handleApproveDisputeAction(record)}
+                            disabled={isUpdatingDb}
+                            className="px-2.5 py-1.5 rounded-xl font-black text-[11px] bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 flex items-center gap-1 shadow-md shadow-emerald-950/40 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Phê duyệt hợp lệ tính công vào bảng lương"
+                          >
+                            <Check className="w-3.5 h-3.5 text-slate-950" />
+                            <span>Duyệt</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setRejectingDispute(record);
+                              setRejectionReasonInput('Không đủ bằng chứng xác thực tại quầy');
+                            }}
+                            disabled={isUpdatingDb}
+                            className="px-2 py-1.5 rounded-xl font-bold text-[11px] bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-500/30 flex items-center gap-1 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+                            title="Từ chối giải trình"
+                          >
+                            <X className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Từ chối</span>
+                          </button>
+                        </div>
+                      ) : isApprovedDispute ? (
+                        <span className="text-[10px] text-emerald-400 font-semibold block">
+                          Đã tính lương
+                        </span>
+                      ) : isRejectedDispute ? (
+                        <span className="text-[10px] text-rose-400 font-semibold block">
+                          Không tính công
+                        </span>
+                      ) : isMissedCheckout || isCurrentlyWorking ? (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenCheckoutModal(record)}
+                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/40 transition-colors cursor-pointer"
+                        >
+                          Chốt ca
+                        </button>
+                      ) : (
+                        <span className="text-[10px] text-slate-500">Đã chốt</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -914,7 +1165,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
 
               {filteredRecords.length === 0 && (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-slate-500 space-y-2">
+                  <td colSpan={12} className="p-8 text-center text-slate-500 space-y-2">
                     <Filter className="w-8 h-8 text-slate-600 mx-auto" />
                     <p className="text-sm font-bold text-slate-400">Không tìm thấy bản ghi chấm công nào phù hợp với bộ lọc.</p>
                     <p className="text-xs text-slate-600">Hãy thử đổi khoảng ngày hoặc xóa tìm kiếm để xem thêm kết quả.</p>
@@ -926,7 +1177,111 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         </div>
       </div>
 
-      {/* 5. Modal Chốt Ca Ra Thủ Công cho Admin / HR */}
+      {/* 5. Modal Lightbox Xem Ảnh Bằng Chứng Tại Quầy */}
+      {previewImageUrl && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in"
+          onClick={() => setPreviewImageUrl(null)}
+        >
+          <div 
+            className="relative max-w-2xl w-full bg-slate-900 border border-cyan-500/40 rounded-3xl p-4 shadow-2xl space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <Camera className="w-4 h-4 text-cyan-400" />
+                <h3 className="text-sm font-extrabold text-slate-100">Ảnh Bằng Chứng Xác Thực Tại Quầy</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPreviewImageUrl(null)}
+                className="p-1.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 flex items-center justify-center max-h-[70vh]">
+              <img 
+                src={previewImageUrl} 
+                alt="Bằng chứng tại quầy" 
+                className="w-full h-auto max-h-[68vh] object-contain"
+              />
+            </div>
+
+            <div className="flex items-center justify-between text-xs text-slate-400 pt-1">
+              <span>Ảnh chụp đối soát hiện diện ca làm việc</span>
+              <button
+                type="button"
+                onClick={() => setPreviewImageUrl(null)}
+                className="px-4 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl text-xs cursor-pointer"
+              >
+                Đóng
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 6. Modal Từ Chối Giải Trình */}
+      {rejectingDispute && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+          <div className="glass-card max-w-md w-full p-6 rounded-3xl border border-rose-500/40 bg-slate-900 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-rose-400 font-extrabold text-sm">
+                <ShieldAlert className="w-5 h-5" />
+                <span>Từ Chối Phiếu Giải Trình</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectingDispute(null)}
+                className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+              <div><span className="text-slate-400">Nhân viên:</span> <strong className="text-slate-200">{getStaffInfo(rejectingDispute).name}</strong></div>
+              <div><span className="text-slate-400">Lý do giải trình:</span> <em className="text-amber-300">"{rejectingDispute.disputeReason || 'Không có'}"</em></div>
+            </div>
+
+            <div>
+              <label className="text-xs font-bold text-slate-300 block mb-1.5">
+                Lý Do Từ Chối Giải Trình <span className="text-rose-400">*</span>
+              </label>
+              <input
+                type="text"
+                value={rejectionReasonInput}
+                onChange={(e) => setRejectionReasonInput(e.target.value)}
+                placeholder="VD: Không có ảnh tại quầy, camera không ghi nhận..."
+                className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-rose-500 font-medium"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setRejectingDispute(null)}
+                className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                Hủy
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRejectDispute}
+                disabled={isUpdatingDb}
+                className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-900/30 disabled:opacity-50 cursor-pointer"
+              >
+                {isUpdatingDb ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <X className="w-3.5 h-3.5" />}
+                <span>Xác Nhận Từ Chối</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 7. Modal Chốt Ca Ra Thủ Công cho Admin / HR */}
       {checkoutTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
           <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-emerald-500/30 bg-slate-900 shadow-2xl space-y-4">

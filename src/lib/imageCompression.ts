@@ -156,3 +156,16 @@ export async function compressAvatarImage(
     reader.readAsDataURL(file);
   });
 }
+
+export async function compressProofImage(
+  file: File,
+  options: CompressOptions = {}
+): Promise<CompressedImageResult> {
+  return compressAvatarImage(file, {
+    maxWidth: 900,
+    maxHeight: 900,
+    quality: 0.75,
+    squareCrop: false,
+    ...options
+  });
+}

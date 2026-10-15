@@ -6,10 +6,11 @@ import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle 
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
   onGuestLookup?: () => void;
+  onRecruitmentApply?: () => void;
   staffList?: Staff[];
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup, staffList = MOCK_STAFF }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup, onRecruitmentApply, staffList = MOCK_STAFF }) => {
   const [phone, setPhone] = useState('0888003205'); // Default Admin Sang phone for fast testing
   const [password, setPassword] = useState('123456');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -142,9 +143,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
           </div>
         </div>
 
-        {/* Guest / Customer Lookup Shortcut */}
-        {onGuestLookup && (
-          <div className="mt-4 pt-4 border-t border-slate-800 text-center">
+        {/* Guest / Customer Lookup & Recruitment Shortcuts */}
+        <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-center">
+          {onGuestLookup && (
             <button
               type="button"
               onClick={onGuestLookup}
@@ -152,8 +153,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
             >
               Bạn là Khách hàng? Bấm tra cứu QR tại đây →
             </button>
-          </div>
-        )}
+          )}
+
+          {onRecruitmentApply && (
+            <button
+              type="button"
+              onClick={onRecruitmentApply}
+              className="w-full py-2 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
+            >
+              💼 Bạn muốn ứng tuyển vào PK88? Nộp hồ sơ ngay →
+            </button>
+          )}
+        </div>
       </div>
     </div>
   );

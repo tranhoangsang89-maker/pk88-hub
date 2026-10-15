@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
-import { Branch, Staff, UserRole, CompetencyScores } from '../types';
+import { Branch, Staff, UserRole, CompetencyScores, AttendanceRecord, LeaveRequest } from '../types';
 import { Users, Search, Filter, Phone, ShieldCheck, Star, Building2, ChevronRight, UserCheck, Sparkles, Gift } from 'lucide-react';
 import { StaffDetailModal } from './StaffDetailModal';
+import { getStaffRealtimeStatus } from '../lib/staffStatus';
 
 interface BranchStaffDirectoryProps {
   currentBranch: Branch;
   currentUser: Staff;
   staffList: Staff[];
+  attendanceLogs?: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
   onUpdateScores?: (staffId: string, updatedScores: CompetencyScores) => void;
   onUpdateStaff?: (updatedStaff: Staff) => void;
 }
@@ -15,6 +18,8 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
   currentBranch,
   currentUser,
   staffList,
+  attendanceLogs = [],
+  leaveRequests = [],
   onUpdateScores,
   onUpdateStaff,
 }) => {
@@ -255,9 +260,21 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
                   <h3 className="text-sm font-extrabold text-white truncate group-hover:text-cyan-300 transition-colors">
                     {staffMember.fullName}
                   </h3>
-                  <p className="text-[11px] font-mono text-slate-400 truncate mt-0.5">
-                    SĐT: <strong className="text-slate-200">{staffMember.phone}</strong>
-                  </p>
+                  <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 truncate mt-0.5 gap-1">
+                    <span className="truncate">SĐT: <strong className="text-slate-200">{staffMember.phone}</strong></span>
+                    {(() => {
+                      const status = getStaffRealtimeStatus(staffMember, attendanceLogs, leaveRequests);
+                      return (
+                        <span 
+                          className={`text-[9px] px-2 py-0.5 rounded-full font-bold border shrink-0 inline-flex items-center gap-1 ${status.colorClass}`}
+                          title={status.description}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${status.dotColor}`} />
+                          <span>{status.label}</span>
+                        </span>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
 
@@ -302,6 +319,7 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
         staff={selectedColleague}
         branch={currentBranch}
         branches={[currentBranch]}
+        attendanceLogs={attendanceLogs}
         canEdit={
           currentUser?.role === 'founder' || 
           currentUser?.role === 'admin' || 
