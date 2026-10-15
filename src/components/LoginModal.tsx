@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Staff, UserRole } from '../types';
 import { MOCK_STAFF } from '../lib/mockData';
-import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle } from 'lucide-react';
+import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle, HelpCircle, MessageSquare, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
@@ -15,6 +15,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [showQuickLogins, setShowQuickLogins] = useState<boolean>(false); // Mặc định ẩn danh sách test
+  const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
+  const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
 
   // Helper lấy mật khẩu của nhân viên (ưu tiên mật khẩu cá nhân đã đổi, nếu chưa đổi thì mặc định 123456)
   const getStaffPassword = (staffPhone: string): string => {
@@ -114,7 +116,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
           </div>
 
           <div>
-            <label className="text-slate-300 font-semibold block mb-1.5">Mật khẩu xác thực:</label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="text-slate-300 font-semibold">Mật khẩu xác thực:</label>
+              <button
+                type="button"
+                onClick={() => setShowForgotModal(true)}
+                className="text-[11px] text-amber-400/90 hover:text-amber-300 hover:underline cursor-pointer flex items-center gap-1 font-medium"
+              >
+                <HelpCircle className="w-3 h-3 text-amber-400" />
+                <span>Quên mật khẩu?</span>
+              </button>
+            </div>
             <div className="relative">
               <KeyRound className="w-4 h-4 absolute left-3.5 top-3.5 text-slate-500" />
               <input
@@ -206,6 +218,94 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
           )}
         </div>
       </div>
+
+      {/* Forgot Password Help Modal */}
+      {showForgotModal && (
+        <div className="fixed inset-0 bg-slate-950/95 z-50 flex items-center justify-center p-4 animate-fade-in">
+          <div className="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-sm w-full p-6 text-xs shadow-2xl relative">
+            <div className="flex items-center gap-2 text-amber-400 mb-3 font-bold text-sm">
+              <HelpCircle className="w-5 h-5 flex-shrink-0" />
+              <span>Hỗ Trợ Quên Mật Khẩu</span>
+            </div>
+
+            <p className="text-slate-300 leading-relaxed mb-4">
+              Vì lý do an toàn dữ liệu chuỗi, nhân viên quên mật khẩu vui lòng liên hệ trực tiếp cho <strong className="text-amber-300">Admin Quản Trị</strong> hoặc <strong className="text-amber-300">Nhân Sự (HR)</strong> để được cấp lại:
+            </p>
+
+            <div className="space-y-2 mb-4 bg-slate-950 p-3.5 rounded-2xl border border-slate-800">
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">1. Admin Hệ Thống:</span>
+                <span className="font-bold text-slate-200">Trần Hoàng Sang</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">SĐT / Zalo Admin:</span>
+                <a href="tel:0888003205" className="font-mono font-bold text-emerald-400 hover:underline">0888003205</a>
+              </div>
+              <div className="border-t border-slate-800/80 my-1"></div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">2. Nhân Sự (HR):</span>
+                <span className="font-bold text-slate-200">Phan Hoàng Khánh</span>
+              </div>
+              <div className="flex items-center justify-between text-[11px]">
+                <span className="text-slate-400">SĐT / Zalo HR:</span>
+                <a href="tel:0394336726" className="font-mono font-bold text-emerald-400 hover:underline">0394336726</a>
+              </div>
+            </div>
+
+            {resetSuccessMsg ? (
+              <div className="mb-4 p-3 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+                <span>{resetSuccessMsg}</span>
+              </div>
+            ) : (
+              <div className="mb-4 pt-1 border-t border-slate-800">
+                <p className="text-[10px] text-slate-500 mb-2">Hoặc nếu bạn đang thao tác trên thiết bị cá nhân của mình:</p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!phone.trim()) {
+                      alert('⚠️ Vui lòng nhập Số điện thoại của bạn ở màn hình đăng nhập trước!');
+                      setShowForgotModal(false);
+                      return;
+                    }
+                    try {
+                      const stored = localStorage.getItem('pk88_passwords');
+                      if (stored) {
+                        const passMap = JSON.parse(stored);
+                        delete passMap[phone.trim()];
+                        localStorage.setItem('pk88_passwords', JSON.stringify(passMap));
+                      }
+                      setResetSuccessMsg(`Đã khôi phục mật khẩu tài khoản ${phone.trim()} về mặc định (123456)!`);
+                      setTimeout(() => {
+                        setShowForgotModal(false);
+                        setResetSuccessMsg(null);
+                        setPassword('123456');
+                      }, 2000);
+                    } catch (e: any) {
+                      alert('Lỗi: ' + e.message);
+                    }
+                  }}
+                  className="w-full py-2 px-3 bg-slate-950 hover:bg-slate-800 border border-slate-700 hover:border-amber-500/40 text-amber-300 font-bold rounded-xl text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                >
+                  <RotateCcw className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Khôi phục về mật khẩu ban đầu (123456)</span>
+                </button>
+              </div>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                setShowForgotModal(false);
+                setResetSuccessMsg(null);
+              }}
+              className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-xl transition-all cursor-pointer"
+            >
+              Đóng Cửa Sổ
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
