@@ -187,6 +187,22 @@ export const RecruitmentManagement: React.FC<RecruitmentManagementProps> = ({
 
   useEffect(() => {
     fetchApplications();
+
+    // Lắng nghe Realtime từ Supabase khi có ứng viên mới nộp đơn
+    const channel = supabase
+      .channel('realtime_job_applications')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'job_applications' },
+        () => {
+          fetchApplications();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Thay đổi trạng thái ứng viên
