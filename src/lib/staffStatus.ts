@@ -1,7 +1,7 @@
 import { Staff, AttendanceRecord, LeaveRequest } from '../types';
 
 export interface StaffStatusBadge {
-  code: 'WORKING' | 'ON_LEAVE' | 'OFF_DUTY_HOURS' | 'SHIFT_ENDED' | 'NOT_CHECKED_IN' | 'INACTIVE';
+  code: 'WORKING' | 'ON_BREAK' | 'ON_LEAVE' | 'OFF_DUTY_HOURS' | 'SHIFT_ENDED' | 'NOT_CHECKED_IN' | 'INACTIVE';
   label: string;
   colorClass: string;
   dotColor: string;
@@ -78,8 +78,21 @@ export function getStaffRealtimeStatus(
     ? [...todayLogs].sort((a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime())[0]
     : null;
 
-  // Nếu đã check-in và CHƯA check-out -> Đang trực ca tại shop
+  // Nếu đã check-in và CHƯA check-out -> Đang trực ca tại shop hoặc tạm nghỉ trưa luân phiên
   if (latestLog && !latestLog.checkOut) {
+    const isBreak = latestLog.isOnBreak || 
+      (latestLog.notes && latestLog.notes.includes('[ĐANG NGHỈ TRƯA]') && !latestLog.notes.includes('[KẾT THÚC NGHỈ TRƯA]'));
+
+    if (isBreak) {
+      return {
+        code: 'ON_BREAK',
+        label: '☕ Đang nghỉ trưa',
+        colorClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20 ring-1 ring-amber-500/30',
+        dotColor: 'bg-amber-400',
+        description: `Đang tạm nghỉ trưa luân phiên tại shop (Bắt đầu lúc: ${latestLog.breakStart ? new Date(latestLog.breakStart).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'gần đây'})`
+      };
+    }
+
     return {
       code: 'WORKING',
       label: '🟢 Đang trong ca',

@@ -48,7 +48,7 @@ export interface Staff {
   salaryType?: 'hourly' | 'monthly' | 'probation';
 }
 
-export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'CA_TRUA' | 'CA_THU_VIEC' | 'TANG_CUONG' | 'TUY_CHINH';
+export type ShiftType = 'CA_SANG' | 'CA_CHIEU' | 'HANH_CHINH' | 'CA_TRUA' | 'CA_THU_VIEC' | 'CA_GAY' | 'TANG_CUONG' | 'TUY_CHINH';
 
 export interface ShiftDefinition {
   id: string;
@@ -120,6 +120,10 @@ export interface AttendanceRecord {
   notes?: string;
   isLate?: boolean;
   isOutsideGeofence?: boolean;
+  isOnBreak?: boolean;
+  breakStart?: string;
+  breakEnd?: string;
+  breakMinutes?: number;
   disputeStatus?: AttendanceDisputeStatus;
   disputeType?: DisputeType;
   disputeReason?: string;

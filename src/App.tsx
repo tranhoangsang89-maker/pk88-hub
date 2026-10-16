@@ -187,6 +187,9 @@ export function App() {
             }
           }
 
+          const isOnBreak = (item as any).is_on_break === true || 
+            (item.notes && item.notes.includes('[ĐANG NGHỈ TRƯA]') && !item.notes.includes('[KẾT THÚC NGHỈ TRƯA]'));
+
           return {
             id: item.id,
             staffId: item.staff_id || 'unknown',
@@ -202,6 +205,9 @@ export function App() {
             notes: item.notes || 'Check-in GPS Hợp lệ',
             isLate,
             isOutsideGeofence,
+            isOnBreak,
+            breakStart: (item as any).break_start,
+            breakEnd: (item as any).break_end,
             disputeStatus,
             disputeType,
             disputeReason,

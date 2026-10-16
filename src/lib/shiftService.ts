@@ -45,6 +45,18 @@ export const DEFAULT_COMPANY_SHIFTS: ShiftDefinition[] = [
     notes: 'Dành cho Khối Văn phòng, Kế toán, HR, Marketing (Nghỉ trưa 2h: 11:30 - 13:30)'
   },
   {
+    id: 'def_ca_gay_standard',
+    branchId: null,
+    code: 'CA_GAY',
+    name: 'Ca Gãy (07h-12h & 17h-22h)',
+    startTime: '07:00',
+    endTime: '22:00',
+    hours: 10.0,
+    color: 'amber',
+    isCompanyDefault: true,
+    notes: 'Ca gãy bán lẻ PK88 (Sáng 07:00 - 12:00, Chiều/Tối 17:00 - 22:00. Về nhà nghỉ 12:00 - 17:00)'
+  },
+  {
     id: 'def_ca_trua_custom',
     branchId: null,
     code: 'CA_TRUA',
@@ -99,6 +111,8 @@ export function calculateShiftHours(startTime: string, endTime: string): number 
   if (!startTime || !endTime) return 8.5;
   // Ca Hành Chính VP: 07:30 - 17:30 (Trừ 2 tiếng nghỉ trưa 11:30 - 13:30 => 8.0 tiếng)
   if (startTime === '07:30' && endTime === '17:30') return 8.0;
+  // Ca Gãy PK88: 07:00 - 12:00 (5h) + 17:00 - 22:00 (5h) => 10.0 tiếng
+  if (startTime === '07:00' && endTime === '22:00') return 10.0;
 
   const [sH, sM] = startTime.split(':').map(Number);
   const [eH, eM] = endTime.split(':').map(Number);
@@ -120,8 +134,8 @@ export function getShiftDefinitions(branchId?: string): ShiftDefinition[] {
       defs = DEFAULT_COMPANY_SHIFTS;
       localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(defs));
     } else {
-      // Đồng bộ Ca Hành Chính VP chuẩn 8 tiếng (nghỉ trưa 2h)
       let updated = false;
+      // Đồng bộ Ca Hành Chính VP chuẩn 8 tiếng (nghỉ trưa 2h)
       defs = defs.map(d => {
         if ((d.code === 'HANH_CHINH' || d.id === 'def_ca_van_phong') && d.hours !== 8.0) {
           updated = true;
@@ -129,6 +143,14 @@ export function getShiftDefinitions(branchId?: string): ShiftDefinition[] {
         }
         return d;
       });
+      // Tự động bổ sung Ca Gãy nếu chưa có trong cache
+      if (!defs.some(d => d.code === 'CA_GAY' || d.id === 'def_ca_gay_standard')) {
+        const gayDef = DEFAULT_COMPANY_SHIFTS.find(d => d.code === 'CA_GAY');
+        if (gayDef) {
+          defs.splice(3, 0, gayDef);
+          updated = true;
+        }
+      }
       if (updated) {
         localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(defs));
       }

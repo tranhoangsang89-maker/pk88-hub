@@ -26,7 +26,8 @@ import {
   LocateFixed,
   RotateCw,
   Loader2,
-  Compass
+  Compass,
+  Coffee
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
@@ -119,6 +120,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         return 'Ca Sáng (07:00 - 15:30)';
       case 'CA_CHIEU':
         return 'Ca Chiều (13:30 - 22:00)';
+      case 'CA_GAY':
+        return 'Ca Gãy (07:00 - 12:00 & 17:00 - 22:00)';
       case 'TANG_CUONG':
         return 'Ca Tăng Cường (Linh hoạt)';
       case 'TUY_CHINH':
@@ -198,6 +201,132 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const m = Math.floor((sec % 3600) / 60);
     const s = sec % 60;
     return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+  };
+
+  // Break Timer (Tạm Nghỉ Ăn Trưa Luân Phiên: 30 - 45 Phút)
+  const [isOnBreak, setIsOnBreak] = useState<boolean>(false);
+  const [breakStartTime, setBreakStartTime] = useState<number | null>(null);
+  const [breakElapsedSeconds, setBreakElapsedSeconds] = useState<number>(0);
+
+  // Sync break state from localStorage or activeRecord
+  useEffect(() => {
+    if (activeRecord) {
+      try {
+        const saved = localStorage.getItem(`pk88_break_state_${activeRecord.id}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed.isOnBreak && parsed.breakStart) {
+            setIsOnBreak(true);
+            const startTs = new Date(parsed.breakStart).getTime();
+            setBreakStartTime(startTs);
+            setBreakElapsedSeconds(Math.max(0, Math.floor((Date.now() - startTs) / 1000)));
+            return;
+          }
+        }
+      } catch (e) {}
+
+      if (activeRecord.isOnBreak && activeRecord.breakStart) {
+        setIsOnBreak(true);
+        const startTs = new Date(activeRecord.breakStart).getTime();
+        setBreakStartTime(startTs);
+        setBreakElapsedSeconds(Math.max(0, Math.floor((Date.now() - startTs) / 1000)));
+      } else {
+        setIsOnBreak(false);
+        setBreakStartTime(null);
+        setBreakElapsedSeconds(0);
+      }
+    } else {
+      setIsOnBreak(false);
+      setBreakStartTime(null);
+      setBreakElapsedSeconds(0);
+    }
+  }, [activeRecord?.id, activeRecord?.isOnBreak, activeRecord?.breakStart]);
+
+  // Break tick timer
+  useEffect(() => {
+    let interval: any = null;
+    if (isOnBreak && breakStartTime) {
+      interval = setInterval(() => {
+        setBreakElapsedSeconds(Math.max(0, Math.floor((Date.now() - breakStartTime) / 1000)));
+      }, 1000);
+    }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isOnBreak, breakStartTime]);
+
+  const formatBreakDuration = (totalSeconds: number) => {
+    const mins = Math.floor(totalSeconds / 60);
+    const secs = totalSeconds % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  };
+
+  const handleToggleBreak = async () => {
+    if (!activeRecord) return;
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    if (!isOnBreak) {
+      // Bắt đầu nghỉ trưa luân phiên
+      setIsOnBreak(true);
+      setBreakStartTime(now.getTime());
+      setBreakElapsedSeconds(0);
+      try {
+        localStorage.setItem(`pk88_break_state_${activeRecord.id}`, JSON.stringify({
+          isOnBreak: true,
+          breakStart: nowIso
+        }));
+      } catch (e) {}
+
+      const noteAdd = ` | [ĐANG NGHỈ TRƯA lúc ${timeStr}]`;
+      const updatedNotes = (activeRecord.notes || '') + noteAdd;
+
+      try {
+        await supabase.from('attendance').update({
+          notes: updatedNotes
+        }).eq('id', activeRecord.id);
+      } catch (e) {
+        console.error('Supabase break update error:', e);
+      }
+
+      onCheckInSuccess({
+        ...activeRecord,
+        isOnBreak: true,
+        breakStart: nowIso,
+        notes: updatedNotes
+      });
+      showToast('☕ Đã bắt đầu tạm nghỉ trưa luân phiên (30-45 phút)!');
+    } else {
+      // Đã ăn trưa xong, quay lại trực quầy
+      const durationMins = Math.max(1, Math.round(breakElapsedSeconds / 60));
+      setIsOnBreak(false);
+      setBreakStartTime(null);
+      setBreakElapsedSeconds(0);
+      try {
+        localStorage.removeItem(`pk88_break_state_${activeRecord.id}`);
+      } catch (e) {}
+
+      const noteAdd = ` | [KẾT THÚC NGHỈ TRƯA lúc ${timeStr} (Đã nghỉ ${durationMins}p)]`;
+      const updatedNotes = (activeRecord.notes || '') + noteAdd;
+
+      try {
+        await supabase.from('attendance').update({
+          notes: updatedNotes
+        }).eq('id', activeRecord.id);
+      } catch (e) {
+        console.error('Supabase break update error:', e);
+      }
+
+      onCheckInSuccess({
+        ...activeRecord,
+        isOnBreak: false,
+        breakEnd: nowIso,
+        breakMinutes: durationMins,
+        notes: updatedNotes
+      });
+      showToast(`🟢 Đã quay lại trực quầy! Tổng thời gian nghỉ trưa: ${durationMins} phút.`);
+    }
   };
 
   // Leaflet Map Refs
@@ -396,6 +525,14 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
     if (isCurrentlyCheckedIn && activeRecord) {
       // TAN CA (Check-out)
+      if (isOnBreak) {
+        setIsOnBreak(false);
+        setBreakStartTime(null);
+        try {
+          localStorage.removeItem(`pk88_break_state_${activeRecord.id}`);
+        } catch (e) {}
+      }
+
       const checkInTime = new Date(activeRecord.checkIn);
       const diffMs = now.getTime() - checkInTime.getTime();
       const workHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
@@ -634,10 +771,17 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
         {/* Live Work Status Badge */}
         {isCurrentlyCheckedIn ? (
-          <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
-            <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span>Đang Trong Ca</span>
-          </span>
+          isOnBreak ? (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-amber-400"></span>
+              <span>☕ Đang Nghỉ Trưa</span>
+            </span>
+          ) : (
+            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
+              <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
+              <span>Đang Trong Ca</span>
+            </span>
+          )
         ) : (
           <span className="text-[11px] font-medium text-slate-500">Chưa Vào Ca</span>
         )}
@@ -681,25 +825,69 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </button>
       </div>
 
-      {/* LIVE WORK TIMER BANNER (When Checked In) */}
+      {/* LIVE WORK TIMER & BREAK TIMER BANNER (When Checked In) */}
       {isCurrentlyCheckedIn && activeRecord && (
-        <div className="bg-gradient-to-r from-emerald-950/70 via-slate-950 to-emerald-950/70 border border-emerald-500/50 rounded-2xl p-4 text-center space-y-2 shadow-xl relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 animate-pulse"></div>
-          
-          <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-400">
-            <Clock className="w-4 h-4 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>THỜI GIAN LÀM VIỆC THỰC TẾ (REALTIME)</span>
-          </div>
+        <div className="space-y-2">
+          {isOnBreak ? (
+            /* TRẠNG THÁI: ĐANG NGHỈ TRƯA LUÂN PHIÊN (BREAK TIMER) */
+            <div className="bg-gradient-to-r from-amber-950/80 via-slate-950 to-amber-950/80 border-2 border-amber-500/60 rounded-2xl p-4 text-center space-y-3 shadow-xl relative overflow-hidden animate-in fade-in">
+              <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 animate-pulse"></div>
+              
+              <div className="flex items-center justify-center gap-2 text-xs font-extrabold text-amber-300">
+                <Coffee className="w-4 h-4 text-amber-400 animate-bounce" />
+                <span>ĐANG TẠM NGHỈ ĂN TRƯA LUÂN PHIÊN (30 - 45 PHÚT)</span>
+              </div>
 
-          <div className="text-4xl font-black font-mono tracking-widest text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]">
-            {formatTimerString(elapsedSeconds)}
-          </div>
+              <div className="text-4xl font-black font-mono tracking-widest text-amber-300 drop-shadow-[0_0_14px_rgba(245,158,11,0.5)]">
+                {formatBreakDuration(breakElapsedSeconds)}
+              </div>
 
-          <div className="flex items-center justify-center gap-4 text-xs text-slate-400 pt-1 border-t border-slate-800/80">
-            <span>Vào ca: <strong className="text-slate-200">{new Date(activeRecord.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</strong></span>
-            <span>•</span>
-            <span>Ca: <strong className="text-slate-200">{getShiftDisplayName(activeRecord.shiftType || selectedShift)}</strong></span>
-          </div>
+              <p className="text-[11px] text-amber-200/90 leading-relaxed max-w-sm mx-auto">
+                Cửa hàng đang có đồng đội trực quầy hỗ trợ bạn. Sau khi dùng bữa xong, vui lòng bấm nút xanh dưới đây để xác nhận quay lại trực quầy.
+              </p>
+
+              <button
+                type="button"
+                onClick={handleToggleBreak}
+                className="w-full py-3.5 px-4 rounded-xl font-black text-xs sm:text-sm bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg shadow-emerald-950/40 active:scale-95 ring-2 ring-emerald-400/50"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>🟢 ĐÃ ĂN XONG — BẤM QUAY LẠI TRỰC QUẦY</span>
+              </button>
+            </div>
+          ) : (
+            /* TRẠNG THÁI: ĐANG TRONG CA LÀM VIỆC BÌNH THƯỜNG */
+            <div className="space-y-2">
+              <div className="bg-gradient-to-r from-emerald-950/70 via-slate-950 to-emerald-950/70 border border-emerald-500/50 rounded-2xl p-4 text-center space-y-2 shadow-xl relative overflow-hidden">
+                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 animate-pulse"></div>
+                
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-emerald-400">
+                  <Clock className="w-4 h-4 animate-spin" style={{ animationDuration: '6s' }} />
+                  <span>THỜI GIAN LÀM VIỆC THỰC TẾ (REALTIME)</span>
+                </div>
+
+                <div className="text-4xl font-black font-mono tracking-widest text-emerald-300 drop-shadow-[0_0_12px_rgba(16,185,129,0.4)]">
+                  {formatTimerString(elapsedSeconds)}
+                </div>
+
+                <div className="flex items-center justify-center gap-4 text-xs text-slate-400 pt-1 border-t border-slate-800/80">
+                  <span>Vào ca: <strong className="text-slate-200">{new Date(activeRecord.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</strong></span>
+                  <span>•</span>
+                  <span>Ca: <strong className="text-slate-200">{getShiftDisplayName(activeRecord.shiftType || selectedShift)}</strong></span>
+                </div>
+              </div>
+
+              {/* Nút Bắt Đầu Tạm Nghỉ Ăn Trưa Luân Phiên (Dành cho ca thẳng bán lẻ) */}
+              <button
+                type="button"
+                onClick={handleToggleBreak}
+                className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-950/20 active:scale-95"
+              >
+                <Coffee className="w-4 h-4 text-amber-400" />
+                <span>☕ TẠM NGHỈ ĂN TRƯA (LUÂN PHIÊN 30 - 45 PHÚT)</span>
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -909,6 +1097,23 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                   <div>Ca Chiều (13:30 - 22:00)</div>
                 </button>
               </div>
+
+              {/* Ca Gãy Bán Lẻ (07:00 - 12:00 & 17:00 - 22:00) */}
+              <button
+                type="button"
+                onClick={() => setSelectedShift('CA_GAY')}
+                className={`w-full p-2.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer flex items-center justify-between ${
+                  selectedShift === 'CA_GAY'
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-md ring-1 ring-amber-500/30'
+                    : 'bg-slate-950/60 text-slate-400 border-slate-800 hover:text-slate-200'
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span className="font-bold">Ca Gãy Bán Lẻ (07:00 - 12:00 &amp; 17:00 - 22:00)</span>
+                </div>
+                <span className="text-[10px] font-mono text-amber-300">10 tiếng công • 2 phiên</span>
+              </button>
 
               {/* Ca Tăng cường / Part-time option */}
               <button

@@ -47,6 +47,18 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      + Danh sách nhân sự trong tệp Excel xuất in ấn A4.
      + Danh sách nhân sự cần gọi điện / nhắn tin Zalo nhắc nhở mở ca trong popup Cảnh Báo Đỏ.
      + Menu chọn nhân viên điều động công tác chéo giữa các chi nhánh.
+7. **Tích Hợp Tính Năng Tạm Nghỉ Ăn Trưa Luân Phiên (Break Timer) Dành Cho Ca Thẳng Bán Lẻ ([AttendanceCard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx)):**
+   - Giải quyết hoàn hảo bài toán luân phiên trực quầy: Nhân viên A bấm `[☕ Tạm Nghỉ Ăn Trưa]` khi đi ăn (tiêu chuẩn 30 - 45 phút) để đồng đội B trực quầy thay.
+   - Màn hình điện thoại hiển thị đồng hồ đếm thời gian nghỉ trực quan (`mm:ss`), nhắc nhở quy định và hiển thị nút hành động lớn: `[🟢 ĐÃ ĂN XONG — BẤM QUAY LẠI TRỰC QUẦY]`.
+   - Trạng thái làm việc trên toàn hệ thống (Danh bạ nhân viên, Bảng điều hành) tự động chuyển sang `☕ Đang nghỉ trưa` màu vàng, minh bạch quân số thực tế tại shop.
+   - Khi kết thúc bữa trưa, hệ thống tự động tính chính xác số phút nghỉ và lưu vào nhật ký chấm công.
+8. **Chuẩn Hóa Nghiệp Vụ "Ca Gãy" Bán Lẻ (Split Shift) ([shiftService.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/shiftService.ts) & [AttendanceCard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx)):**
+   - Phân biệt rành mạch giữa **Nghỉ trưa tại chỗ (Ca thẳng)** và **Về nhà nghỉ ngơi 5 tiếng (Ca gãy)**.
+   - Đã bổ sung mã ca **`CA_GAY` (07:00 - 12:00 & 17:00 - 22:00 = 10.0 tiếng công)** vào danh mục ca chuẩn toàn chuỗi PK88.
+   - Quy trình chấm công 2 phiên an toàn tuyệt đối về mặt két tiền & hàng hóa:
+     + **Phiên Sáng (07:00 - 12:00):** Check-in vào ca sáng -> 12:00 Bấm Tan Ca (Check-out) bàn giao tiền/két, về nhà nghỉ ngơi tự do.
+     + **Phiên Chiều/Tối (17:00 - 22:00):** 17:00 Đến cửa hàng Check-in vào ca mới -> 22:00 Bấm Tan Ca (Check-out).
+     + Bảng chấm công (Tab 1.2) tự động ghi nhận đủ 2 phiên và tổng hợp thành 10 tiếng làm việc (1.25 công).
 
 ### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**
