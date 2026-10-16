@@ -16,17 +16,37 @@ import { POSView } from './components/POSView';
 import { PublicRecruitmentView } from './components/PublicRecruitmentView';
 import { ShiftSchedulingMatrix } from './components/ShiftSchedulingMatrix';
 import { StaffDetailModal } from './components/StaffDetailModal';
+import { CounterServiceView } from './components/CounterServiceView';
+import { ShopManagementView } from './components/ShopManagementView';
+import { PersonalShiftsModal } from './components/PersonalShiftsModal';
+import { RoleSwitcher } from './components/RoleSwitcher';
 import { supabase } from './lib/supabase';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound } from 'lucide-react';
+import { calculateAttendanceIsLate } from './lib/shiftService';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
-import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl } from './lib/router';
+import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
 
 export function App() {
   // 1. Phục hồi user từ localStorage nếu đã đăng nhập trước đó
   const [currentUser, setCurrentUser] = useState<Staff | null>(() => {
     try {
       const saved = localStorage.getItem('pk88_current_user');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u.phone === '0888003205' || u.code === 'PK88-ADMIN' || u.fullName?.includes('Trần Hoàng Sang')) {
+          u.fullName = 'Trần Hoàng Sang';
+          u.role = 'admin';
+          u.branchId = '11111111-2222-3333-4444-555555555555';
+          localStorage.setItem('pk88_current_user', JSON.stringify(u));
+        } else if (u.phone === '0777888688' || u.role === 'founder' || u.fullName?.includes('Ngô Hồng Thao')) {
+          u.branchId = '11111111-2222-3333-4444-555555555555';
+          localStorage.setItem('pk88_current_user', JSON.stringify(u));
+        } else if (u.phone === '0394336726' || u.role === 'hr' || u.fullName?.includes('Phan Hoàng Khánh')) {
+          u.branchId = '11111111-2222-3333-4444-555555555555';
+          localStorage.setItem('pk88_current_user', JSON.stringify(u));
+        }
+        return u;
+      }
     } catch (e) {
       console.warn('Lỗi đọc user từ localStorage:', e);
     }
@@ -38,13 +58,27 @@ export function App() {
     return isCustomerModeFromUrl();
   });
 
-  const [selectedBranch, setSelectedBranch] = useState<Branch>(INITIAL_BRANCHES[0]);
+  // Khởi tạo selectedBranch: Tự động nhận diện chi nhánh của nhân sự nếu đã đăng nhập
+  const [selectedBranch, setSelectedBranch] = useState<Branch>(() => {
+    try {
+      const saved = localStorage.getItem('pk88_current_user');
+      if (saved) {
+        const u = JSON.parse(saved);
+        if (u?.branchId) {
+          const match = INITIAL_BRANCHES.find(b => b.id === u.branchId);
+          if (match) return match;
+        }
+      }
+    } catch (e) {}
+    // Mặc định ưu tiên Văn Phòng cho khối quản lý hoặc Phú Khương
+    return INITIAL_BRANCHES.find(b => b.code === 'PK88_VANPHONG') || INITIAL_BRANCHES[0];
+  });
 
   // 3. Khởi tạo activeTab từ URL Search Params (?tab=cham-cong, ?tab=pos...)
   const initialUrlTab = getTabFromUrl();
   const [activeTab, setActiveTab] = useState<AppTab>(() => {
     if (initialUrlTab) return initialUrlTab;
-    return 'attendance';
+    return getDefaultTabForRole(currentUser?.role);
   });
 
   // Ghi nhớ tab dự định truy cập nếu người dùng truy cập trực tiếp URL khi chưa đăng nhập
@@ -65,6 +99,18 @@ export function App() {
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showPersonalShiftsModal, setShowPersonalShiftsModal] = useState<boolean>(false);
+
+  // Tự động điều hướng nếu tab hiện tại không thuộc quyền hạn của vai trò hiện tại
+  useEffect(() => {
+    if (currentUser) {
+      if (!canAccessTab(activeTab, currentUser.role)) {
+        const def = getDefaultTabForRole(currentUser.role);
+        setActiveTab(def);
+        syncTabToUrl(def, false, true);
+      }
+    }
+  }, [currentUser?.role]);
 
   // Refs để xử lý đóng modal khi người dùng bấm nút Back trên điện thoại
   const showAIHRModalRef = useRef(showAIHRModal);
@@ -118,7 +164,7 @@ export function App() {
         console.error('Error fetching Supabase attendance:', error);
       } else if (data) {
         const formatted: AttendanceRecord[] = data.map((item: any) => {
-          const isLate = item.is_late || item.notes?.toLowerCase().includes('đi trễ') || false;
+          const isLate = calculateAttendanceIsLate(item.shift_type, item.check_in, item.notes, 10).isLate;
           // Bán kính chuẩn hệ thống: 100m
           const isOutsideGeofence = item.is_outside_geofence || (item.distance_meters !== undefined && item.distance_meters > 100) || false;
 
@@ -274,12 +320,37 @@ export function App() {
           isActive: d.is_active !== undefined ? d.is_active : true
         }));
         setBranches(formatted);
-        setSelectedBranch(formatted[0]); // Update default branch
+        
+        // Tự động nhận diện chi nhánh chuẩn xác theo nhân sự đang đăng nhập
+        setSelectedBranch(prev => {
+          // 1. Ưu tiên chi nhánh của nhân viên hiện tại đang đăng nhập
+          if (currentUser?.branchId) {
+            const userBranch = formatted.find(b => b.id === currentUser.branchId);
+            if (userBranch) return userBranch;
+          }
+          // 2. Giữ nguyên chi nhánh đang chọn nếu nó vẫn tồn tại
+          const stillValid = formatted.find(b => b.id === prev.id);
+          if (stillValid) return stillValid;
+          // 3. Mặc định ưu tiên Văn Phòng
+          const vp = formatted.find(b => b.code === 'PK88_VANPHONG');
+          if (vp) return vp;
+          return formatted[0];
+        });
       }
     } catch (err) {
       console.error('Fetch branches exception:', err);
     }
   };
+
+  // Tự động đồng bộ chi nhánh hiển thị theo chi nhánh của nhân sự khi đổi tài khoản
+  useEffect(() => {
+    if (currentUser?.branchId && branches.length > 0) {
+      const staffBranch = branches.find(b => b.id === currentUser.branchId);
+      if (staffBranch && staffBranch.id !== selectedBranch.id) {
+        setSelectedBranch(staffBranch);
+      }
+    }
+  }, [currentUser?.id, currentUser?.branchId, branches]);
 
   const handleAddBranch = async (newBranch: Branch) => {
     // Optimistic update
@@ -335,12 +406,19 @@ export function App() {
           const match = MOCK_STAFF.find(m => m.phone.trim() === item.phone.trim()) || MOCK_STAFF.find(m => m.id === item.id);
           const override = localOverrides[item.id] || localOverrides[item.phone];
 
+          let fName = item.full_name || override?.fullName || match?.fullName;
+          let role: UserRole = (item.role || override?.role || match?.role || 'sales') as UserRole;
+          if (item.phone === '0888003205' || item.code === 'PK88-ADMIN' || fName?.includes('Trần Hoàng Sang')) {
+            fName = 'Trần Hoàng Sang';
+            role = 'admin';
+          }
+
           return {
             id: item.id,
             branchId: item.branch_id || override?.branchId || match?.branchId || '2b150536-0b47-4e32-912b-b5ede701bfa6',
-            fullName: item.full_name || override?.fullName || match?.fullName,
+            fullName: fName,
             phone: item.phone || override?.phone || match?.phone,
-            role: item.role || override?.role || match?.role,
+            role,
             isActive: item.is_active !== undefined ? item.is_active : (override?.isActive !== undefined ? override.isActive : true),
             avatarUrl: item.avatar_url || override?.avatarUrl || match?.avatarUrl,
             code: override?.code || match?.code,
@@ -357,8 +435,21 @@ export function App() {
   };
 
   const handleUpdateStaff = (updatedStaff: Staff) => {
-    setStaffList(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+    const cleanStaff: Staff = (updatedStaff.phone === '0888003205' || updatedStaff.code === 'PK88-ADMIN' || updatedStaff.fullName?.includes('Trần Hoàng Sang'))
+      ? { ...updatedStaff, fullName: 'Trần Hoàng Sang', role: 'admin' }
+      : updatedStaff;
+    setStaffList(prev => prev.map(s => s.id === cleanStaff.id || s.phone === cleanStaff.phone ? cleanStaff : s));
   };
+
+  useEffect(() => {
+    if (currentUser && (currentUser.phone === '0888003205' || currentUser.code === 'PK88-ADMIN' || currentUser.fullName?.includes('Trần Hoàng Sang'))) {
+      if (currentUser.fullName !== 'Trần Hoàng Sang' || currentUser.role !== 'admin') {
+        const updated: Staff = { ...currentUser, fullName: 'Trần Hoàng Sang', role: 'admin' };
+        setCurrentUser(updated);
+        localStorage.setItem('pk88_current_user', JSON.stringify(updated));
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     fetchBranches();
@@ -519,6 +610,91 @@ export function App() {
 
   const role: UserRole = isCustomerMode ? 'customer' : currentUser ? currentUser.role : 'customer';
 
+  const handleRoleChange = (newRole: UserRole) => {
+    if (newRole === 'customer') {
+      setIsCustomerMode(true);
+      syncTabToUrl('tickets', true, false);
+      return;
+    }
+
+    setIsCustomerMode(false);
+    
+    const vpBranchId = '11111111-2222-3333-4444-555555555555';
+    const defaultStoreBranchId = '2b150536-0b47-4e32-912b-b5ede701bfa6';
+
+    // Tìm nhân sự đại diện trong danh sách
+    let targetStaff: Staff | undefined;
+    if (newRole === 'admin') {
+      targetStaff = staffList.find(s => s.phone === '0888003205' || s.code === 'PK88-ADMIN' || s.fullName?.includes('Trần Hoàng Sang'));
+      if (!targetStaff) {
+        targetStaff = {
+          id: 'e30be7a4-e5f6-47c0-8f27-d3f25d3adff8',
+          fullName: 'Trần Hoàng Sang',
+          phone: '0888003205',
+          role: 'admin',
+          branchId: vpBranchId,
+          isActive: true
+        };
+      } else {
+        targetStaff = { ...targetStaff, role: 'admin', fullName: 'Trần Hoàng Sang', branchId: vpBranchId };
+      }
+    } else if (newRole === 'founder') {
+      targetStaff = staffList.find(s => s.phone === '0777888688' || s.role === 'founder' || s.fullName?.includes('Ngô Hồng Thao'));
+      if (!targetStaff) {
+        targetStaff = {
+          id: '7526b7c5-12ac-442b-90a6-b68b9d624364',
+          fullName: 'Ngô Hồng Thao (Founder)',
+          phone: '0777888688',
+          role: 'founder',
+          branchId: vpBranchId,
+          isActive: true
+        };
+      } else {
+        targetStaff = { ...targetStaff, branchId: vpBranchId };
+      }
+    } else if (newRole === 'hr') {
+      targetStaff = staffList.find(s => s.phone === '0394336726' || s.role === 'hr' || s.fullName?.includes('Phan Hoàng Khánh'));
+      if (!targetStaff) {
+        targetStaff = {
+          id: '2ca747c8-2e62-4252-8525-1c8dcda93678',
+          fullName: 'Phan Hoàng Khánh',
+          phone: '0394336726',
+          role: 'hr',
+          branchId: vpBranchId,
+          isActive: true
+        };
+      } else {
+        targetStaff = { ...targetStaff, branchId: vpBranchId };
+      }
+    } else {
+      targetStaff = staffList.find(s => s.role === newRole && s.isActive) || staffList.find(s => s.role === newRole);
+      if (!targetStaff) {
+        targetStaff = {
+          id: `sample-${newRole}`,
+          fullName: `Nhân Viên (${newRole.toUpperCase()})`,
+          phone: '0901234567',
+          role: newRole,
+          branchId: defaultStoreBranchId,
+          isActive: true
+        };
+      }
+    }
+
+    setCurrentUser(targetStaff);
+    localStorage.setItem('pk88_current_user', JSON.stringify(targetStaff));
+
+    // Tự động nhận diện và chuyển chi nhánh dropdown theo đúng chi nhánh của nhân sự
+    const matchedBranch = branches.find(b => b.id === targetStaff!.branchId);
+    if (matchedBranch) {
+      setSelectedBranch(matchedBranch);
+    }
+
+    // Tự động điều hướng active tab về tab mặc định hợp lệ của role đó
+    const defTab = getDefaultTabForRole(newRole);
+    setActiveTab(defTab);
+    syncTabToUrl(defTab, false, false);
+  };
+
   const handleLoginSuccess = (staff: Staff) => {
     setCurrentUser(staff);
     localStorage.setItem('pk88_current_user', JSON.stringify(staff));
@@ -544,9 +720,7 @@ export function App() {
     if (intendedTab && canAccessTab(intendedTab, staff.role)) {
       finalTab = intendedTab;
     } else {
-      if (staff.role === 'admin') finalTab = 'admin';
-      else if (staff.role === 'founder') finalTab = 'dashboard';
-      else finalTab = 'attendance';
+      finalTab = getDefaultTabForRole(staff.role);
     }
 
     setActiveTab(finalTab);
@@ -966,6 +1140,216 @@ export function App() {
     }
   };
 
+  interface NavTabItem {
+    id: AppTab;
+    label: string;
+    shortLabel: string;
+    icon: React.ReactNode;
+    activeColor: string;
+  }
+
+  const getNavTabsForRole = (role?: UserRole): NavTabItem[] => {
+    if (!role) {
+      return [
+        {
+          id: 'attendance',
+          label: '📱 Ca & Chấm Công',
+          shortLabel: 'Chấm Công',
+          icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        }
+      ];
+    }
+
+    // 1. Founder: Miễn chấm công, toàn quyền giám sát 4 Hub điều hành
+    if (role === 'founder') {
+      return [
+        {
+          id: 'dashboard',
+          label: '📊 Tổng Quan (Executive)',
+          shortLabel: 'Tổng Quan',
+          icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'hr_hub',
+          label: '👥 Vận Hành Nhân Lực (HR Hub)',
+          shortLabel: 'Nhân Lực',
+          icon: <Users className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-rose-500 text-white shadow-rose-500/20'
+        },
+        {
+          id: 'marketing',
+          label: '📢 Marketing & CSKH',
+          shortLabel: 'Marketing',
+          icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
+        },
+        {
+          id: 'system',
+          label: '⚙️ Cài Đặt Hệ Thống',
+          shortLabel: 'Hệ Thống',
+          icon: <Settings className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+        }
+      ];
+    }
+
+    // 2. Ban Quản Trị / Điều Hành Cấp Cao (Admin, HR, Sales Head): Có đầy đủ Hub và Tab Chấm Công GPS
+    if (role === 'admin' || role === 'hr' || role === 'sales_head') {
+      return [
+        {
+          id: 'attendance',
+          label: '📱 Ca & Chấm Công',
+          shortLabel: 'Chấm Công',
+          icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
+          id: 'dashboard',
+          label: '📊 Tổng Quan (Executive)',
+          shortLabel: 'Tổng Quan',
+          icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'hr_hub',
+          label: '👥 Vận Hành Nhân Lực (HR Hub)',
+          shortLabel: 'Nhân Lực',
+          icon: <Users className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-rose-500 text-white shadow-rose-500/20'
+        },
+        {
+          id: 'marketing',
+          label: '📢 Marketing & CSKH',
+          shortLabel: 'Marketing',
+          icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
+        },
+        {
+          id: 'system',
+          label: '⚙️ Cài Đặt Hệ Thống',
+          shortLabel: 'Hệ Thống',
+          icon: <Settings className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+        }
+      ];
+    }
+
+    // 3. Khối Kế Toán & Kế Toán Kho: Chấm công + Báo cáo Tổng Quan + Bảng Lương HR
+    if (role === 'accountant' || role === 'warehouse_accountant') {
+      return [
+        {
+          id: 'attendance',
+          label: '📱 Ca & Chấm Công',
+          shortLabel: 'Chấm Công',
+          icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
+          id: 'dashboard',
+          label: '📊 Tổng Quan Báo Cáo',
+          shortLabel: 'Tổng Quan',
+          icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'hr_hub',
+          label: '👥 Bảng Lương & Nhân Lực',
+          shortLabel: 'Lương & HR',
+          icon: <Users className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-rose-500 text-white shadow-rose-500/20'
+        }
+      ];
+    }
+
+    // 4. Khối Marketing & Media: Chấm công + Chiến dịch Marketing + Học viện đào tạo
+    if (role === 'marketing' || role === 'media') {
+      return [
+        {
+          id: 'attendance',
+          label: '📱 Ca & Chấm Công',
+          shortLabel: 'Chấm Công',
+          icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
+          id: 'marketing',
+          label: '📢 Marketing & CSKH',
+          shortLabel: 'Marketing',
+          icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
+        },
+        {
+          id: 'training',
+          label: '🎓 Học Viện 88',
+          shortLabel: 'Học Viện',
+          icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+        }
+      ];
+    }
+
+    // 5. Cửa Hàng Trưởng (Manager): Chấm công + Quầy POS/Tiếp nhận + Học viện + Quản lý cửa hàng
+    if (role === 'manager') {
+      return [
+        {
+          id: 'attendance',
+          label: '📱 Ca & Chấm Công',
+          shortLabel: 'Chấm Công',
+          icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'counter',
+          label: '🛒 Quầy Phục Vụ',
+          shortLabel: 'Quầy POS',
+          icon: <ShoppingBag className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
+          id: 'training',
+          label: '🎓 Học Viện 88',
+          shortLabel: 'Học Viện',
+          icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+        },
+        {
+          id: 'shop_management',
+          label: '🏪 Quản Lý Cửa Hàng',
+          shortLabel: 'QL Shop',
+          icon: <Building2 className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-purple-500 text-white shadow-purple-500/20'
+        }
+      ];
+    }
+
+    // 6. Nhân viên tại quầy (Sales, Kỹ thuật viên)
+    return [
+      {
+        id: 'attendance',
+        label: '📱 Ca & Chấm Công',
+        shortLabel: 'Chấm Công',
+        icon: <Clock className="w-4 h-4 flex-shrink-0" />,
+        activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+      },
+      {
+        id: 'counter',
+        label: '🛒 Quầy Phục Vụ',
+        shortLabel: 'Quầy POS',
+        icon: <ShoppingBag className="w-4 h-4 flex-shrink-0" />,
+        activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+      },
+      {
+        id: 'training',
+        label: '🎓 Học Viện 88',
+        shortLabel: 'Học Viện',
+        icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+        activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
+      }
+    ];
+  };
+
   // Nếu đang ở trang tuyển dụng công khai (/tuyen-dung hoặc ?tab=tuyen-dung)
   if (activeTab === 'recruitment') {
     return (
@@ -1023,6 +1407,14 @@ export function App() {
       )}
 
 
+      {/* Test Role Switcher Bar */}
+      {currentUser && !isCustomerMode && (
+        <RoleSwitcher
+          currentRole={currentUser.role}
+          onRoleChange={handleRoleChange}
+        />
+      )}
+
       {/* Main Header Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-md">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
@@ -1046,6 +1438,22 @@ export function App() {
 
           {/* User Account / Login & Branch Bar */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            {/* Quick GPS Check-In Button for Staff (Except Founder) */}
+            {currentUser && currentUser.role !== 'founder' && !isCustomerMode && (
+              <button
+                onClick={() => handleNavigateTab('attendance')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                  activeTab === 'attendance'
+                    ? 'bg-emerald-500 text-slate-950 font-extrabold ring-1 ring-emerald-400'
+                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                }`}
+                title="Bấm để Chấm Công Định Vị GPS"
+              >
+                <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                <span className="hidden sm:inline">Chấm Công GPS</span>
+              </button>
+            )}
+
             {/* Quick Post Button for Staff */}
             {currentUser && !isCustomerMode && (
               <button
@@ -1162,170 +1570,38 @@ export function App() {
       </header>
 
       {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 space-y-6">
-        {/* Navigation Tabs for Logged-In Users (2 Rows: 4 tabs on Row 1, balanced per Role) */}
-        {!isCustomerMode && currentUser && (
-          <div className="bg-slate-900/90 border border-slate-800/90 p-2.5 rounded-2xl space-y-2 shadow-lg">
-            {/* Row 1: 5 Tabs */}
-            <div className={`grid gap-2 ${(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') ? 'grid-cols-2 md:grid-cols-5' : 'grid-cols-2 md:grid-cols-5'}`}>
-              {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
-                <button
-                  onClick={() => handleNavigateTab('admin')}
-                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeTab === 'admin'
-                      ? (currentUser.role === 'hr' ? 'bg-pink-500 text-white shadow-md shadow-pink-500/20 font-extrabold' : 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold')
-                      : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                  }`}
-                >
-                  {currentUser.role === 'hr' ? <Users className="w-4 h-4 flex-shrink-0" /> : <Cpu className="w-4 h-4 flex-shrink-0" />}
-                  <span className="truncate">{currentUser.role === 'hr' ? 'Quản Trị Nhân Sự (HR)' : 'Quản Trị System Admin'}</span>
-                </button>
-              )}
+      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 pb-24 md:pb-6 space-y-6">
+        {/* Navigation Tabs for Logged-In Users (Desktop: Single Row Tinh Gọn) */}
+        {!isCustomerMode && currentUser && (() => {
+          const visibleNavTabs = getNavTabsForRole(currentUser.role);
 
-              {(currentUser.role === 'founder' || currentUser.role === 'admin') && (
-                <button
-                  onClick={() => handleNavigateTab('dashboard')}
-                  className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                    activeTab === 'dashboard'
-                      ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                      : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                  }`}
-                >
-                  <LayoutDashboard className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">Executive Dashboard</span>
-                </button>
-              )}
+          return (
+            <div className="hidden md:flex items-center justify-center gap-2 p-1.5 bg-slate-900/90 border border-slate-800/90 rounded-2xl shadow-lg backdrop-blur-md max-w-5xl mx-auto">
+              {visibleNavTabs.map(tab => {
+                const isTabActive = activeTab === tab.id || 
+                  (tab.id === 'counter' && (activeTab === 'pos' || activeTab === 'tickets')) ||
+                  (tab.id === 'hr_hub' && (activeTab === 'shifts' || (activeTab === 'admin' && currentUser?.role === 'hr'))) ||
+                  (tab.id === 'system' && activeTab === 'admin' && currentUser?.role !== 'hr') ||
+                  (tab.id === 'shop_management' && activeTab === 'staff_directory');
 
-              {/* Phân Ca Làm Việc & Điều Động */}
-              <button
-                onClick={() => handleNavigateTab('shifts')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'shifts'
-                    ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold ring-1 ring-cyan-400/50'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <Calendar className="w-4 h-4 flex-shrink-0 text-cyan-400" />
-                <span className="truncate">Lịch Chia Ca</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigateTab('attendance')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'attendance'
-                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <Clock className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Chấm Công GPS</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigateTab('staff_directory')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'staff_directory'
-                    ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20 font-extrabold'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <Users className="w-4 h-4 flex-shrink-0 text-cyan-400" />
-                <span className="truncate">Đồng Nghiệp Chi Nhánh</span>
-              </button>
-
-              {!(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
-                <>
+                return (
                   <button
-                    onClick={() => handleNavigateTab('tickets')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'tickets'
-                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                    key={tab.id}
+                    onClick={() => handleNavigateTab(tab.id)}
+                    className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                      isTabActive
+                        ? `${tab.activeColor} shadow-md font-extrabold ring-1 ring-white/10`
                         : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
                     }`}
                   >
-                    <Wrench className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                    <span className="truncate">Tiếp Nhận Sửa Chữa</span>
+                    {tab.icon}
+                    <span>{tab.label}</span>
                   </button>
-
-                  <button
-                    onClick={() => handleNavigateTab('pos')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'pos'
-                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                    }`}
-                  >
-                    <ShoppingBag className="w-4 h-4 flex-shrink-0 text-amber-400" />
-                    <span className="truncate">Bán Hàng & Dịch Vụ Nhanh (POS)</span>
-                  </button>
-                </>
-              )}
+                );
+              })}
             </div>
-
-            {/* Row 2 */}
-            <div className={`grid gap-2 ${(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') ? 'grid-cols-2 sm:grid-cols-3 md:grid-cols-5' : 'grid-cols-1 sm:grid-cols-3'}`}>
-              {(currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr') && (
-                <>
-                  <button
-                    onClick={() => handleNavigateTab('tickets')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'tickets'
-                        ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
-                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                    }`}
-                  >
-                    <Wrench className="w-4 h-4 flex-shrink-0 text-rose-400" />
-                    <span className="truncate">Tiếp Nhận Sửa Chữa</span>
-                  </button>
-
-                  <button
-                    onClick={() => handleNavigateTab('pos')}
-                    className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      activeTab === 'pos'
-                        ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                        : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                    }`}
-                  >
-                    <ShoppingBag className="w-4 h-4 flex-shrink-0 text-amber-400" />
-                    <span className="truncate">Bán Hàng & POS</span>
-                  </button>
-                </>
-              )}
-
-              <button
-                onClick={() => handleNavigateTab('marketing')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'marketing'
-                    ? 'bg-blue-500 text-white shadow-md shadow-blue-500/20 font-extrabold'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <Megaphone className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Hiệu Suất Marketing</span>
-              </button>
-
-              <button
-                onClick={() => handleNavigateTab('training')}
-                className={`flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                  activeTab === 'training'
-                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20 font-extrabold'
-                    : 'bg-slate-950/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800/80 border border-slate-800/60'
-                }`}
-              >
-                <GraduationCap className="w-4 h-4 flex-shrink-0" />
-                <span className="truncate">Đào Tạo LMS 60 Ngày</span>
-              </button>
-
-              <button
-                onClick={handleOpenAIHRModal}
-                className="flex items-center justify-center gap-2 px-3 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer bg-rose-500/20 text-rose-300 hover:bg-rose-500/30 border border-rose-500/40 shadow-sm"
-              >
-                <UserCheck className="w-4 h-4 text-rose-400 animate-pulse flex-shrink-0" />
-                <span className="truncate">Xin & Duyệt Phép (AI HR)</span>
-              </button>
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         {/* Tab Render Views */}
         {isCustomerMode ? (
@@ -1337,8 +1613,25 @@ export function App() {
           />
         ) : (
           <>
-            {activeTab === 'admin' && (currentUser?.role === 'admin' || currentUser?.role === 'founder' || currentUser?.role === 'hr') && (
+            {/* 1. Tổng Quan Executive Dashboard */}
+            {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin' || currentUser?.role === 'hr' || currentUser?.role === 'accountant' || currentUser?.role === 'warehouse_accountant' || currentUser?.role === 'sales_head') && (
+              <ExecutiveDashboard 
+                branches={branches} 
+                staffList={staffList}
+                attendanceLogs={attendanceHistory} 
+                marketingPosts={marketingPosts}
+                leaveRequests={leaveRequests}
+                tickets={tickets}
+                onOpenAIHRModal={handleOpenAIHRModal}
+                onNavigateTab={(tab) => handleNavigateTab(tab)}
+                onRefreshAttendance={fetchRealAttendance}
+              />
+            )}
+
+            {/* 2. Vận Hành Nhân Lực (HR Hub) */}
+            {(activeTab === 'hr_hub' || activeTab === 'shifts' || (activeTab === 'admin' && currentUser?.role === 'hr')) && currentUser && (
               <AdminPanel 
+                mode="hr"
                 branches={branches} 
                 staffList={staffList} 
                 attendanceLogs={attendanceHistory}
@@ -1354,77 +1647,26 @@ export function App() {
               />
             )}
 
-            {activeTab === 'dashboard' && (currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
-              <ExecutiveDashboard 
+            {/* 3. Cài Đặt Hệ Thống (System Settings) */}
+            {(activeTab === 'system' || (activeTab === 'admin' && currentUser?.role !== 'hr')) && currentUser && (
+              <AdminPanel 
+                mode="system"
                 branches={branches} 
-                attendanceLogs={attendanceHistory} 
-                marketingPosts={marketingPosts}
-                leaveRequests={leaveRequests}
-                tickets={tickets}
-                onOpenAIHRModal={handleOpenAIHRModal}
-              />
-            )}
-
-            {activeTab === 'shifts' && currentUser && (
-              <ShiftSchedulingMatrix
-                branches={branches}
-                staffList={staffList}
-                currentUser={currentUser}
-                onRefreshStaff={fetchStaff}
-              />
-            )}
-
-            {activeTab === 'attendance' && currentUser && (
-              <div className="max-w-xl mx-auto">
-                <AttendanceCard
-                  currentBranch={selectedBranch}
-                  currentStaff={currentUser}
-                  onCheckInSuccess={handleCheckInSuccess}
-                  onDisputeSubmit={handleAttendanceDisputeSubmit}
-                  attendanceHistory={attendanceHistory}
-                />
-              </div>
-            )}
-
-            {activeTab === 'staff_directory' && currentUser && (
-              <BranchStaffDirectory
-                currentBranch={selectedBranch}
-                currentUser={currentUser}
-                staffList={staffList}
+                staffList={staffList} 
                 attendanceLogs={attendanceHistory}
                 leaveRequests={leaveRequests}
+                onAddBranch={handleAddBranch}
+                onToggleBranchStatus={handleToggleBranchStatus}
+                onRefreshStaff={fetchStaff}
+                onRefreshAttendance={fetchRealAttendance}
                 onUpdateStaff={handleUpdateStaff}
-              />
-            )}
-
-            {activeTab === 'tickets' && currentUser && (
-              <RepairTicketView 
-                tickets={tickets} 
-                role={currentUser.role} 
+                onApproveDispute={handleApproveDispute}
+                onRejectDispute={handleRejectDispute}
                 currentUser={currentUser}
-                currentBranch={selectedBranch}
-                branches={branches}
-                onCreateTicket={handleCreateTicket} 
-                onUpdateTicket={handleUpdateTicket}
-                currentUserName={currentUser.fullName}
               />
             )}
 
-            {activeTab === 'pos' && currentUser && (
-              <POSView 
-                currentUser={currentUser}
-                currentBranch={selectedBranch}
-                branches={branches}
-                onCreateOrder={handleCreateTicket}
-                onUpdateOrder={handleUpdateTicket}
-                tickets={tickets}
-              />
-            )}
-
-            {activeTab === 'training' && currentUser && (
-              <TrainingLMS currentUser={currentUser} />
-            )}
-
+            {/* 4. Marketing Hub */}
             {activeTab === 'marketing' && currentUser && (
               <MarketingDashboard 
                 branches={activeBranches} 
@@ -1437,6 +1679,56 @@ export function App() {
               />
             )}
 
+            {/* 5. Quản Lý Cửa Hàng (Manager) */}
+            {(activeTab === 'shop_management' || activeTab === 'staff_directory') && currentUser && (
+              <ShopManagementView
+                currentBranch={selectedBranch}
+                branches={branches}
+                staffList={staffList}
+                attendanceLogs={attendanceHistory}
+                leaveRequests={leaveRequests}
+                currentUser={currentUser}
+                onRefreshStaff={fetchStaff}
+                onRefreshAttendance={fetchRealAttendance}
+                onUpdateStaff={handleUpdateStaff}
+                onApproveDispute={handleApproveDispute}
+                onRejectDispute={handleRejectDispute}
+              />
+            )}
+
+            {/* 6. Ca & Chấm Công GPS */}
+            {activeTab === 'attendance' && currentUser && (
+              <div className="max-w-xl mx-auto">
+                <AttendanceCard
+                  currentBranch={selectedBranch}
+                  currentStaff={currentUser}
+                  onCheckInSuccess={handleCheckInSuccess}
+                  onDisputeSubmit={handleAttendanceDisputeSubmit}
+                  attendanceHistory={attendanceHistory}
+                  onOpenMyShiftsModal={() => setShowPersonalShiftsModal(true)}
+                  onOpenLeaveModal={handleOpenAIHRModal}
+                />
+              </div>
+            )}
+
+            {/* 7. Quầy Phục Vụ (Gom POS & Sửa Chữa) */}
+            {(activeTab === 'counter' || activeTab === 'pos' || activeTab === 'tickets') && currentUser && (
+              <CounterServiceView
+                currentUser={currentUser}
+                currentBranch={selectedBranch}
+                branches={branches}
+                tickets={tickets}
+                onCreateTicket={handleCreateTicket}
+                onUpdateTicket={handleUpdateTicket}
+                initialSubTab={activeTab === 'tickets' ? 'tickets' : 'pos'}
+              />
+            )}
+
+            {/* 8. Học Viện 88 (LMS) */}
+            {activeTab === 'training' && currentUser && (
+              <TrainingLMS currentUser={currentUser} />
+            )}
+
             {!currentUser && (
               <div className="text-center py-20 text-slate-400">
                 <Lock className="w-12 h-12 mx-auto mb-3 text-rose-500 animate-pulse" />
@@ -1447,6 +1739,42 @@ export function App() {
           </>
         )}
       </main>
+
+      {/* Mobile Fixed Bottom Navigation Bar */}
+      {!isCustomerMode && currentUser && (() => {
+        const visibleNavTabs = getNavTabsForRole(currentUser.role);
+
+        return (
+          <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md pb-safe shadow-2xl">
+            <div className={`grid ${visibleNavTabs.length === 3 ? 'grid-cols-3' : visibleNavTabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} py-1.5 px-2 gap-1`}>
+              {visibleNavTabs.map(tab => {
+                const isTabActive = activeTab === tab.id || 
+                  (tab.id === 'counter' && (activeTab === 'pos' || activeTab === 'tickets')) ||
+                  (tab.id === 'hr_hub' && (activeTab === 'shifts' || (activeTab === 'admin' && currentUser?.role === 'hr'))) ||
+                  (tab.id === 'system' && activeTab === 'admin' && currentUser?.role !== 'hr') ||
+                  (tab.id === 'shop_management' && activeTab === 'staff_directory');
+
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleNavigateTab(tab.id)}
+                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                      isTabActive
+                        ? 'text-amber-400 font-extrabold bg-amber-500/10'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className={`p-1 rounded-lg ${isTabActive ? 'bg-amber-500 text-slate-950 shadow-sm' : ''}`}>
+                      {tab.icon}
+                    </div>
+                    <span className="truncate mt-0.5">{tab.shortLabel}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Personal Staff Profile & Password Change Modal */}
       {showProfileModal && currentUser && (
@@ -1462,6 +1790,16 @@ export function App() {
             localStorage.setItem('pk88_current_user', JSON.stringify(updatedStaff));
             setStaffList(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
           }}
+        />
+      )}
+
+      {/* Personal 15-Day Shifts Schedule Modal */}
+      {showPersonalShiftsModal && currentUser && (
+        <PersonalShiftsModal
+          isOpen={showPersonalShiftsModal}
+          onClose={() => setShowPersonalShiftsModal(false)}
+          currentUser={currentUser}
+          branches={branches}
         />
       )}
 

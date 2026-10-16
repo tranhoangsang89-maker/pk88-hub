@@ -49,21 +49,23 @@ interface ShiftSchedulingMatrixProps {
   staffList: Staff[];
   currentUser?: Staff;
   onRefreshStaff?: () => void;
+  defaultBranchId?: string;
 }
 
 export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   branches,
   staffList,
   currentUser,
-  onRefreshStaff
+  onRefreshStaff,
+  defaultBranchId
 }) => {
   // RBAC Permissions
   // 1. Quản trị cấp cao (Toàn quyền xếp lịch tất cả chi nhánh)
   const isHQAdmin = currentUser?.role === 'founder' || currentUser?.role === 'admin' || currentUser?.role === 'hr' || currentUser?.role === 'sales_head';
 
-  // State for Cycle & Branch (Mặc định chọn chi nhánh của người đang đăng nhập)
-  const initialBranchId = (currentUser && currentUser.branchId) ? currentUser.branchId : (branches[0]?.id || 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e');
-  const [selectedBranchId, setSelectedBranchId] = useState<string>(initialBranchId);
+  // State for Cycle & Branch (Mặc định chọn chi nhánh của người đang đăng nhập hoặc defaultBranchId)
+  const initialBranchId = defaultBranchId || (currentUser && currentUser.branchId) ? (defaultBranchId || currentUser?.branchId) : (branches[0]?.id || 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e');
+  const [selectedBranchId, setSelectedBranchId] = useState<string>(initialBranchId || branches[0]?.id || 'b1');
 
   // 2. Cửa hàng trưởng của chi nhánh đang chọn (Chỉ có quyền trên chi nhánh mình quản lý)
   const isBranchManager = currentUser?.role === 'manager' && (currentUser.branchId === selectedBranchId);
@@ -71,11 +73,72 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   // 3. Có quyền quản lý / xếp ca cho chi nhánh này không?
   const canManageSchedule = isHQAdmin || isBranchManager;
 
-  const [cycle, setCycle] = useState<'cycle1' | 'cycle2'>('cycle1');
-  const [selectedYear, setSelectedYear] = useState<number>(2026);
-  const [selectedMonth, setSelectedMonth] = useState<number>(10); // Tháng 10/2026
+  // Khởi tạo thời gian thực: Tự động phát hiện ngày/tháng/năm hiện tại
+  const today = useMemo(() => new Date(), []);
+  const currentRealYear = today.getFullYear();
+  const currentRealMonth = today.getMonth() + 1; // 1 - 12
+  const currentRealDay = today.getDate();
+  const defaultInitialCycle: 'cycle1' | 'cycle2' = currentRealDay <= 15 ? 'cycle1' : 'cycle2';
+
+  const [cycle, setCycle] = useState<'cycle1' | 'cycle2'>(defaultInitialCycle);
+  const [selectedYear, setSelectedYear] = useState<number>(currentRealYear);
+  const [selectedMonth, setSelectedMonth] = useState<number>(currentRealMonth);
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Tính số ngày tối đa trong tháng đang chọn (28, 29, 30 hoặc 31 ngày)
+  const lastDayOfMonth = useMemo(() => {
+    return new Date(selectedYear, selectedMonth, 0).getDate();
+  }, [selectedYear, selectedMonth]);
+
+  const monthStr = String(selectedMonth).padStart(2, '0');
+  const cycle1Text = `Kỳ 1 (01/${monthStr} - 15/${monthStr})`;
+  const cycle2Text = `Kỳ 2 (16/${monthStr} - ${lastDayOfMonth}/${monthStr})`;
+
+  // Danh sách các tháng để chọn nhanh (2 năm trước & 2 năm tới)
+  const monthOptions = useMemo(() => {
+    const list = [];
+    for (let y = currentRealYear - 1; y <= currentRealYear + 1; y++) {
+      for (let m = 1; m <= 12; m++) {
+        list.push({
+          value: `${y}-${m}`,
+          label: `Tháng ${String(m).padStart(2, '0')}/${y}`,
+          year: y,
+          month: m
+        });
+      }
+    }
+    return list;
+  }, [currentRealYear]);
+
+  // Điều hướng tháng trước
+  const handlePrevMonth = () => {
+    if (selectedMonth === 1) {
+      setSelectedMonth(12);
+      setSelectedYear(prev => prev - 1);
+    } else {
+      setSelectedMonth(prev => prev - 1);
+    }
+  };
+
+  // Điều hướng tháng sau
+  const handleNextMonth = () => {
+    if (selectedMonth === 12) {
+      setSelectedMonth(1);
+      setSelectedYear(prev => prev + 1);
+    } else {
+      setSelectedMonth(prev => prev + 1);
+    }
+  };
+
+  // Trở về tháng & kỳ hiện tại
+  const handleGoToCurrentMonth = () => {
+    setSelectedYear(currentRealYear);
+    setSelectedMonth(currentRealMonth);
+    setCycle(defaultInitialCycle);
+  };
+
+  const isCurrentMonth = selectedYear === currentRealYear && selectedMonth === currentRealMonth;
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -114,8 +177,14 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const [dispatchStaffId, setDispatchStaffId] = useState<string>('');
   const [dispatchToBranchId, setDispatchToBranchId] = useState<string>(selectedBranchId);
   const [dispatchShiftDefId, setDispatchShiftDefId] = useState<string>(shiftDefs[0]?.id || '');
-  const [dispatchStartDate, setDispatchStartDate] = useState<string>('2026-10-12');
-  const [dispatchEndDate, setDispatchEndDate] = useState<string>('2026-10-15');
+  const [dispatchStartDate, setDispatchStartDate] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+  });
+  const [dispatchEndDate, setDispatchEndDate] = useState<string>(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-15`;
+  });
   const [dispatchNotes, setDispatchNotes] = useState<string>('Tăng cường hỗ trợ ca cao điểm');
 
   // Custom Shift Create Form State
@@ -160,6 +229,14 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const cycleDates = useMemo(() => {
     return getBiWeeklyDates(selectedYear, selectedMonth, cycle);
   }, [selectedYear, selectedMonth, cycle]);
+
+  // Tự động đồng bộ ngày điều động theo kỳ đang xem
+  useEffect(() => {
+    if (cycleDates.length > 0) {
+      setDispatchStartDate(cycleDates[0]);
+      setDispatchEndDate(cycleDates[cycleDates.length - 1]);
+    }
+  }, [cycleDates]);
 
   // Selected Branch object
   const currentBranch = useMemo(() => {
@@ -224,7 +301,9 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const dayOfWeek = dayNames[d.getDay()];
     const dayNum = String(d.getDate()).padStart(2, '0');
-    const isToday = dateStr === '2026-10-15' || dateStr === '2026-10-04'; // Highlight key dates
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isToday = dateStr === todayStr;
     return { dayOfWeek, dayNum, isToday };
   };
 
@@ -822,7 +901,61 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
               </select>
             </div>
 
-            {/* Cycle Switcher: Kỳ 1 vs Kỳ 2 */}
+            {/* Bộ Chọn & Điều Hướng Tháng / Năm */}
+            <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 gap-0.5">
+              <button
+                type="button"
+                onClick={handlePrevMonth}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer"
+                title="Lùi về tháng trước"
+              >
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+
+              <div className="flex items-center px-1">
+                <Calendar className="w-3.5 h-3.5 text-cyan-400 mr-1.5" />
+                <select
+                  value={`${selectedYear}-${selectedMonth}`}
+                  onChange={(e) => {
+                    const [y, m] = e.target.value.split('-').map(Number);
+                    setSelectedYear(y);
+                    setSelectedMonth(m);
+                  }}
+                  className="bg-transparent text-xs font-black text-cyan-300 focus:outline-none cursor-pointer font-mono py-0.5"
+                  title="Chọn tháng / năm xếp ca"
+                >
+                  {monthOptions.map(opt => (
+                    <option key={opt.value} value={opt.value} className="bg-slate-900 text-slate-100 font-sans">
+                      {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleNextMonth}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-cyan-300 hover:bg-slate-900 transition-all cursor-pointer"
+                title="Sang tháng tiếp theo"
+              >
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+
+            {/* Nút Quay Về Hiện Tại nếu đang xem tháng khác */}
+            {!isCurrentMonth && (
+              <button
+                type="button"
+                onClick={handleGoToCurrentMonth}
+                className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer flex items-center gap-1 shadow-sm"
+                title="Quay về tháng và kỳ hiện tại"
+              >
+                <Sparkles className="w-3 h-3 text-cyan-400" />
+                <span>Về hiện tại</span>
+              </button>
+            )}
+
+            {/* Cycle Switcher: Kỳ 1 vs Kỳ 2 (Nhãn tự động theo tháng) */}
             <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800">
               <button
                 onClick={() => setCycle('cycle1')}
@@ -832,7 +965,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Kỳ 1 (01/10 - 15/10)
+                {cycle1Text}
               </button>
               <button
                 onClick={() => setCycle('cycle2')}
@@ -842,7 +975,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                Kỳ 2 (16/10 - 31/10)
+                {cycle2Text}
               </button>
             </div>
           </div>

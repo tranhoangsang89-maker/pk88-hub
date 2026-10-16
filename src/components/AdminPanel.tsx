@@ -5,8 +5,9 @@ import { StaffDetailModal } from './StaffDetailModal';
 import { AttendanceTimesheetView } from './AttendanceTimesheetView';
 import { RecruitmentManagement } from './RecruitmentManagement';
 import { ShiftSchedulingMatrix } from './ShiftSchedulingMatrix';
+import { AttendanceCard } from './AttendanceCard';
 import { getStaffRealtimeStatus } from '../lib/staffStatus';
-import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar, Briefcase } from 'lucide-react';
+import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar, Briefcase, Clock } from 'lucide-react';
 
 interface AdminPanelProps {
   branches: Branch[];
@@ -21,6 +22,7 @@ interface AdminPanelProps {
   currentUser?: Staff;
   onApproveDispute?: (recordId: string, approverName: string) => Promise<void> | void;
   onRejectDispute?: (recordId: string, rejecterName: string, reason: string) => Promise<void> | void;
+  mode?: 'all' | 'hr' | 'system';
 }
 
 export const AdminPanel: React.FC<AdminPanelProps> = ({ 
@@ -35,10 +37,12 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   onUpdateStaff,
   currentUser,
   onApproveDispute,
-  onRejectDispute
+  onRejectDispute,
+  mode = 'all'
 }) => {
-  const isHR = currentUser?.role === 'hr';
-  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms' | 'recruitment'>(isHR ? 'staff' : 'payroll');
+  const isHR = currentUser?.role === 'hr' || mode === 'hr';
+  const defaultSubTab = mode === 'system' ? 'branches' : (mode === 'hr' ? 'payroll' : (isHR ? 'staff' : 'payroll'));
+  const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms' | 'recruitment'>(defaultSubTab);
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
@@ -54,7 +58,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [selectedStaffForDetail, setSelectedStaffForDetail] = useState<Staff | null>(null);
   const [staffViewMode, setStaffViewMode] = useState<'cards' | 'table'>('cards');
-  const [payrollSubView, setPayrollSubView] = useState<'shifts' | 'timesheet' | 'salary'>('shifts');
+  const [payrollSubView, setPayrollSubView] = useState<'shifts' | 'timesheet' | 'salary' | 'my_attendance'>('shifts');
   
   // Store-in-a-box states
   const [showAddBranchModal, setShowAddBranchModal] = useState(false);
@@ -228,31 +232,43 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 ? 'bg-pink-500/10 border border-pink-500/30 text-pink-400 shadow-pink-500/10'
                 : 'bg-cyan-500/10 border border-cyan-500/30 text-cyan-400 shadow-cyan-500/10'
             }`}>
-              {isHR ? <Users className="w-6 h-6 animate-pulse" /> : <Cpu className="w-6 h-6 animate-pulse" />}
+              {mode === 'system' ? (
+                <Cpu className="w-6 h-6 animate-pulse" />
+              ) : mode === 'hr' || isHR ? (
+                <Users className="w-6 h-6 animate-pulse" />
+              ) : (
+                <Cpu className="w-6 h-6 animate-pulse" />
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-extrabold text-slate-100">
-                  {isHR ? 'BẢNG ĐIỀU HÀNH NHÂN SỰ & CHẤM CÔNG' : 'BẢNG QUẢN TRỊ KỸ THUẬT & AUTOMATION'}
+                  {mode === 'system' 
+                    ? 'BẢNG CÀI ĐẶT HỆ THỐNG & AUTOMATION (SYSTEM HUB)' 
+                    : mode === 'hr' || isHR 
+                    ? 'TRUNG TÂM VẬN HÀNH NHÂN LỰC (HR HUB)' 
+                    : 'BẢNG QUẢN TRỊ KỸ THUẬT & AUTOMATION'}
                 </h2>
                 <span className={`text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border ${
-                  isHR 
+                  mode === 'hr' || isHR 
                     ? 'bg-pink-500/20 text-pink-300 border-pink-500/40' 
                     : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                 }`}>
-                  {isHR ? 'HR PORTAL' : 'ADMIN SYSTEM'}
+                  {mode === 'system' ? 'SYSTEM SETTINGS' : (mode === 'hr' || isHR ? 'HR OPERATIONS' : 'ADMIN SYSTEM')}
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                {isHR 
-                  ? 'Phụ trách bởi: **Phan Hoàng Khánh** (Chuyên viên Nhân sự Phụ Kiện 88)' 
-                  : 'Phụ trách bởi: **Trần Hoàng Sang** (Chuyên viên Công nghệ Phụ Kiện 88)'}
+                {mode === 'system'
+                  ? 'Phụ trách bởi: **Trần Hoàng Sang** (Admin Phụ Kiện 88) • Cấu hình chi nhánh, AI Engine, Webhook & Logs'
+                  : mode === 'hr' || isHR 
+                  ? 'Quản trị Chia Ca 15 Ngày, Chấm Công GPS, Bảng Lương Đa Vai Trò, Tuyển Dụng & Đào Tạo LMS' 
+                  : 'Phụ trách bởi: **Trần Hoàng Sang** (Admin Phụ Kiện 88)'}
               </p>
             </div>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
-            {isHR ? (
+            {mode === 'hr' || isHR ? (
               <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-pink-500/30">
                 <ShieldCheck className="w-4 h-4 text-pink-400" />
                 <span className="text-slate-300">Quyền Hạn: <strong className="text-pink-400">TOÀN QUYỀN NHÂN SỰ</strong></span>
@@ -260,7 +276,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
             ) : (
               <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
                 <Activity className="w-4 h-4 text-emerald-400" />
-                <span className="text-slate-300">n8n Middleware: <strong className="text-emerald-400">ONLINE</strong></span>
+                <span className="text-slate-300">Serverless Engine: <strong className="text-emerald-400">ACTIVE</strong></span>
               </div>
             )}
             <div className="flex items-center gap-1.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
@@ -271,109 +287,214 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
         </div>
       </div>
 
-      {/* Admin Subtabs (2-Row Layout: 4 tabs on row 1, 3 tabs on row 2) */}
+      {/* Admin Subtabs Layout */}
       <div className="bg-slate-900/90 border border-slate-800/90 p-2 rounded-2xl space-y-2 shadow-inner">
-        {/* Row 1: 4 Tabs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <button
-            onClick={() => setActiveSubTab('payroll')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'payroll'
-                ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">1. Chấm Công & Tính Lương</span>
-          </button>
+        {mode === 'system' ? (
+          /* System Settings 4 Tabs */
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              onClick={() => setActiveSubTab('branches')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'branches'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Server className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">1. Cấu Hình Chi Nhánh ({branches.filter(b => b.isActive).length}/{branches.length})</span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('staff')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'staff'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">2. Quản Lý Nhân Sự</span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('webhooks')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'webhooks'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Radio className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">2. Webhook & POS (KiotViet)</span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('branches')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'branches'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Server className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">3. Cấu Hình Chi Nhánh ({branches.filter(b => b.isActive).length}/{branches.length})</span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('ai')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'ai'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">3. Tham Số AI Engine</span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('webhooks')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'webhooks'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Radio className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">4. Webhook & POS</span>
-          </button>
-        </div>
+            <button
+              onClick={() => setActiveSubTab('logs')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'logs'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">4. System Logs</span>
+            </button>
+          </div>
+        ) : mode === 'hr' ? (
+          /* HR Operations 4 Tabs */
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <button
+              onClick={() => setActiveSubTab('payroll')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'payroll'
+                  ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">1. Chấm Công, Chia Ca & Lương</span>
+            </button>
 
-        {/* Row 2: 4 Tabs */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-          <button
-            onClick={() => setActiveSubTab('recruitment')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'recruitment'
-                ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">5. Tuyển Dụng & Onboard</span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('staff')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'staff'
+                  ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">2. Quản Lý Nhân Sự (40)</span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('lms')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'lms'
-                ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">6. Đào Tạo LMS 60 Ngày</span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('recruitment')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'recruitment'
+                  ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">3. Tuyển Dụng & Onboard</span>
+            </button>
 
-          <button
-            onClick={() => setActiveSubTab('ai')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'ai'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">7. Tham Số AI Engine</span>
-          </button>
+            <button
+              onClick={() => setActiveSubTab('lms')}
+              className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                activeSubTab === 'lms'
+                  ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                  : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+              }`}
+            >
+              <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
+              <span className="truncate">4. Đào Tạo LMS 60 Ngày</span>
+            </button>
+          </div>
+        ) : (
+          /* Mode All: 2 Rows */
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button
+                onClick={() => setActiveSubTab('payroll')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'payroll'
+                    ? 'bg-rose-500 text-white shadow-md shadow-rose-500/20 font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Calculator className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">1. Chấm Công & Tính Lương</span>
+              </button>
 
-          <button
-            onClick={() => setActiveSubTab('logs')}
-            className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-              activeSubTab === 'logs'
-                ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
-                : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
-            }`}
-          >
-            <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
-            <span className="truncate">8. System Logs</span>
-          </button>
-        </div>
+              <button
+                onClick={() => setActiveSubTab('staff')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'staff'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <ShieldCheck className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">2. Quản Lý Nhân Sự</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('branches')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'branches'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Server className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">3. Cấu Hình Chi Nhánh ({branches.filter(b => b.isActive).length}/{branches.length})</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('webhooks')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'webhooks'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Radio className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">4. Webhook & POS</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              <button
+                onClick={() => setActiveSubTab('recruitment')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'recruitment'
+                    ? 'bg-amber-500 text-slate-950 shadow-md shadow-amber-500/20 font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Briefcase className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">5. Tuyển Dụng & Onboard</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('lms')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'lms'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <GraduationCap className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">6. Đào Tạo LMS 60 Ngày</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('ai')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'ai'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Settings2 className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">7. Tham Số AI Engine</span>
+              </button>
+
+              <button
+                onClick={() => setActiveSubTab('logs')}
+                className={`px-3 py-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  activeSubTab === 'logs'
+                    ? 'bg-cyan-500 text-slate-950 shadow-md font-extrabold'
+                    : 'bg-slate-800/50 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-700/50'
+                }`}
+              >
+                <Terminal className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="truncate">8. System Logs</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Subtab Content */}
@@ -561,6 +682,20 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <DollarSign className="w-4 h-4" />
                   <span>1.3 Bảng Tổng Hợp Lương Đa Vai Trò (Toàn Chuỗi)</span>
                 </button>
+
+                {currentUser && currentUser.role !== 'founder' && (
+                  <button
+                    onClick={() => setPayrollSubView('my_attendance')}
+                    className={`flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+                      payrollSubView === 'my_attendance'
+                        ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md font-black ring-1 ring-emerald-400/40'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    <Clock className="w-4 h-4 text-emerald-400" />
+                    <span>1.4 Thẻ Chấm Công Của Tôi (GPS)</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -581,6 +716,15 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 onApproveDispute={onApproveDispute}
                 onRejectDispute={onRejectDispute}
               />
+            ) : payrollSubView === 'my_attendance' && currentUser ? (
+              <div className="max-w-xl mx-auto py-4">
+                <AttendanceCard
+                  currentBranch={branches.find(b => b.id === currentUser.branchId) || branches[0]}
+                  currentStaff={currentUser}
+                  onCheckInSuccess={() => onRefreshAttendance?.()}
+                  attendanceHistory={combinedLogs}
+                />
+              </div>
             ) : (
               <>
                 {/* KPI Summary Cards */}

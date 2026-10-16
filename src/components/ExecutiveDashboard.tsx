@@ -1,5 +1,6 @@
-import React from 'react';
-import { Branch, AttendanceRecord, MarketingPost, LeaveRequest, RepairTicket } from '../types';
+import React, { useState } from 'react';
+import { Branch, AttendanceRecord, MarketingPost, LeaveRequest, RepairTicket, Staff } from '../types';
+import { supabase } from '../lib/supabase';
 import { 
   TrendingUp, 
   AlertTriangle, 
@@ -18,7 +19,16 @@ import {
   ShieldCheck, 
   AlertCircle, 
   Wrench,
-  Users
+  Users,
+  Phone,
+  MessageSquare,
+  MapPin,
+  X,
+  ExternalLink,
+  Zap,
+  Check,
+  Store,
+  ShieldAlert
 } from 'lucide-react';
 import {
   AreaChart,
@@ -34,22 +44,40 @@ import {
   ReferenceLine
 } from 'recharts';
 
+export interface RedFlagAlert {
+  id: string;
+  type: string;
+  category: 'CHECKOUT' | 'OPEN_SHIFT' | 'LEAVE' | 'GPS' | 'REPAIR';
+  branch: string;
+  branchId?: string;
+  message: string;
+  severity: 'HIGH' | 'MEDIUM';
+  time: string;
+  payload?: any;
+}
+
 interface ExecutiveDashboardProps {
   branches: Branch[];
+  staffList?: Staff[];
   attendanceLogs?: AttendanceRecord[];
   marketingPosts?: MarketingPost[];
   leaveRequests?: LeaveRequest[];
   tickets?: RepairTicket[];
   onOpenAIHRModal?: () => void;
+  onNavigateTab?: (tab: any) => void;
+  onRefreshAttendance?: () => void;
 }
 
 export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ 
   branches, 
+  staffList = [],
   attendanceLogs = [], 
   marketingPosts = [],
   leaveRequests = [],
   tickets = [],
-  onOpenAIHRModal
+  onOpenAIHRModal,
+  onNavigateTab,
+  onRefreshAttendance
 }) => {
   const activeBranches = branches.filter(b => b.isActive);
   const inactiveBranches = branches.filter(b => !b.isActive);
@@ -87,8 +115,39 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   const topBranchName = branches.find(b => b.id === topBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'N/A';
   const missedBranches = activeBranches.filter(b => (branchCounts[b.id] || 0) === 0).map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ') || 'Không có';
 
+  // State điều khiển Modal kiểm tra chi tiết cảnh báo
+  const [selectedAlert, setSelectedAlert] = useState<RedFlagAlert | null>(null);
+  const [closingShiftIds, setClosingShiftIds] = useState<Record<string, boolean>>({});
+  const [closedSuccessIds, setClosedSuccessIds] = useState<Record<string, boolean>>({});
+
+  const handleForceCheckout = async (recordId: string, checkInTime: string) => {
+    setClosingShiftIds(prev => ({ ...prev, [recordId]: true }));
+    try {
+      const checkInDate = new Date(checkInTime);
+      const autoOut = new Date(checkInDate.getTime() + 8.5 * 3600000).toISOString();
+      const { error } = await supabase.from('attendance').update({
+        check_out: autoOut,
+        work_hours: 8.5,
+        notes: '[LÃNH ĐẠO ĐÃ ĐÓNG CA DO QUÊN CHECK-OUT]'
+      }).eq('id', recordId);
+
+      if (error) {
+        console.warn('Lỗi đóng ca trên Supabase:', error.message);
+      } else {
+        setClosedSuccessIds(prev => ({ ...prev, [recordId]: true }));
+        if (onRefreshAttendance) {
+          onRefreshAttendance();
+        }
+      }
+    } catch (err) {
+      console.error('Lỗi ngoại lệ khi đóng ca:', err);
+    } finally {
+      setClosingShiftIds(prev => ({ ...prev, [recordId]: false }));
+    }
+  };
+
   // 4. Tổng hợp CẢNH BÁO ĐỎ (Real-time Red Flags) THỰC TẾ từ hệ thống
-  const realAlerts: Array<{ id: string; type: string; branch: string; message: string; severity: 'HIGH' | 'MEDIUM'; time: string }> = [];
+  const realAlerts: RedFlagAlert[] = [];
 
   // A. Đơn xin nghỉ phép đang chờ duyệt (PENDING)
   const pendingLeaves = leaveRequests.filter(r => r.status === 'PENDING');
@@ -96,22 +155,27 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     realAlerts.push({
       id: 'alt-leave-pending',
       type: 'ĐƠN PHÉP CHỜ DUYỆT',
+      category: 'LEAVE',
       branch: 'Khối Nhân Sự (AI HR)',
       message: `Có ${pendingLeaves.length} đơn xin nghỉ phép đang chờ Cửa Hàng Trưởng / Khối HR phê duyệt`,
       severity: 'HIGH',
-      time: 'Cần duyệt'
+      time: 'Cần duyệt',
+      payload: { pendingLeaves }
     });
   }
 
   // B. Vi phạm khoảng cách GPS chấm công hôm nay (> 200m)
-  if (outsideGeofenceCount > 0) {
+  const outsideLogs = todayLogs.filter(log => log.isOutsideGeofence);
+  if (outsideLogs.length > 0) {
     realAlerts.push({
       id: 'alt-gps-violation',
       type: 'VI PHẠM GPS',
+      category: 'GPS',
       branch: 'Hệ Thống Chấm Công',
-      message: `Ghi nhận ${outsideGeofenceCount} lượt check-in vượt quá bán kính GPS cho phép (> 200m)`,
+      message: `Ghi nhận ${outsideLogs.length} lượt check-in vượt quá bán kính GPS cho phép (> 200m)`,
       severity: 'HIGH',
-      time: 'Hôm nay'
+      time: 'Hôm nay',
+      payload: { outsideLogs }
     });
   }
 
@@ -127,10 +191,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     realAlerts.push({
       id: 'alt-unclosed-shift',
       type: 'QUÊN CHECK-OUT',
+      category: 'CHECKOUT',
       branch: 'Toàn Chuỗi',
       message: `Có ${unclosedShifts.length} ca làm việc chưa bấm check-out từ ngày trước hoặc mở quá 16h`,
       severity: 'MEDIUM',
-      time: 'Cần đóng ca'
+      time: 'Cần đóng ca',
+      payload: { unclosedShifts }
     });
   }
 
@@ -144,10 +210,12 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     realAlerts.push({
       id: 'alt-repair-delayed',
       type: 'TRỄ HẸN SỬA CHỮA',
+      category: 'REPAIR',
       branch: 'Khối Kỹ Thuật',
       message: `Có ${delayedTickets.length} phiếu sửa chữa thiết bị tồn đọng > 3 ngày chưa bàn giao khách`,
       severity: 'HIGH',
-      time: 'Khẩn cấp'
+      time: 'Khẩn cấp',
+      payload: { delayedTickets }
     });
   }
 
@@ -160,10 +228,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         realAlerts.push({
           id: `alt-no-checkin-${b.id}`,
           type: 'CHƯA MỞ CA',
+          category: 'OPEN_SHIFT',
           branch: b.name.replace('Phụ Kiện 88 - ', ''),
+          branchId: b.id,
           message: 'Cửa hàng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca sáng',
           severity: 'HIGH',
-          time: 'Ca sáng'
+          time: 'Ca sáng',
+          payload: { branch: b }
         });
       }
     });
@@ -377,8 +448,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                 </div>
                 <div className="flex items-center justify-between sm:justify-end gap-3 text-xs">
                   <span className="text-slate-500 text-[11px] font-mono">{alt.time}</span>
-                  <button className="px-3 py-1 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-medium rounded-lg border border-rose-500/30 transition-colors">
-                    Kiểm tra
+                  <button 
+                    onClick={() => setSelectedAlert(alt)}
+                    className="px-3 py-1.5 bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 text-xs font-bold rounded-lg border border-rose-500/30 transition-all cursor-pointer active:scale-95 flex items-center gap-1.5 shadow-sm"
+                    title="Bấm để xem phân tích chi tiết và hành động xử lý"
+                  >
+                    <span>Kiểm tra</span>
+                    <ArrowUpRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
               </div>
@@ -586,6 +662,338 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Alert Inspection Detail Modal */}
+      {selectedAlert && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="bg-slate-900 border border-slate-700/80 rounded-2xl max-w-2xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+            {/* Modal Header */}
+            <div className="p-5 border-b border-slate-800 flex items-start justify-between bg-slate-950/50">
+              <div className="flex items-start gap-3">
+                <div className={`p-2.5 rounded-xl border flex-shrink-0 ${
+                  selectedAlert.category === 'CHECKOUT' ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                  selectedAlert.category === 'OPEN_SHIFT' ? 'bg-rose-500/10 border-rose-500/30 text-rose-400' :
+                  selectedAlert.category === 'LEAVE' ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' :
+                  selectedAlert.category === 'GPS' ? 'bg-purple-500/10 border-purple-500/30 text-purple-400' :
+                  'bg-orange-500/10 border-orange-500/30 text-orange-400'
+                }`}>
+                  {selectedAlert.category === 'CHECKOUT' && <Clock className="w-5 h-5" />}
+                  {selectedAlert.category === 'OPEN_SHIFT' && <Store className="w-5 h-5" />}
+                  {selectedAlert.category === 'LEAVE' && <Calendar className="w-5 h-5" />}
+                  {selectedAlert.category === 'GPS' && <MapPin className="w-5 h-5" />}
+                  {selectedAlert.category === 'REPAIR' && <Wrench className="w-5 h-5" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/30">
+                      {selectedAlert.type}
+                    </span>
+                    <span className="text-xs text-slate-400 font-mono font-bold">
+                      {selectedAlert.branch}
+                    </span>
+                  </div>
+                  <h3 className="text-base font-extrabold text-slate-100 mt-1">
+                    {selectedAlert.message}
+                  </h3>
+                </div>
+              </div>
+              <button
+                onClick={() => setSelectedAlert(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="p-5 overflow-y-auto space-y-4">
+              {/* Category 1: QUÊN CHECK-OUT */}
+              {selectedAlert.category === 'CHECKOUT' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 leading-relaxed flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 flex-shrink-0" />
+                    <span>Các ca làm việc dưới đây đã quá 16 giờ hoặc sang ngày làm việc mới mà nhân sự chưa bấm Check-Out. Quản lý có thể đóng ca tức thì hoặc xem nhật ký.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {unclosedShifts.map((shift, idx) => {
+                      const staff = staffList.find(s => s.id === shift.staffId);
+                      const branch = branches.find(b => b.id === shift.branchId);
+                      const isClosing = closingShiftIds[shift.id];
+                      const isClosed = closedSuccessIds[shift.id];
+                      const hoursOpen = Math.round((Date.now() - new Date(shift.checkIn).getTime()) / 3600000);
+
+                      return (
+                        <div key={shift.id || idx} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                          <div className="flex items-center gap-3">
+                            <div className="w-8 h-8 rounded-full bg-slate-800 text-amber-400 font-bold text-xs flex items-center justify-center border border-slate-700">
+                              {staff?.fullName ? staff.fullName.charAt(0) : 'NV'}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-bold text-slate-200">{staff?.fullName || 'Nhân sự (Mã: ' + shift.staffId + ')'}</span>
+                                <span className="text-[10px] text-slate-400 font-mono">({branch?.name.replace('Phụ Kiện 88 - ', '') || 'Chi nhánh'})</span>
+                              </div>
+                              <div className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                                <span>Check-in: <strong className="text-slate-300">{new Date(shift.checkIn).toLocaleString('vi-VN')}</strong></span>
+                                <span className="text-rose-400 font-mono font-bold">({hoursOpen}h trước)</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2 self-end sm:self-auto">
+                            {isClosed ? (
+                              <span className="px-3 py-1 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-bold flex items-center gap-1">
+                                <Check className="w-3.5 h-3.5" />
+                                <span>Đã đóng ca</span>
+                              </span>
+                            ) : (
+                              <button
+                                disabled={isClosing}
+                                onClick={() => handleForceCheckout(shift.id, shift.checkIn)}
+                                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs rounded-lg transition-all flex items-center gap-1.5 cursor-pointer shadow-md disabled:opacity-50"
+                              >
+                                <Zap className="w-3.5 h-3.5" />
+                                <span>{isClosing ? 'Đang đóng...' : '⚡ Đóng Ca Tức Thì'}</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Category 2: CHƯA MỞ CA */}
+              {selectedAlert.category === 'OPEN_SHIFT' && (() => {
+                const branchObj = selectedAlert.payload?.branch || branches.find(b => b.id === selectedAlert.branchId);
+                const assignedStaff = staffList.filter(s => s.branchId === branchObj?.id && s.isActive);
+
+                return (
+                  <div className="space-y-4">
+                    <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 leading-relaxed flex items-start gap-2">
+                      <Store className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      <div>
+                        <p className="font-bold">Cửa hàng chưa có nhân sự check-in mở ca sau 09:00 sáng:</p>
+                        <p className="text-slate-400 text-[11px] mt-0.5">{branchObj?.address || 'Địa chỉ đang cập nhật'}</p>
+                      </div>
+                    </div>
+
+                    <div>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
+                        Danh sách nhân sự thuộc chi nhánh ({assignedStaff.length} người):
+                      </h4>
+                      {assignedStaff.length === 0 ? (
+                        <p className="text-xs text-slate-500 italic p-3 bg-slate-950 rounded-xl">Chưa có nhân viên nào được phân bổ vào chi nhánh này trong danh bạ.</p>
+                      ) : (
+                        <div className="space-y-2">
+                          {assignedStaff.map(s => (
+                            <div key={s.id} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
+                              <div className="flex items-center gap-2.5">
+                                <div className="w-8 h-8 rounded-full bg-slate-800 text-cyan-400 font-bold text-xs flex items-center justify-center border border-slate-700">
+                                  {s.fullName.charAt(0)}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs font-bold text-slate-200">{s.fullName}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
+                                      s.role === 'manager' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' :
+                                      s.role === 'technician' ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30' :
+                                      'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
+                                    }`}>
+                                      {s.role}
+                                    </span>
+                                  </div>
+                                  <span className="text-[11px] text-slate-400 font-mono">{s.phone}</span>
+                                </div>
+                              </div>
+
+                              <div className="flex items-center gap-2">
+                                <a
+                                  href={`tel:${s.phone}`}
+                                  className="px-2.5 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 rounded-lg text-xs font-bold flex items-center gap-1 border border-emerald-500/30 transition-all cursor-pointer"
+                                >
+                                  <Phone className="w-3.5 h-3.5" />
+                                  <span>Gọi điện</span>
+                                </a>
+                                <a
+                                  href={`https://zalo.me/${s.phone.replace(/^0/, '84')}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="px-2.5 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 text-blue-300 rounded-lg text-xs font-bold flex items-center gap-1 border border-blue-500/30 transition-all cursor-pointer"
+                                >
+                                  <MessageSquare className="w-3.5 h-3.5" />
+                                  <span>Zalo</span>
+                                </a>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {/* Category 3: ĐƠN PHÉP CHỜ DUYỆT */}
+              {selectedAlert.category === 'LEAVE' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl text-xs text-blue-300 leading-relaxed flex items-center gap-2">
+                    <Calendar className="w-4 h-4 flex-shrink-0" />
+                    <span>Có {pendingLeaves.length} đơn xin nghỉ phép đang cần được phê duyệt. Hệ thống AI HR đã tự động kiểm tra xung đột tải ca.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {pendingLeaves.map(r => (
+                      <div key={r.id} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-slate-200">{r.staffName}</span>
+                          <span className="text-[10px] bg-rose-500/20 text-rose-300 px-2 py-0.5 rounded font-bold">
+                            {r.type === 'SICK_LEAVE' ? 'Nghỉ Ốm' : r.type === 'PAID_LEAVE' ? 'Phép Hưởng Lương' : 'Nghỉ Không Lương'}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-300 mt-1 italic font-serif">"{r.reason}"</p>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 pt-2 border-t border-slate-800">
+                          <span>Từ: <strong className="text-slate-300">{r.startDate}</strong> đến <strong className="text-slate-300">{r.endDate}</strong></span>
+                          {r.aiRiskAssessment && (
+                            <span className="text-amber-400 font-bold">{r.aiRiskAssessment}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Category 4: VI PHẠM GPS */}
+              {selectedAlert.category === 'GPS' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-purple-500/10 border border-purple-500/20 rounded-xl text-xs text-purple-300 leading-relaxed flex items-center gap-2">
+                    <MapPin className="w-4 h-4 flex-shrink-0" />
+                    <span>Ghi nhận các lượt check-in ngoài bán kính cho phép (chuẩn hệ thống &gt; 100m). Cần kiểm tra giải trình của nhân viên.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {outsideLogs.map((log, idx) => {
+                      const staff = staffList.find(s => s.id === log.staffId);
+                      const branch = branches.find(b => b.id === log.branchId);
+
+                      return (
+                        <div key={log.id || idx} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-200">{staff?.fullName || 'Nhân sự'}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">({branch?.name.replace('Phụ Kiện 88 - ', '')})</span>
+                            </div>
+                            <div className="text-[11px] text-slate-400 mt-0.5">
+                              Lúc: <strong className="text-slate-300">{new Date(log.checkIn).toLocaleString('vi-VN')}</strong>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                              +{Math.round(log.distanceMeters || 0)}m
+                            </span>
+                            <div className="text-[10px] text-slate-400 mt-0.5">
+                              {log.disputeStatus === 'PENDING' ? '⏳ Đã nộp giải trình' : '⚠️ Chưa giải trình'}
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* Category 5: TRỄ HẸN SỬA CHỮA */}
+              {selectedAlert.category === 'REPAIR' && (
+                <div className="space-y-3">
+                  <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl text-xs text-amber-300 leading-relaxed flex items-center gap-2">
+                    <Wrench className="w-4 h-4 flex-shrink-0" />
+                    <span>Các thiết bị khách hàng đã tiếp nhận sửa chữa quá 3 ngày chưa bàn giao hoặc chưa xong. Cần đôn đốc bộ phận kỹ thuật.</span>
+                  </div>
+
+                  <div className="space-y-2">
+                    {delayedTickets.map(t => {
+                      const ageDays = Math.round((Date.now() - new Date(t.createdAt).getTime()) / (1000 * 3600 * 24));
+                      const branch = branches.find(b => b.id === t.branchId);
+
+                      return (
+                        <div key={t.id} className="p-3 rounded-xl bg-slate-950/70 border border-slate-800 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-200">#{t.code} - {t.customerName}</span>
+                              <span className="text-[10px] text-slate-400 font-mono">({branch?.name.replace('Phụ Kiện 88 - ', '')})</span>
+                            </div>
+                            <p className="text-xs text-slate-300 mt-0.5">{t.deviceModel} ({t.serviceType})</p>
+                          </div>
+                          <div className="text-right">
+                            <span className="text-xs font-mono font-bold text-rose-400 bg-rose-500/10 px-2 py-0.5 rounded border border-rose-500/20">
+                              Trễ {ageDays} ngày
+                            </span>
+                            <div className="text-[11px] text-slate-400 mt-0.5">{(t.price || 0).toLocaleString('vi-VN')} đ</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Modal Footer Actions */}
+            <div className="p-4 border-t border-slate-800 flex items-center justify-between bg-slate-950/50">
+              <button
+                onClick={() => setSelectedAlert(null)}
+                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-xl transition-all cursor-pointer"
+              >
+                Đóng
+              </button>
+
+              <div className="flex items-center gap-2">
+                {selectedAlert.category === 'LEAVE' && onOpenAIHRModal && (
+                  <button
+                    onClick={() => {
+                      setSelectedAlert(null);
+                      onOpenAIHRModal();
+                    }}
+                    className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-rose-500/20 cursor-pointer"
+                  >
+                    <Bot className="w-3.5 h-3.5" />
+                    <span>Mở AI HR Phê Duyệt</span>
+                  </button>
+                )}
+
+                {(selectedAlert.category === 'CHECKOUT' || selectedAlert.category === 'GPS' || selectedAlert.category === 'OPEN_SHIFT') && onNavigateTab && (
+                  <button
+                    onClick={() => {
+                      setSelectedAlert(null);
+                      onNavigateTab('hr_hub');
+                    }}
+                    className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-rose-500/20 cursor-pointer"
+                  >
+                    <Users className="w-3.5 h-3.5" />
+                    <span>Đến Trung Tâm Vận Hành Nhân Lực (HR Hub)</span>
+                  </button>
+                )}
+
+                {selectedAlert.category === 'REPAIR' && onNavigateTab && (
+                  <button
+                    onClick={() => {
+                      setSelectedAlert(null);
+                      onNavigateTab('counter');
+                    }}
+                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-md shadow-emerald-500/20 cursor-pointer"
+                  >
+                    <Wrench className="w-3.5 h-3.5" />
+                    <span>Đến Quầy Sửa Chữa (POS & Tickets)</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

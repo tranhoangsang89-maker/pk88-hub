@@ -33,6 +33,8 @@ interface AttendanceCardProps {
   onCheckInSuccess: (record: AttendanceRecord) => void;
   attendanceHistory: AttendanceRecord[];
   onDisputeSubmit?: (record: AttendanceRecord) => Promise<void> | void;
+  onOpenMyShiftsModal?: () => void;
+  onOpenLeaveModal?: () => void;
 }
 
 export const AttendanceCard: React.FC<AttendanceCardProps> = ({
@@ -41,6 +43,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   onCheckInSuccess,
   attendanceHistory,
   onDisputeSubmit,
+  onOpenMyShiftsModal,
+  onOpenLeaveModal,
 }) => {
   const isOffice = 
     currentBranch.code === 'PK88_VANPHONG' || 
@@ -50,6 +54,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
   const defaultShift: ShiftType = isOffice ? 'HANH_CHINH' : 'CA_SANG';
   const [selectedShift, setSelectedShift] = useState<ShiftType>(defaultShift);
+  const [isOverrideShift, setIsOverrideShift] = useState<boolean>(false);
 
   // Custom Shift Time states (Bắt buộc giờ bắt đầu & kết thúc)
   const [customStartTime, setCustomStartTime] = useState<string>('');
@@ -67,19 +72,24 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
   }, []);
-  const todayAssignment = React.useMemo(() => {
+
+  // Tìm kiếm ca làm việc đã được xếp trước trên Ma Trận Chia Ca cho hôm nay
+  const rawTodayAssignment = React.useMemo(() => {
     try {
       const all = getAllAssignments();
       return all.find(a => {
         const matchId = a.staffId === currentStaff.id;
         const matchPhone = !!a.staffPhone && !!currentStaff.phone && a.staffPhone.trim() === currentStaff.phone.trim();
         const matchName = !!a.staffName && !!currentStaff.fullName && a.staffName.trim().toLowerCase() === currentStaff.fullName.trim().toLowerCase();
-        return (matchId || matchPhone || matchName) && a.date === todayYmd && a.status !== 'OFF';
+        return (matchId || matchPhone || matchName) && a.date === todayYmd;
       });
     } catch (e) {
       return null;
     }
   }, [currentStaff.id, currentStaff.phone, currentStaff.fullName, todayYmd]);
+
+  const isTodayOff = rawTodayAssignment?.status === 'OFF';
+  const todayAssignment = rawTodayAssignment && rawTodayAssignment.status !== 'OFF' ? rawTodayAssignment : null;
 
   useEffect(() => {
     if (todayAssignment) {
@@ -89,9 +99,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       else if (todayAssignment.shiftCode === 'TANG_CUONG') setSelectedShift('TANG_CUONG');
       else {
         setSelectedShift('TUY_CHINH');
-        setCustomStartTime(todayAssignment.startTime);
-        setCustomEndTime(todayAssignment.endTime);
       }
+      setCustomStartTime(todayAssignment.startTime);
+      setCustomEndTime(todayAssignment.endTime);
     } else {
       setSelectedShift(isOffice ? 'HANH_CHINH' : 'CA_SANG');
     }
@@ -319,7 +329,11 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const currentTotalMinutes = hours * 60 + minutes;
 
     let targetMinutes = 0;
-    if (shift === 'CA_SANG') targetMinutes = 7 * 60; // 07:00
+    // Ưu tiên 1: Lấy trực tiếp giờ bắt đầu của ca đã được sắp xếp từ trước
+    if (todayAssignment && !isOverrideShift && todayAssignment.startTime) {
+      const [sH, sM] = todayAssignment.startTime.split(':').map(Number);
+      targetMinutes = sH * 60 + sM;
+    } else if (shift === 'CA_SANG') targetMinutes = 7 * 60; // 07:00
     else if (shift === 'CA_CHIEU') targetMinutes = 13 * 60 + 30; // 13:30
     else if (shift === 'HANH_CHINH') targetMinutes = 7 * 60 + 30; // 07:30
     else if (shift === 'TUY_CHINH') {
@@ -330,7 +344,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       return { isLate: false, lateMinutes: 0 }; // TANG_CUONG: Linh hoạt
     }
 
-    if (currentTotalMinutes > targetMinutes) {
+    const GRACE_PERIOD_MINUTES = 10;
+    if (currentTotalMinutes > targetMinutes + GRACE_PERIOD_MINUTES) {
       return {
         isLate: true,
         lateMinutes: currentTotalMinutes - targetMinutes
@@ -398,7 +413,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       // VAO CA (Check-in)
       const { isLate, lateMinutes } = checkLateArrival(selectedShift, now);
       const lateNote = isLate ? ` | Đi trễ ${lateMinutes} phút` : ' | Đúng giờ';
-      const shiftDisplayName = selectedShift === 'TUY_CHINH'
+      const shiftDisplayName = (todayAssignment && !isOverrideShift)
+        ? `${todayAssignment.shiftName} (${todayAssignment.startTime} - ${todayAssignment.endTime})`
+        : selectedShift === 'TUY_CHINH'
         ? `Ca Tùy Chỉnh (${customStartTime} - ${customEndTime})`
         : getShiftDisplayName(selectedShift);
       const noteText = `${currentStaff.fullName} (${currentStaff.phone}) - Check-in ${shiftDisplayName} Hợp lệ (${currentBranch.name})${lateNote}`;
@@ -614,6 +631,26 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
+      {/* Quick Action Buttons for Shift Schedule & Leave Request */}
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={onOpenMyShiftsModal}
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+        >
+          <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+          <span>Lịch Chia Ca 15 Ngày</span>
+        </button>
+        <button
+          type="button"
+          onClick={onOpenLeaveModal}
+          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+        >
+          <Sparkles className="w-3.5 h-3.5 text-pink-400" />
+          <span>Xin Nghỉ Phép (AI Chị 8)</span>
+        </button>
+      </div>
+
       {/* LIVE WORK TIMER BANNER (When Checked In) */}
       {isCurrentlyCheckedIn && activeRecord && (
         <div className="bg-gradient-to-r from-emerald-950/70 via-slate-950 to-emerald-950/70 border border-emerald-500/50 rounded-2xl p-4 text-center space-y-2 shadow-xl relative overflow-hidden">
@@ -636,46 +673,139 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       )}
 
-      {/* TODAY'S ASSIGNED SHIFT BANNER */}
-      {!isCurrentlyCheckedIn && todayAssignment && (
-        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-cyan-950/70 via-slate-900 to-indigo-950/70 border border-cyan-500/40 shadow-lg flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
-              <Calendar className="w-5 h-5 animate-pulse" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-black text-slate-100">
-                  Lịch Phân Hôm Nay: {todayAssignment.shiftName}
-                </span>
-                {todayAssignment.isCrossBranch && (
-                  <span className="text-[9px] bg-amber-500/20 text-amber-300 font-bold px-1.5 py-0.5 rounded border border-amber-500/40">
-                    ✈️ Tăng Cường
-                  </span>
-                )}
-              </div>
-              <p className="text-[11px] text-cyan-300/80 font-mono mt-0.5">
-                Khung giờ: {todayAssignment.startTime} - {todayAssignment.endTime} ({todayAssignment.hours}h) • Tại {todayAssignment.workingBranchName || currentBranch.name}
-              </p>
-            </div>
-          </div>
-          <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 whitespace-nowrap">
-            ĐÃ LÊN LỊCH
-          </span>
-        </div>
-      )}
-
-      {/* 1. Shift Selection (When Not Checked In) */}
+      {/* 1. KHU VỰC CA LÀM VIỆC CỦA BẠN (Ưu tiên ca đã được xếp lịch) */}
       {!isCurrentlyCheckedIn && (
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider block">
-              1. CHỌN CA LÀM VIỆC CỦA BẠN
-            </label>
-            <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/60">
-              {isOffice ? '🏢 Khối Văn Phòng' : '🏪 Khối Chi Nhánh'}
-            </span>
-          </div>
+        <div className="space-y-3">
+          {/* TRƯỜNG HỢP 1: CÓ CA ĐÃ ĐƯỢC XẾP TRƯỚC (SCHEDULED) VÀ CHƯA CHỌN ĐỔI CA */}
+          {todayAssignment && !isOverrideShift ? (
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-extrabold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
+                  <span>1. CA LÀM VIỆC ĐÃ ĐƯỢC XẾP LỊCH HÔM NAY</span>
+                </label>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
+                  ✓ ĐÃ LÊN LỊCH
+                </span>
+              </div>
+
+              {/* Thẻ Ca VIP Đã Được Xếp Lịch */}
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border-2 border-cyan-500/60 shadow-xl shadow-cyan-500/10 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-cyan-500/20 border border-cyan-500/40 flex flex-col items-center justify-center text-cyan-300 shrink-0">
+                      <Clock className="w-5 h-5 text-cyan-400 mb-0.5" />
+                      <span className="text-[9px] font-mono font-black">{todayAssignment.hours}h</span>
+                    </div>
+                    <div>
+                      <div className="text-base font-black text-white flex items-center gap-2 flex-wrap">
+                        <span>{todayAssignment.shiftName}</span>
+                        {todayAssignment.isCrossBranch && (
+                          <span className="text-[9px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full border border-amber-500/40 font-bold">
+                            ✈️ Tăng Cường
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-xs text-cyan-300 font-mono font-bold mt-1">
+                        Khung giờ quy định: <span className="text-white text-sm bg-slate-950/90 px-2.5 py-0.5 rounded-md border border-cyan-500/30 font-mono font-black">{todayAssignment.startTime} - {todayAssignment.endTime}</span>
+                      </div>
+                      <div className="text-[11px] text-slate-400 mt-1 flex items-center gap-1">
+                        <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                        <span>Tại: <strong className="text-slate-300">{todayAssignment.workingBranchName || currentBranch.name}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
+                    <span className="text-xs font-black text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full shadow-sm">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Đã tự động chọn</span>
+                    </span>
+                    <span className="text-[10px] text-slate-400 mt-1">Tính trễ sau {todayAssignment.startTime}</span>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                  <span className="text-[11px] text-slate-400">Được quản lý đổi ca hoặc làm thêm ca khác?</span>
+                  <button
+                    type="button"
+                    onClick={() => setIsOverrideShift(true)}
+                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                  >
+                    ▼ Đổi ca khác / Tùy chỉnh
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : isTodayOff && !isOverrideShift ? (
+            /* TRƯỜNG HỢP 2: LỊCH HÔM NAY LÀ NGÀY NGHỈ (OFF) */
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-extrabold text-purple-300 uppercase tracking-wider flex items-center gap-1.5">
+                  <span>🏖️ LỊCH HÔM NAY: NGHỈ LUÂN PHIÊN (OFF)</span>
+                </label>
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40 font-bold">
+                  NGÀY NGHỈ
+                </span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/40 shadow-xl space-y-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-2xl shrink-0">
+                    🏖️
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-extrabold text-purple-200">Hôm nay bạn được xếp lịch nghỉ luân phiên (OFF)</h4>
+                    <p className="text-xs text-slate-400 mt-0.5">
+                      Hệ thống ghi nhận bạn được nghỉ hôm nay, không tính trễ hay vắng mặt. Nếu bạn tự nguyện đi làm tăng ca để hỗ trợ cửa hàng, vui lòng bấm nút bên dưới.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-end">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsOverrideShift(true);
+                      setSelectedShift(isOffice ? 'HANH_CHINH' : 'CA_SANG');
+                    }}
+                    className="px-4 py-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-500/40 text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 shadow-md shadow-purple-500/20"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-purple-400" />
+                    <span>🙋 Đi Làm Tăng Ca Ngày OFF</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ) : (
+            /* TRƯỜNG HỢP 3: CHƯA CÓ LỊCH HOẶC ĐANG CHỌN ĐỔI CA THỦ CÔNG */
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider block">
+                  1. CHỌN CA LÀM VIỆC CỦA BẠN
+                </label>
+                <div className="flex items-center gap-2">
+                  {todayAssignment && isOverrideShift && (
+                    <button
+                      type="button"
+                      onClick={() => setIsOverrideShift(false)}
+                      className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                    >
+                      ▲ Dùng lại ca được xếp ({todayAssignment.shiftName})
+                    </button>
+                  )}
+                  <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/60">
+                    {isOffice ? '🏢 Khối Văn Phòng' : '🏪 Khối Chi Nhánh'}
+                  </span>
+                </div>
+              </div>
+
+              {!todayAssignment && !isTodayOff && (
+                <div className="p-2.5 rounded-xl bg-slate-950 border border-slate-800/80 text-xs text-slate-400 flex items-center gap-2">
+                  <span className="text-amber-400 font-bold">ℹ️</span>
+                  <span>Hôm nay ({todayYmd.split('-').reverse().slice(0, 2).join('/')}) bạn chưa có lịch phân sẵn trên ma trận. Vui lòng chọn ca thực tế bạn đang trực:</span>
+                </div>
+              )}
 
           {isOffice ? (
             <div className="space-y-2">
@@ -831,6 +961,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                   <CheckCircle2 className="w-3 h-3 shrink-0" /> Ca làm việc: {customStartTime} đến {customEndTime}
                 </p>
               )}
+            </div>
+          )}
             </div>
           )}
         </div>

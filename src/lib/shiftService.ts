@@ -415,3 +415,79 @@ export function dispatchCrossBranchStaff(params: {
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(updated));
   return updated;
 }
+
+/**
+ * Chuẩn hóa thuật toán tính trễ động:
+ * So sánh giờ check-in thực tế với giờ bắt đầu ca (ân hạn chuẩn 10 phút).
+ * - Ca Sáng: 07:00 (ân hạn đến 07:10)
+ * - Ca Chiều: 13:30 (ân hạn đến 13:40)
+ * - Ca Văn Phòng: 07:30 (ân hạn đến 07:40)
+ * - Ca Trưa: 12:00 (ân hạn đến 12:10)
+ * - Ca Tùy Chỉnh: Giờ bắt đầu tùy chỉnh + 10 phút
+ * - Ca Tăng Cường: Giờ linh hoạt, không tính trễ
+ */
+export function calculateAttendanceIsLate(
+  shiftType?: string, 
+  checkInIso?: string, 
+  notes?: string,
+  gracePeriodMinutes: number = 10,
+  targetStartTime?: string
+): { isLate: boolean; lateMinutes: number } {
+  if (!checkInIso) {
+    const isLateNote = notes?.toLowerCase().includes('đi trễ') || false;
+    return { isLate: isLateNote, lateMinutes: 0 };
+  }
+
+  const inDate = new Date(checkInIso);
+  const inMinutes = inDate.getHours() * 60 + inDate.getMinutes();
+
+  let targetMinutes = 0;
+  let hasFixedShift = false;
+
+  // 1. Nếu có giờ ca cụ thể từ lịch phân ca (targetStartTime: '07:00'...)
+  if (targetStartTime) {
+    const [h, m] = targetStartTime.split(':').map(Number);
+    if (!isNaN(h) && !isNaN(m)) {
+      targetMinutes = h * 60 + m;
+      hasFixedShift = true;
+    }
+  }
+
+  // 2. Phân loại theo shiftType nếu chưa có targetMinutes
+  if (!hasFixedShift) {
+    if (shiftType === 'CA_SANG') {
+      targetMinutes = 7 * 60; // 07:00
+      hasFixedShift = true;
+    } else if (shiftType === 'CA_CHIEU') {
+      targetMinutes = 13 * 60 + 30; // 13:30
+      hasFixedShift = true;
+    } else if (shiftType === 'HANH_CHINH') {
+      targetMinutes = 7 * 60 + 30; // 07:30
+      hasFixedShift = true;
+    } else if (shiftType === 'CA_TRUA') {
+      targetMinutes = 12 * 60; // 12:00
+      hasFixedShift = true;
+    } else if (shiftType === 'TUY_CHINH' && notes) {
+      const match = notes.match(/Ca Tùy Chỉnh \((\d{1,2}):(\d{2})/);
+      if (match) {
+        targetMinutes = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+        hasFixedShift = true;
+      }
+    }
+  }
+
+  // 3. Nếu là ca cố định: Áp dụng quy tắc ân hạn 10 phút chuẩn xác
+  if (hasFixedShift) {
+    if (inMinutes > targetMinutes + gracePeriodMinutes) {
+      return {
+        isLate: true,
+        lateMinutes: inMinutes - targetMinutes
+      };
+    }
+    return { isLate: false, lateMinutes: 0 };
+  }
+
+  // Fallback nếu không xác định được loại ca
+  const isLateNote = notes?.toLowerCase().includes('đi trễ') || false;
+  return { isLate: isLateNote, lateMinutes: 0 };
+}

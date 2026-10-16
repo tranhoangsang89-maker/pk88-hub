@@ -18,10 +18,17 @@ export const RoleSwitcher: React.FC<RoleSwitcherProps> = ({ currentRole, onRoleC
     },
     {
       role: 'admin',
-      label: 'Admin Dự Án (Trần Hoàng Sang)',
+      label: 'Admin (Trần Hoàng Sang)',
       icon: <Cpu className="w-4 h-4 text-cyan-400" />,
       color: 'bg-cyan-500/10 text-cyan-400 border-cyan-500/30',
-      desc: 'Toàn quyền cấu hình AI Automation & Hệ thống'
+      desc: 'Quản trị viên hệ thống'
+    },
+    {
+      role: 'hr',
+      label: 'HR (Phan Hoàng Khánh)',
+      icon: <ShieldCheck className="w-4 h-4 text-pink-400" />,
+      color: 'bg-pink-500/10 text-pink-400 border-pink-500/30',
+      desc: 'Quản trị nhân sự, chia ca & tính lương'
     },
     {
       role: 'manager',

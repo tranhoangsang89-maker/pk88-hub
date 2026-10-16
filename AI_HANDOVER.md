@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 15/10/2026 (Nâng Cấp Toàn Diện: Ma Trận Chia Ca & Điều Động 15 Ngày, Tùy Biến Khung Ca Chi Nhánh, Xuất Excel Chuẩn A4, Bảo Mật Lương & Founder, Chuẩn Hóa Ngôn Ngữ Miền Tây)*
+*Ngày cập nhật mới nhất: 16/10/2026 (Chuẩn Hóa Thuật Toán Tính Trễ 10 Phút Ân Hạn, Khung Giờ Ca Văn Phòng 07:30 - 17:30, Reset Sạch Dữ Liệu Test Supabase)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -14,9 +14,27 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 15/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 16/10/2026) - QUAN TRỌNG
 
-### E. Ma Trận Chia Ca & Điều Động 15 Ngày & Xuất Excel Khổ A4 (NEW - 15/10)
+### F. Chuẩn Hóa Thuật Toán Tính Trễ Tự Động & Chốt Ca Văn Phòng (NEW - 16/10)
+1. **Thuật Toán Tính Trễ Tự Động Với 10 Phút Ân Hạn (`calculateAttendanceIsLate`):**
+   - Đặt thời gian ân hạn chuẩn: **10 phút** (`GRACE_PERIOD_MINUTES = 10`). Check-in trong vòng 10 phút sau giờ bắt đầu ca được công nhận 100% Đúng Giờ / Hợp Lệ.
+   - So sánh trực tiếp timestamp check-in thực tế với mốc bắt đầu ca:
+     - **Ca Sáng:** 07:00 (Check-in đến 07:10 được tính đúng giờ; từ 07:11 trở đi tính trễ theo phút thực tế).
+     - **Ca Văn Phòng (Hành Chính):** 07:30 (Check-in đến 07:40 tính đúng giờ; từ 07:41 trở đi tính trễ theo phút thực tế).
+     - **Ca Chiều:** 13:30 (Check-in đến 13:40 tính đúng giờ; từ 13:41 trở đi tính trễ).
+     - **Ca Trưa:** 12:00 (Check-in đến 12:10 tính đúng giờ).
+     - **Ca Tùy Chỉnh:** Theo giờ bắt đầu ca đã đặt + 10 phút.
+   - Áp dụng đồng bộ xuyên suốt từ giao diện nhân viên chấm công ([AttendanceCard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx)), bảng tra cứu bảng công ([AttendanceTimesheetView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceTimesheetView.tsx)), đến bộ nạp dữ liệu gốc ([App.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/App.tsx)). Khi quản trị viên chốt ca hoặc ghi chú bị thay đổi, thuật toán vẫn tính toán chuẩn xác từ timestamp gốc mà không bị mất cờ trễ.
+2. **Khung Giờ Ca Văn Phòng (Khối Văn Phòng):**
+   - Chốt cứng toàn hệ thống: **`07:30 - 17:30`**.
+   - Nghỉ trưa 2 tiếng: `11:30 - 13:30`.
+   - Tính chuẩn **8.0 giờ công làm việc thực tế**.
+3. **Dọn Sạch (Reset) Dữ Liệu Test Trên Supabase:**
+   - Đã xóa sạch 11 bản ghi chấm công thử nghiệm của ngày 14 & 15/10/2026 trên bảng `attendance` của Supabase Cloud DB.
+   - Bảng chấm công hiện tại hoàn toàn sạch sẽ, sẵn sàng đón nhận dữ liệu chấm công thực tế từ nhân viên bắt đầu từ ngày mai (16/10 trở đi).
+
+### E. Ma Trận Chia Ca & Điều Động 15 Ngày & Xuất Excel Khổ A4 (15/10)
 1. **Chuẩn Hóa Ngôn Ngữ Miền Tây & Bản Sắc Doanh Nghiệp:**
    - Thay thế toàn bộ thuật ngữ hàn lâm: `Bán Nguyệt` ➔ **Lịch Chia Ca / Ma Trận Chia Ca & Điều Động (Kỳ 15 Ngày)** (`chia-ca`, `chiaca`).
    - Xóa bỏ từ ngữ hành chính `Cơ hữu` ➔ Đổi thành **`Tại shop`** (nhân viên chính của cửa hàng) và **`Tăng cường từ shop khác`**.
@@ -41,6 +59,13 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      - **Đồng nghiệp khác:** Khi một nhân viên vào xem hồ sơ của đồng nghiệp (như ảnh chụp Danh Sách Nhân Sự Chi Nhánh `tab=nhan-vien`), hệ thống **tuyệt đối ẩn form và nút đổi mật khẩu**.
      - **Quản trị cấp cao:** Chỉ duy nhất **Founder, Admin và HR** mới có quyền cấp lại mật khẩu cho nhân viên cấp dưới trong trường hợp nhân viên quên mật khẩu.
    - **Tính năng Hỗ Trợ Quên Mật Khẩu (`LoginModal.tsx`):** Ngay dưới ô mật khẩu có nút `[❓ Quên mật khẩu?]` dẫn tới Popup hỗ trợ: hiển thị thông tin liên hệ Hotline/Zalo của **Admin Quản Trị (Trần Hoàng Sang - 0888003205)** và **Nhân Sự HR (Phan Hoàng Khánh - 0394336726)**. Hệ thống **tuyệt đối không cho phép tự reset từ bên ngoài** để triệt tiêu hoàn toàn nguy cơ kẻ gian chiếm quyền tài khoản; việc reset mật khẩu bắt buộc phải do Admin hoặc HR thực hiện sau khi xác minh nhân thân.
+
+6. **Tự Động Chuyển Tháng & Bộ Điều Hướng Tháng/Năm Linh Hoạt (NEW - 16/10):**
+   - **Tự động theo thời gian thực:** Mặc định khi mở tab Phân ca, hệ thống tự động xác định Ngày/Tháng/Năm hiện tại (`new Date()`). Nếu là ngày 16 trở đi tự động vào Kỳ 2; khi sang tháng 11 hệ thống sẽ tự động hiển thị Tháng 11.
+   - **Bộ điều hướng Tháng/Năm (`<` `Tháng MM/YYYY` `>`):** Cho phép Quản lý/Admin chuyển tháng tới (xếp trước lịch cho tháng 11, tháng 12...) hoặc lùi lại tháng cũ để xem lịch sử ca. Kèm nút bấm nhanh *"✨ Về hiện tại"* khi đang xem tháng khác.
+   - **Nhãn Kỳ & Ngày cuối tháng động:** Tự động tính số ngày tối đa (28, 29, 30 hoặc 31 ngày) và hiển thị nhãn chuẩn xác, ví dụ: `Kỳ 1 (01/11 - 15/11)` và `Kỳ 2 (16/11 - 30/11)`.
+   - **Highlight ngày hôm nay chuẩn Realtime:** Cột ngày trong bảng ma trận tự động phát sáng cyan theo đúng ngày thực tế hôm nay thay vì dùng ngày tĩnh.
+   - **Đồng bộ xuất Excel:** Tên file xuất Excel và tiêu đề tự động cập nhật đúng Tháng và Năm đang chọn (`..._T11_2026.xlsx`).
 
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**

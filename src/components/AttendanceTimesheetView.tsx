@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Branch, Staff, AttendanceRecord, ShiftType } from '../types';
 import { supabase } from '../lib/supabase';
+import { calculateAttendanceIsLate } from '../lib/shiftService';
 import * as XLSX from 'xlsx';
 import { 
   Users, 
@@ -40,6 +41,7 @@ interface AttendanceTimesheetViewProps {
   currentUser?: Staff;
   onApproveDispute?: (recordId: string, approverName: string) => Promise<void> | void;
   onRejectDispute?: (recordId: string, rejecterName: string, reason: string) => Promise<void> | void;
+  defaultBranchId?: string;
 }
 
 const getLocalYMD = (d: Date = new Date()): string => {
@@ -56,13 +58,14 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   onRefreshLogs,
   currentUser,
   onApproveDispute,
-  onRejectDispute
+  onRejectDispute,
+  defaultBranchId
 }) => {
   // Default filter is strictly TODAY for real-time tracking
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | '7days' | 'month' | 'all' | 'custom'>('today');
   const [startDate, setStartDate] = useState<string>(getLocalYMD());
   const [endDate, setEndDate] = useState<string>(getLocalYMD());
-  const [selectedBranch, setSelectedBranch] = useState<string>('ALL');
+  const [selectedBranch, setSelectedBranch] = useState<string>(defaultBranchId || 'ALL');
   const [selectedShift, setSelectedShift] = useState<string>('ALL');
   const [warningOnly, setWarningOnly] = useState<boolean>(false);
   const [disputeFilter, setDisputeFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -366,7 +369,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   // Helper to determine status flags and overtime (Bán kính 100m)
   const getStatusFlags = (record: AttendanceRecord) => {
     const isOutside = record.isOutsideGeofence || (record.distanceMeters !== undefined && record.distanceMeters > 100);
-    const isLate = record.isLate || record.notes?.toLowerCase().includes('đi trễ') || false;
+    const { isLate, lateMinutes } = calculateAttendanceIsLate(record.shiftType, record.checkIn, record.notes, 10);
 
     // Check elapsed hours and check-out status
     const checkInDate = new Date(record.checkIn);
@@ -395,7 +398,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
       }
     }
 
-    return { isOutside, isLate, otHours, isCurrentlyWorking, isMissedCheckout };
+    return { isOutside, isLate, lateMinutes, otHours, isCurrentlyWorking, isMissedCheckout };
   };
 
   // Pending disputes count across all logs
@@ -931,7 +934,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                 const dateFormatted = checkInDate.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
                 const timeIn = checkInDate.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
                 const timeOut = record.checkOut ? new Date(record.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : null;
-                const { isOutside, isLate, otHours, isCurrentlyWorking, isMissedCheckout } = getStatusFlags(record);
+                const { isOutside, isLate, lateMinutes, otHours, isCurrentlyWorking, isMissedCheckout } = getStatusFlags(record);
                 const isPendingDispute = record.disputeStatus === 'PENDING';
                 const isApprovedDispute = record.disputeStatus === 'APPROVED';
                 const isRejectedDispute = record.disputeStatus === 'REJECTED';
@@ -1078,7 +1081,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                         {!isPendingDispute && isLate && (
                           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30">
                             <Clock className="w-3 h-3" />
-                            <span>Đi trễ</span>
+                            <span>Đi trễ {lateMinutes > 0 ? `(${lateMinutes}p)` : ''}</span>
                           </span>
                         )}
 

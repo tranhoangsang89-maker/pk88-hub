@@ -132,7 +132,7 @@ export const ROLE_COMPETENCY_CONFIG: Record<UserRole, {
     ]
   },
   admin: {
-    title: 'Đánh Giá Năng Lực Chuyên Viên Công Nghệ',
+    title: 'Đánh Giá Năng Lực Admin',
     dimensions: [
       { key: 'expertise', label: '1. Vận Hành System Admin & Portal Web App', color: 'text-cyan-400', progressGradient: 'from-cyan-500 to-blue-500' },
       { key: 'discipline', label: '2. Phát Triển & Tự Động Hóa AI Agents (n8n)', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
@@ -322,7 +322,10 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
       setScores(staff.competencyScores || initialScores);
       setIsEditing(false);
       setIsEditingProfile(initialEditMode);
-      setEditFullName(staff.fullName || '');
+      const initialName = (staff.phone === '0888003205' || staff.code === 'PK88-ADMIN' || staff.fullName?.includes('Trần Hoàng Sang'))
+        ? 'Trần Hoàng Sang'
+        : (staff.fullName || '');
+      setEditFullName(initialName);
       setEditPhone(staff.phone || '');
       setEditBranchId(staff.branchId || (branch ? branch.id : ''));
       setEditRole(staff.role || 'sales');
@@ -336,11 +339,14 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   }, [staff, initialEditMode]);
 
   // Derive display values
+  const staffDisplayName = (staff.phone === '0888003205' || staff.code === 'PK88-ADMIN' || staff.fullName?.includes('Trần Hoàng Sang'))
+    ? 'Trần Hoàng Sang'
+    : staff.fullName;
   const staffCode = staff.code || `PK88-NV${staff.id.replace(/\D/g, '').padStart(3, '0')}`;
-  const avatarUrl = avatarPreview || staff.avatarUrl || AVATAR_FALLBACKS[staff.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(staff.fullName)}&background=0284c7&color=fff&size=200&font-size=0.35&bold=true`;
+  const avatarUrl = avatarPreview || staff.avatarUrl || AVATAR_FALLBACKS[staff.id] || `https://ui-avatars.com/api/?name=${encodeURIComponent(staffDisplayName)}&background=0284c7&color=fff&size=200&font-size=0.35&bold=true`;
   const roleDisplay = 
     staff.role === 'founder' ? 'Chủ Sở Hữu / Founder' :
-    staff.role === 'admin' ? 'Admin & System Automation' :
+    staff.role === 'admin' ? 'Admin' :
     staff.role === 'sales_head' ? 'Trưởng Phòng Kinh Doanh' :
     staff.role === 'accountant' ? 'Kế Toán Trưởng' :
     staff.role === 'warehouse_accountant' ? 'Kế Toán Kho' :
@@ -729,7 +735,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 <span className={`inline-block px-2.5 py-1 rounded-lg text-[10px] font-extrabold bg-gradient-to-r ${roleColor} shadow-md uppercase tracking-wider mb-1`}>
                   {roleDisplay}
                 </span>
-                <h2 className="text-lg font-black text-white leading-tight drop-shadow-md">{staff.fullName}</h2>
+                <h2 className="text-lg font-black text-white leading-tight drop-shadow-md">{staffDisplayName}</h2>
               </div>
             </div>
 
@@ -848,7 +854,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                     <option value="hr">Chuyên Viên HC - NS</option>
                     <option value="marketing">Chuyên Viên Marketing</option>
                     <option value="sales_head">Trưởng Phòng Kinh Doanh</option>
-                    <option value="admin">Admin & System Automation</option>
+                    <option value="admin">Admin</option>
                     <option value="founder">Chủ Sở Hữu / Founder</option>
                   </select>
                 </div>

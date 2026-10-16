@@ -64,7 +64,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
 
   const quickLogins = [
     { label: 'Ngô Hồng Thao (Founder)', phone: '0777888688', role: 'Chủ Doanh Nghiệp' },
-    { label: 'Trần Hoàng Sang (Admin)', phone: '0888003205', role: 'Admin System' },
+    { label: 'Trần Hoàng Sang (Admin)', phone: '0888003205', role: 'Admin' },
     { label: 'Phan Hoàng Khánh (HR)', phone: '0394336726', role: 'Chuyên Viên HC - NS' },
     { label: 'Thùy Dương (CHT Phú Khương)', phone: '0939998322', role: 'Quản Lý Cửa Hàng' },
     { label: 'Trung Hiếu (Kỹ Thuật Trưởng)', phone: '0939118793', role: 'Kỹ Thuật Sửa Chữa' },

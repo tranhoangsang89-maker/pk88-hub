@@ -1,28 +1,94 @@
 import { UserRole } from '../types';
 
 export type AppTab = 
-  | 'dashboard' 
-  | 'admin' 
-  | 'attendance' 
-  | 'staff_directory' 
-  | 'tickets' 
-  | 'pos' 
-  | 'training' 
-  | 'marketing'
-  | 'recruitment'
-  | 'shifts';
+  // 1. Nhóm quầy & Cốt lõi
+  | 'attendance'       // 📱 Ca & Chấm Công (cham-cong)
+  | 'counter'          // 🛒 Quầy Phục Vụ (quay-phuc-vu, gom POS & Sửa chữa)
+  | 'training'         // 🎓 Học Viện 88 (dao-tao)
+  // 2. Nhóm Quản lý Shop
+  | 'shop_management'  // 🏪 Quản Lý Cửa Hàng (quan-ly-shop)
+  // 3. Nhóm Ban Điều Hành & Quản Trị Cấp Cao
+  | 'dashboard'        // 📊 Tổng Quan Executive Hub (tong-quan)
+  | 'hr_hub'           // 👥 Vận Hành Nhân Lực HR Hub (nhan-su)
+  | 'marketing'        // 📢 Marketing & CSKH (marketing)
+  | 'system'           // ⚙️ Cài Đặt Hệ Thống (he-thong)
+  // 4. Công khai
+  | 'recruitment'      // Tuyển dụng công khai (tuyen-dung)
+  // Backward compatibility alias tabs
+  | 'admin'
+  | 'shifts'
+  | 'staff_directory'
+  | 'tickets'
+  | 'pos';
 
 // Bảng ánh xạ slug URL tiếng Việt và tiếng Anh sang AppTab nội bộ
 const SLUG_TO_TAB: Record<string, AppTab> = {
-  // Lịch chia ca & điều động
-  'chia-ca': 'shifts',
-  'chiaca': 'shifts',
-  'phan-ca': 'shifts',
-  'phanca': 'shifts',
-  'lich-lam-viec': 'shifts',
-  'lichlamviec': 'shifts',
-  'ca-kip': 'shifts',
-  'shifts': 'shifts',
+  // 1. Ca & Chấm công
+  'cham-cong': 'attendance',
+  'chamcong': 'attendance',
+  'attendance': 'attendance',
+
+  // 2. Quầy phục vụ (Gom POS & Sửa chữa)
+  'quay-phuc-vu': 'counter',
+  'quayphucvu': 'counter',
+  'counter': 'counter',
+  'pos': 'counter',
+  'ban-hang': 'counter',
+  'banhang': 'counter',
+  'sua-chua': 'counter',
+  'suachua': 'counter',
+  'tiep-nhan': 'counter',
+  'tickets': 'counter',
+
+  // 3. Học viện 88
+  'dao-tao': 'training',
+  'daotao': 'training',
+  'lms': 'training',
+  'training': 'training',
+
+  // 4. Quản lý cửa hàng (Manager)
+  'quan-ly-shop': 'shop_management',
+  'quanlyshop': 'shop_management',
+  'shop': 'shop_management',
+  'cua-hang': 'shop_management',
+  'cuahang': 'shop_management',
+  'nhan-vien': 'shop_management',
+  'nhanvien': 'shop_management',
+  'dong-nghiep': 'shop_management',
+  'staff_directory': 'shop_management',
+  'directory': 'shop_management',
+
+  // 5. Tổng quan Executive Hub
+  'tong-quan': 'dashboard',
+  'tongquan': 'dashboard',
+  'dashboard': 'dashboard',
+  'executive': 'dashboard',
+
+  // 6. Vận hành nhân lực (HR Hub)
+  'nhan-su': 'hr_hub',
+  'nhansu': 'hr_hub',
+  'hr': 'hr_hub',
+  'hr_hub': 'hr_hub',
+  'chia-ca': 'hr_hub',
+  'chiaca': 'hr_hub',
+  'phan-ca': 'hr_hub',
+  'phanca': 'hr_hub',
+  'lich-lam-viec': 'hr_hub',
+  'lichlamviec': 'hr_hub',
+  'ca-kip': 'hr_hub',
+  'shifts': 'hr_hub',
+
+  // 7. Marketing & CSKH
+  'marketing': 'marketing',
+  'bai-dang': 'marketing',
+
+  // 8. Cài đặt hệ thống (System Settings)
+  'he-thong': 'system',
+  'hethong': 'system',
+  'system': 'system',
+  'quan-tri': 'system',
+  'quantri': 'system',
+  'admin': 'system',
 
   // Tuyển dụng công khai
   'tuyen-dung': 'recruitment',
@@ -30,64 +96,25 @@ const SLUG_TO_TAB: Record<string, AppTab> = {
   'recruitment': 'recruitment',
   'jobs': 'recruitment',
   'ung-tuyen': 'recruitment',
-
-  // Chấm công
-  'cham-cong': 'attendance',
-  'chamcong': 'attendance',
-  'attendance': 'attendance',
-
-  // Sửa chữa / Tiếp nhận
-  'sua-chua': 'tickets',
-  'suachua': 'tickets',
-  'tiep-nhan': 'tickets',
-  'tickets': 'tickets',
-
-  // Bán hàng & Dịch vụ nhanh POS
-  'pos': 'pos',
-  'ban-hang': 'pos',
-  'banhang': 'pos',
-
-  // Đồng nghiệp chi nhánh
-  'nhan-vien': 'staff_directory',
-  'nhanvien': 'staff_directory',
-  'dong-nghiep': 'staff_directory',
-  'staff_directory': 'staff_directory',
-  'directory': 'staff_directory',
-
-  // Đào tạo LMS 60 ngày
-  'dao-tao': 'training',
-  'daotao': 'training',
-  'lms': 'training',
-  'training': 'training',
-
-  // Hiệu suất Marketing
-  'marketing': 'marketing',
-  'bai-dang': 'marketing',
-
-  // Tổng quan Dashboard
-  'dashboard': 'dashboard',
-  'tong-quan': 'dashboard',
-  'executive': 'dashboard',
-
-  // Quản trị Admin / HR
-  'admin': 'admin',
-  'quan-tri': 'admin',
-  'quantri': 'admin',
-  'hr': 'admin',
 };
 
 // Bảng ánh xạ AppTab sang slug hiển thị trên thanh địa chỉ URL
 const TAB_TO_SLUG: Record<AppTab, string> = {
-  shifts: 'phan-ca',
   attendance: 'cham-cong',
-  tickets: 'sua-chua',
-  pos: 'pos',
-  staff_directory: 'nhan-vien',
+  counter: 'quay-phuc-vu',
   training: 'dao-tao',
+  shop_management: 'quan-ly-shop',
+  dashboard: 'tong-quan',
+  hr_hub: 'nhan-su',
   marketing: 'marketing',
-  dashboard: 'dashboard',
-  admin: 'quan-tri',
+  system: 'he-thong',
   recruitment: 'tuyen-dung',
+  // Backward compatibility alias
+  admin: 'he-thong',
+  shifts: 'nhan-su',
+  staff_directory: 'quan-ly-shop',
+  tickets: 'quay-phuc-vu',
+  pos: 'quay-phuc-vu',
 };
 
 /**
@@ -133,30 +160,47 @@ export function isRecruitmentModeFromUrl(): boolean {
 }
 
 /**
+ * Lấy tab mặc định theo vai trò nhân viên
+ */
+export function getDefaultTabForRole(role?: UserRole): AppTab {
+  if (!role) return 'attendance';
+  if (role === 'founder' || role === 'admin') return 'dashboard';
+  if (role === 'hr') return 'hr_hub';
+  if (role === 'manager') return 'shop_management';
+  return 'attendance';
+}
+
+/**
  * Kiểm tra quyền truy cập tab theo role của nhân viên
  */
 export function canAccessTab(tab: AppTab, role?: UserRole): boolean {
   if (tab === 'recruitment') return true; // Công khai cho tất cả mọi người
-  
   if (!role) return false;
   
-  if (tab === 'admin') {
-    return role === 'admin' || role === 'founder' || role === 'hr';
-  }
-  
-  if (tab === 'dashboard') {
-    return role === 'founder' || role === 'admin';
+  const isLeadership = role === 'admin' || role === 'founder' || role === 'hr' || role === 'sales_head';
+
+  if (tab === 'marketing') {
+    return isLeadership || role === 'marketing' || role === 'media';
   }
 
-  // Các tab còn lại: attendance, tickets, pos, staff_directory, training, marketing mở cho mọi nhân sự
+  if (tab === 'dashboard' || tab === 'hr_hub') {
+    return isLeadership || role === 'accountant' || role === 'warehouse_accountant';
+  }
+
+  if (tab === 'system' || tab === 'admin') {
+    return isLeadership;
+  }
+  
+  if (tab === 'shop_management' || tab === 'staff_directory') {
+    return role === 'manager' || isLeadership;
+  }
+
+  // Các tab còn lại: attendance, counter, training, pos, tickets, shifts mở cho mọi nhân sự
   return true;
 }
 
 /**
  * Cập nhật URL trình duyệt và ghi vào window.history (phục vụ nút Back trên điện thoại)
- * @param tab Tab cần chuyển tới
- * @param isCustomer Chế độ khách hay nhân viên
- * @param replace Nếu true sẽ replaceState thay vì pushState (ví dụ lúc khởi động)
  */
 export function syncTabToUrl(tab: AppTab, isCustomer: boolean = false, replace: boolean = false): void {
   if (typeof window === 'undefined') return;

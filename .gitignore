@@ -20,6 +20,7 @@ supabase-pw.txt
 # Scratch and temp files
 scratch/
 scratch_*
+*.xlsx
 
 # Editor directories and files
 .vscode/*
