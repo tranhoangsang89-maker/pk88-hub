@@ -22,7 +22,11 @@ import {
   ShieldAlert,
   FileText,
   Camera,
-  Calendar
+  Calendar,
+  LocateFixed,
+  RotateCw,
+  Loader2,
+  Compass
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
@@ -128,6 +132,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [loadingLoc, setLoadingLoc] = useState(false);
   const [locError, setLocError] = useState<string | null>(null);
   const [simulatedOffsetMeters, setSimulatedOffsetMeters] = useState<number>(15);
+  const [showTestMode, setShowTestMode] = useState<boolean>(false);
   const [showSuccessMsg, setShowSuccessMsg] = useState<boolean>(false);
   const [actionMessage, setActionMessage] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
@@ -156,12 +161,16 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   // Geofence Radius: 100 meters standard (cập nhật từ 200m xuống 100m)
   const ALLOWED_RADIUS = 100;
   const hasRealGps = userCoords !== null;
-  const currentLat = userCoords ? userCoords.lat : currentBranch.lat + (simulatedOffsetMeters / 111000);
+  const currentLat = userCoords 
+    ? userCoords.lat 
+    : (showTestMode ? currentBranch.lat + (simulatedOffsetMeters / 111000) : currentBranch.lat);
   const currentLng = userCoords ? userCoords.lng : currentBranch.lng;
-  const distance = getDistanceMeters(currentLat, currentLng, currentBranch.lat, currentBranch.lng);
-  const isValidGeofence = distance <= ALLOWED_RADIUS;
-  const isOutsideGeofence = !isValidGeofence;
-  const canCheckIn = isValidGeofence;
+  const distance = (hasRealGps || showTestMode)
+    ? getDistanceMeters(currentLat, currentLng, currentBranch.lat, currentBranch.lng)
+    : 0;
+  const isValidGeofence = (hasRealGps || showTestMode) ? (distance <= ALLOWED_RADIUS) : false;
+  const isOutsideGeofence = (hasRealGps || showTestMode) ? !isValidGeofence : false;
+  const canCheckIn = (hasRealGps || showTestMode) && isValidGeofence;
 
   // Realtime Work Clock Timer (Live Work Timer)
   const [elapsedSeconds, setElapsedSeconds] = useState<number>(0);
@@ -257,38 +266,46 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       shopMarkerRef.current = L.marker([currentBranch.lat, currentBranch.lng], { icon: shopIcon }).addTo(map);
     }
 
-    // 3. User Marker (Emerald if inside, Rose if outside)
-    const userColor = isValidGeofence ? '#10b981' : '#f43f5e';
-    const userShadow = isValidGeofence ? 'rgba(16, 185, 129, 0.8)' : 'rgba(244, 63, 94, 0.8)';
-    const userHtml = `
-      <div style="transform: translate(-50%, -50%); position: relative;">
-        <div style="width: 18px; height: 18px; border-radius: 50%; background: ${userColor}; border: 3px solid #ffffff; box-shadow: 0 0 14px ${userShadow};"></div>
-        <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px; background: #090d16; color: #f8fafc; border-radius: 6px; padding: 2px 6px; font-size: 9px; font-weight: 800; white-space: nowrap; border: 1px solid #334155;">
-          ${currentStaff.fullName.split(' ').pop()} (${Math.round(distance)}m)
+    // 3. User Marker (Emerald if inside, Rose if outside) - Only display when GPS is acquired or Test Mode is on
+    if (hasRealGps || showTestMode) {
+      const userColor = isValidGeofence ? '#10b981' : '#f43f5e';
+      const userShadow = isValidGeofence ? 'rgba(16, 185, 129, 0.8)' : 'rgba(244, 63, 94, 0.8)';
+      const userHtml = `
+        <div style="transform: translate(-50%, -50%); position: relative;">
+          <div style="width: 18px; height: 18px; border-radius: 50%; background: ${userColor}; border: 3px solid #ffffff; box-shadow: 0 0 14px ${userShadow};"></div>
+          <div style="position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 3px; background: #090d16; color: #f8fafc; border-radius: 6px; padding: 2px 6px; font-size: 9px; font-weight: 800; white-space: nowrap; border: 1px solid #334155;">
+            ${currentStaff.fullName.split(' ').pop()} (${Math.round(distance)}m)
+          </div>
         </div>
-      </div>
-    `;
-    const userIcon = L.divIcon({
-      className: 'custom-user-pin',
-      html: userHtml,
-      iconSize: [0, 0]
-    });
+      `;
+      const userIcon = L.divIcon({
+        className: 'custom-user-pin',
+        html: userHtml,
+        iconSize: [0, 0]
+      });
 
-    if (userMarkerRef.current) {
-      userMarkerRef.current.setLatLng([currentLat, currentLng]);
-      userMarkerRef.current.setIcon(userIcon);
+      if (userMarkerRef.current) {
+        userMarkerRef.current.setLatLng([currentLat, currentLng]);
+        userMarkerRef.current.setIcon(userIcon);
+      } else {
+        userMarkerRef.current = L.marker([currentLat, currentLng], { icon: userIcon }).addTo(map);
+      }
+
+      // Fit map bounds to show both shop & user
+      const bounds = L.latLngBounds([
+        [currentBranch.lat, currentBranch.lng],
+        [currentLat, currentLng]
+      ]);
+      map.fitBounds(bounds, { padding: [35, 35], maxZoom: 17 });
     } else {
-      userMarkerRef.current = L.marker([currentLat, currentLng], { icon: userIcon }).addTo(map);
+      if (userMarkerRef.current) {
+        map.removeLayer(userMarkerRef.current);
+        userMarkerRef.current = null;
+      }
+      map.setView([currentBranch.lat, currentBranch.lng], 16);
     }
 
-    // Fit map bounds to show both shop & user
-    const bounds = L.latLngBounds([
-      [currentBranch.lat, currentBranch.lng],
-      [currentLat, currentLng]
-    ]);
-    map.fitBounds(bounds, { padding: [35, 35], maxZoom: 17 });
-
-  }, [currentBranch.lat, currentBranch.lng, currentBranch.name, currentLat, currentLng, ALLOWED_RADIUS, isValidGeofence, distance, currentStaff.fullName]);
+  }, [currentBranch.lat, currentBranch.lng, currentBranch.name, currentLat, currentLng, ALLOWED_RADIUS, isValidGeofence, distance, currentStaff.fullName, hasRealGps, showTestMode]);
 
   // Cleanup Leaflet Map on Unmount
   useEffect(() => {
@@ -308,19 +325,32 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         (pos) => {
           setUserCoords({ lat: pos.coords.latitude, lng: pos.coords.longitude });
           setLoadingLoc(false);
-          showToast(`📍 Đã định vị GPS thực tế thành công!`);
+          showToast(`📍 Đã lấy vị trí GPS thực tế thành công!`);
         },
         (err) => {
-          setLocError('Không thể lấy vị trí GPS thực tế. Hãy bật quyền vị trí và thử lại.');
+          let errText = 'Không thể lấy vị trí GPS. Hãy bật GPS trên điện thoại và thử lại.';
+          if (err.code === 1) {
+            errText = 'Trình duyệt bị từ chối quyền vị trí. Vui lòng bấm vào biểu tượng ổ khóa 🔒 trên thanh địa chỉ để BẬT Vị Trí (Location).';
+          } else if (err.code === 2) {
+            errText = 'Tín hiệu GPS chưa khả dụng hoặc mạng yếu. Vui lòng ra nơi thoáng và bấm thử lại.';
+          } else if (err.code === 3) {
+            errText = 'Quá thời gian quét GPS. Vui lòng bấm nút "Lấy GPS Thật" để thử lại.';
+          }
+          setLocError(errText);
           setLoadingLoc(false);
         },
-        { enableHighAccuracy: true, timeout: 6000 }
+        { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }
       );
     } else {
       setLocError('Trình duyệt không hỗ trợ Geolocation.');
       setLoadingLoc(false);
     }
   };
+
+  // Tự động quét GPS thực tế khi nhân viên vào màn hình Chấm Công
+  useEffect(() => {
+    handleGetLocation();
+  }, [currentBranch.id]);
 
   // Check late arrival helper
   const checkLateArrival = (shift: ShiftType, date: Date) => {
@@ -356,7 +386,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
   const handleCheckAction = async () => {
     if (!isValidGeofence) {
-      showToast('⚠️ Bạn đang ở ngoài bán kính cho phép (200m). Vui lòng đến gần cửa hàng!');
+      showToast('⚠️ Bạn đang ở ngoài bán kính cho phép (100m). Vui lòng đến gần cửa hàng!');
       return;
     }
 
@@ -974,8 +1004,14 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <label className="font-extrabold text-slate-300 uppercase tracking-wider block">
             2. BẢN ĐỒ GEOFENCING (BÁN KÍNH 100M)
           </label>
-          <span className={`font-mono text-xs font-black ${isValidGeofence ? 'text-emerald-400' : 'text-rose-400'}`}>
-            Khoảng cách: {formatDistance(distance)}
+          <span className={`font-mono text-xs font-black ${
+            loadingLoc ? 'text-cyan-400 animate-pulse' :
+            !hasRealGps && !showTestMode ? 'text-amber-400' :
+            isValidGeofence ? 'text-emerald-400' : 'text-rose-400'
+          }`}>
+            {loadingLoc ? 'Đang dò GPS...' :
+             !hasRealGps && !showTestMode ? 'Chưa xác định GPS' :
+             `Khoảng cách: ${formatDistance(distance)}`}
           </span>
         </div>
 
@@ -989,7 +1025,17 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
           {/* Floating Map Status Overlay */}
           <div className="absolute top-2.5 left-2.5 z-[400] flex items-center gap-1.5 bg-slate-950/90 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 shadow-lg text-[11px]">
-            {isValidGeofence ? (
+            {loadingLoc ? (
+              <>
+                <Loader2 className="w-3.5 h-3.5 text-cyan-400 animate-spin shrink-0" />
+                <span className="text-cyan-300 font-extrabold">Đang quét định vị GPS...</span>
+              </>
+            ) : !hasRealGps && !showTestMode ? (
+              <>
+                <Compass className="w-3.5 h-3.5 text-amber-400 shrink-0 animate-pulse" />
+                <span className="text-amber-300 font-extrabold">Chưa có GPS (Bấm nút bên dưới)</span>
+              </>
+            ) : isValidGeofence ? (
               <>
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                 <span className="text-emerald-300 font-extrabold">Trong phạm vi hợp lệ (&le; 100m)</span>
@@ -1003,58 +1049,140 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           </div>
         </div>
 
-        {/* Test/Demo Mode & Real GPS Controls */}
-        <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-3 space-y-2.5">
-          <div className="flex items-center justify-between text-xs">
-            <span className="text-slate-400 font-semibold flex items-center gap-1.5">
-              <Navigation className="w-3.5 h-3.5 text-cyan-400" />
-              <span>Chế độ kiểm thử (Test / Demo GPS):</span>
-            </span>
-            <button
-              onClick={handleGetLocation}
-              disabled={loadingLoc}
-              className="text-xs font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
-            >
-              {loadingLoc ? 'Đang định vị...' : '📍 Lấy GPS Thật'}
-            </button>
-          </div>
+        {/* Real GPS Controls & Status Card */}
+        <div className="bg-slate-950/90 border border-slate-800 rounded-2xl p-3.5 sm:p-4 space-y-3 shadow-lg">
+          {/* Main Big Tactile Button: LẤY VỊ TRÍ GPS THỰC TẾ */}
+          <button
+            type="button"
+            onClick={handleGetLocation}
+            disabled={loadingLoc}
+            className={`w-full py-3.5 sm:py-4 px-4 rounded-xl font-black text-sm border flex items-center justify-between gap-3 transition-all cursor-pointer shadow-xl active:scale-[0.98] ${
+              loadingLoc
+                ? 'bg-cyan-950/70 border-cyan-500/60 text-cyan-300 ring-2 ring-cyan-500/30'
+                : hasRealGps
+                ? 'bg-gradient-to-r from-slate-900 via-cyan-950/60 to-slate-900 hover:from-cyan-950/80 hover:to-slate-900 border-cyan-500/50 hover:border-cyan-400 text-cyan-200 hover:text-white shadow-cyan-950/30 ring-1 ring-cyan-500/30'
+                : 'bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white border-cyan-300/80 shadow-cyan-500/30 ring-2 ring-cyan-400/50 animate-pulse'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <div className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 border ${
+                loadingLoc 
+                  ? 'bg-cyan-500/20 border-cyan-400/40' 
+                  : hasRealGps 
+                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                  : 'bg-white/20 border-white/40 text-white'
+              }`}>
+                {loadingLoc ? (
+                  <Loader2 className="w-6 h-6 text-cyan-300 animate-spin" />
+                ) : hasRealGps ? (
+                  <LocateFixed className="w-6 h-6 text-emerald-400" />
+                ) : (
+                  <MapPin className="w-6 h-6 text-white animate-bounce" />
+                )}
+              </div>
+              <div className="text-left">
+                <div className="font-black text-sm sm:text-base leading-tight flex items-center gap-2">
+                  <span>{loadingLoc ? 'ĐANG DÒ TÌM VỊ TRÍ GPS VỆ TINH...' : hasRealGps ? 'CẬP NHẬT LẠI VỊ TRÍ GPS THẬT' : '📍 BẤM ĐỂ LẤY VỊ TRÍ GPS THỰC TẾ'}</span>
+                  {hasRealGps && !loadingLoc && (
+                    <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/40 px-2 py-0.5 rounded-full font-extrabold uppercase">
+                      Đã định vị
+                    </span>
+                  )}
+                </div>
+                <div className="text-[11px] sm:text-xs text-slate-300 font-medium mt-0.5">
+                  {loadingLoc ? (
+                    'Vui lòng giữ nguyên điện thoại để thiết bị bắt sóng vệ tinh...'
+                  ) : hasRealGps ? (
+                    <span>
+                      Cách shop: <strong className={isValidGeofence ? 'text-emerald-400' : 'text-rose-400'}>{Math.round(distance)}m</strong> • Tọa độ: {userCoords?.lat.toFixed(5)}, {userCoords?.lng.toFixed(5)}
+                    </span>
+                  ) : (
+                    <span className="text-cyan-200 font-semibold">
+                      Chạm vào đây để trình duyệt bật GPS xác nhận bạn đang tại cửa hàng
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+            <div className="shrink-0 pl-2">
+              <RotateCw className={`w-5 h-5 text-cyan-400 ${loadingLoc ? 'animate-spin' : 'hover:rotate-180 transition-transform'}`} />
+            </div>
+          </button>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => {
-                setUserCoords(null);
-                setSimulatedOffsetMeters(15);
-                showToast('🧪 Đã chuyển sang chế độ: Tại Shop');
-              }}
-              className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                !hasRealGps && simulatedOffsetMeters <= 100
-                  ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow'
-                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Tại Shop</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setUserCoords(null);
-                setSimulatedOffsetMeters(250);
-                showToast('🧪 Đã chuyển sang chế độ: Ngoài Shop');
-              }}
-              className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                !hasRealGps && simulatedOffsetMeters > 100
-                  ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow'
-                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <XCircle className="w-3.5 h-3.5 text-rose-400" />
-              <span>Ngoài Shop</span>
-            </button>
-          </div>
-
+          {/* Lỗi định vị GPS (nếu có) */}
           {locError && (
-            <p className="text-[11px] text-rose-400 pt-1 border-t border-slate-800/80">{locError}</p>
+            <div className="bg-rose-950/40 border border-rose-500/40 rounded-xl p-3 text-rose-300 text-xs flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="space-y-1">
+                <p className="font-bold">{locError}</p>
+                <p className="text-[11px] text-slate-400">
+                  Mẹo: Hãy đảm bảo điện thoại đã bật vị trí (Location/GPS) và cấp quyền cho trình duyệt Safari/Chrome (bấm icon 🔒 trên thanh địa chỉ web).
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* Test/Demo GPS Mode: ẨN MẶC ĐỊNH HOÀN TOÀN, chỉ mở khi Admin/Founder chủ động bật toggle */}
+          {canViewAllAttendance && (
+            <div className="pt-2 border-t border-slate-800/80">
+              <div className="flex items-center justify-between">
+                <button
+                  type="button"
+                  onClick={() => setShowTestMode(!showTestMode)}
+                  className="text-[11px] text-slate-500 hover:text-slate-300 transition-colors flex items-center gap-1 cursor-pointer font-medium"
+                >
+                  <span>🧪 {showTestMode ? 'Đóng chế độ test GPS giả lập' : 'Mở chế độ test GPS giả lập (Chỉ Admin)'}</span>
+                </button>
+                {showTestMode && (
+                  <span className="text-[10px] bg-amber-500/20 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                    Đang bật Test Mode
+                  </span>
+                )}
+              </div>
+
+              {showTestMode && (
+                <div className="mt-2.5 p-2.5 bg-slate-900/90 border border-amber-500/30 rounded-xl space-y-2">
+                  <div className="text-[11px] text-amber-300 font-semibold flex items-center gap-1.5">
+                    <Navigation className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Giả lập vị trí GPS (Dành cho kiểm thử nội bộ):</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserCoords(null);
+                        setSimulatedOffsetMeters(15);
+                        showToast('🧪 Đã chuyển sang chế độ giả lập: Tại Shop (15m)');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        !hasRealGps && simulatedOffsetMeters <= 100
+                          ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/40 shadow'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>Tại Shop (~15m)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setUserCoords(null);
+                        setSimulatedOffsetMeters(250);
+                        showToast('🧪 Đã chuyển sang chế độ giả lập: Ngoài Shop (250m)');
+                      }}
+                      className={`p-2 rounded-xl text-xs font-bold border transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                        !hasRealGps && simulatedOffsetMeters > 100
+                          ? 'bg-rose-500/20 text-rose-300 border-rose-500/40 shadow'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      <XCircle className="w-3.5 h-3.5 text-rose-400" />
+                      <span>Ngoài Shop (~250m)</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
@@ -1092,6 +1220,26 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                   </>
                 )}
               </button>
+            ) : !hasRealGps && !showTestMode ? (
+              /* Chưa có tín hiệu GPS thực tế: Nút to hướng dẫn lấy GPS */
+              <button
+                type="button"
+                onClick={handleGetLocation}
+                disabled={loadingLoc}
+                className="w-full py-4 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95 bg-gradient-to-r from-cyan-600 via-teal-600 to-blue-600 hover:from-cyan-500 hover:to-blue-500 text-white ring-2 ring-cyan-400/50 shadow-cyan-950/40"
+              >
+                {loadingLoc ? (
+                  <>
+                    <Loader2 className="w-5 h-5 text-white animate-spin" />
+                    <span>ĐANG DÒ TÌM VỊ TRÍ GPS VỆ TINH...</span>
+                  </>
+                ) : (
+                  <>
+                    <LocateFixed className="w-5 h-5 text-white animate-pulse" />
+                    <span>BẤM LẤY VỊ TRÍ GPS THỰC TẾ ĐỂ BẬT CHẤM CÔNG</span>
+                  </>
+                )}
+              </button>
             ) : (
               /* Khi ngoài bán kính 100m: Mở nút Giải Trình Chấm Công */
               <button
@@ -1104,7 +1252,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                 className="w-full py-4 px-4 rounded-2xl font-black text-sm shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer active:scale-95 bg-gradient-to-r from-amber-500 via-rose-500 to-pink-600 hover:from-amber-400 hover:to-rose-500 text-white ring-2 ring-amber-400/50 shadow-amber-950/40"
               >
                 <ShieldAlert className="w-5 h-5 text-amber-200 animate-pulse" />
-                <span>BẤM CHẤM CÔNG KÈM GIẢI TRÌNH (&gt; 100M)</span>
+                <span>BẤM CHẤM CÔNG KÈM GIẢI TRÌNH (&gt; 100M - Cách {Math.round(distance)}m)</span>
               </button>
             )}
 

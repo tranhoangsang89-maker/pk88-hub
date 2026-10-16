@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 16/10/2026 (Chuẩn Hóa Thuật Toán Tính Trễ 10 Phút Ân Hạn, Khung Giờ Ca Văn Phòng 07:30 - 17:30, Reset Sạch Dữ Liệu Test Supabase)*
+*Ngày cập nhật mới nhất: 16/10/2026 (Chuyển Đổi Chấm Công Thực Tế: Ẩn Hoàn Toàn Demo Test GPS, Nâng Cấp Nút 'Lấy GPS Thật' To Rõ Ràng, Tự Động Quét GPS Khi Vào Ca)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -16,7 +16,19 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 16/10/2026) - QUAN TRỌNG
 
-### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (NEW - 16/10)
+### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (NEW - 16/10)
+1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**
+   - Xóa bỏ hiển thị công khai của các nút giả lập *"Tại Shop"* và *"Ngoài Shop"* trên giao diện chấm công của nhân viên để ngăn ngừa gian lận vị trí.
+   - Chế độ giả lập chỉ có thể mở lại khi tài khoản Admin/Founder bấm nút toggle ẩn `[🧪 Mở chế độ test GPS giả lập (Chỉ Admin)]`. Nhân viên thông thường tuyệt đối không thấy bất kỳ công cụ test nào.
+2. **Nâng Cấp Nút "Lấy GPS Thật" Siêu Nổi Bật & Dễ Thao Tác Trên Điện Thoại:**
+   - Thiết kế thành thẻ hành động to (Full-width), chiều cao chuẩn ngón tay bấm cảm ứng (`py-4`), hiệu ứng glow phát sáng cyan và viền pulse thu hút sự chú ý.
+   - Tích hợp biểu tượng radar vệ tinh và con quay hồi chuyển (`LocateFixed`, `RotateCw`, `Loader2`).
+   - Hiển thị đầy đủ thông tin: Trạng thái định vị, khoảng cách thực tế đến cửa hàng (mét), tọa độ GPS chính xác (vĩ độ, kinh độ), cùng hướng dẫn bật quyền vị trí 🔒 trên trình duyệt điện thoại nếu bị chặn.
+3. **Tự Động Kích Hoạt Quét GPS (Auto-detect Location):**
+   - Tự động gọi `navigator.geolocation.getCurrentPosition` ngay khi nhân viên vừa truy cập tab Chấm Công mà không bắt buộc phải bấm nút trước.
+   - Khi chưa có tọa độ GPS thật, nút hành động chính đóng vai trò nhắc nhở: *"BẤM LẤY VỊ TRÍ GPS THỰC TẾ ĐỂ BẬT CHẤM CÔNG"*, ngăn ngừa việc nhân viên bấm nhầm sang gửi đơn giải trình.
+
+### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**
    - Chỉ duy nhất **Founder (Ngô Hồng Thao)**, **Admin (Trần Hoàng Sang)** và **HR (Phan Hoàng Khánh)** mới có quyền chỉnh sửa nội dung trang tuyển dụng.
    - Nhân viên tại quầy, kỹ thuật viên, quản lý shop, khách vãng lai và ứng viên tuyệt đối không thấy bất kỳ nút hoặc công cụ chỉnh sửa nào.
