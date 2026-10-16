@@ -40,6 +40,13 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      6. **Vĩnh Long**
      7. **Thủ Đức**
    - Đồng bộ hiển thị từ danh mục Cảnh Báo Đỏ Telegram, Menu đổi chi nhánh trên thanh điều hướng đầu trang, đến bảng xếp hạng vận hành chuỗi.
+6. **Loại Trừ Tuyệt Đối Founder Khỏi Ma Trận Phân Ca & Cảnh Báo Chấm Công ([ShiftSchedulingMatrix.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ShiftSchedulingMatrix.tsx) & [ExecutiveDashboard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ExecutiveDashboard.tsx)):**
+   - Founder (**Ngô Hồng Thao**) là Chủ Doanh Nghiệp, được áp dụng quy chế `Miễn công` (không tính ca, không xếp lịch làm việc).
+   - Đã loại bỏ hoàn toàn tài khoản Founder khỏi:
+     + Bảng lưới Ma trận chia ca 15 ngày tại chi nhánh Văn Phòng (chỉ hiển thị đúng các nhân sự văn phòng cần chia ca: Marketing, Kế toán, HR, Media, Admin).
+     + Danh sách nhân sự trong tệp Excel xuất in ấn A4.
+     + Danh sách nhân sự cần gọi điện / nhắn tin Zalo nhắc nhở mở ca trong popup Cảnh Báo Đỏ.
+     + Menu chọn nhân viên điều động công tác chéo giữa các chi nhánh.
 
 ### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**

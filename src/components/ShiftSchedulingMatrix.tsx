@@ -199,7 +199,12 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
   // Tự động reset nhân sự mặc định cho chức năng Đổ ca khi đổi chi nhánh
   useEffect(() => {
-    const homeStaff = staffList.filter(s => s.branchId === selectedBranchId);
+    const homeStaff = staffList.filter(s => 
+      s.branchId === selectedBranchId && 
+      s.role !== 'founder' && 
+      s.code !== 'PK88-FOUNDER' && 
+      !s.fullName?.toLowerCase().includes('founder')
+    );
     if (homeStaff.length > 0) {
       setAutoFillStaffId(homeStaff[0].id);
     }
@@ -243,9 +248,13 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     return branches.find(b => b.id === selectedBranchId) || branches[0];
   }, [branches, selectedBranchId]);
 
-  // Filter staff working at or dispatched to this branch
+  // Filter staff working at or dispatched to this branch (Loại trừ hoàn toàn Founder)
   const activeStaffForMatrix = useMemo(() => {
     let list = staffList.filter(s => {
+      // LOẠI TRỪ FOUNDER (Chủ doanh nghiệp được miễn xếp ca & chấm công)
+      const isFounder = s.role === 'founder' || s.code === 'PK88-FOUNDER' || s.fullName?.toLowerCase().includes('founder');
+      if (isFounder) return false;
+
       const isHomeBranch = s.branchId === selectedBranchId;
       const isWorkingHere = assignments.some(
         a => a.workingBranchId === selectedBranchId && cycleDates.includes(a.date) && isAssignmentForStaff(a, s)
@@ -1761,7 +1770,11 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                   required
                 >
                   <option value="">-- Chọn nhân viên cần cử đi --</option>
-                  {staffList.map(s => {
+                  {staffList.filter(s => 
+                    s.role !== 'founder' && 
+                    s.code !== 'PK88-FOUNDER' && 
+                    !s.fullName?.toLowerCase().includes('founder')
+                  ).map(s => {
                     const b = branches.find(item => item.id === s.branchId);
                     return (
                       <option key={s.id} value={s.id}>
