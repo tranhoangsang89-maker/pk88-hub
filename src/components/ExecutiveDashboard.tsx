@@ -790,7 +790,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               {/* Category 2: CHƯA MỞ CA */}
               {selectedAlert.category === 'OPEN_SHIFT' && (() => {
                 const branchObj = selectedAlert.payload?.branch || branches.find(b => b.id === selectedAlert.branchId);
-                const assignedStaff = staffList.filter(s => s.branchId === branchObj?.id && s.isActive);
+                // Loại trừ hoàn toàn Founder (Chủ doanh nghiệp được miễn chấm công) khỏi danh sách gọi điện nhắc nhở
+                const assignedStaff = staffList.filter(s => 
+                  s.branchId === branchObj?.id && 
+                  s.isActive && 
+                  s.role !== 'founder' && 
+                  s.code !== 'PK88-FOUNDER' && 
+                  !s.fullName?.toLowerCase().includes('founder')
+                );
                 const isOffice = branchObj?.code === 'PK88_VANPHONG' || branchObj?.name?.includes('Văn Phòng');
 
                 return (
