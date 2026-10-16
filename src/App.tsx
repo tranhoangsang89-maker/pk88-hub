@@ -1186,6 +1186,13 @@ export function App() {
           activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
         },
         {
+          id: 'training',
+          label: '🎓 Học Viện 88',
+          shortLabel: 'Học Viện',
+          icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
           id: 'system',
           label: '⚙️ Cài Đặt Hệ Thống',
           shortLabel: 'Hệ Thống',
@@ -1225,6 +1232,13 @@ export function App() {
           shortLabel: 'Marketing',
           icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
+        },
+        {
+          id: 'training',
+          label: '🎓 Học Viện 88',
+          shortLabel: 'Học Viện',
+          icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
         },
         {
           id: 'system',

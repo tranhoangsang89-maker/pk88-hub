@@ -30,7 +30,7 @@ export function TrainingLMS({ currentUser }: TrainingLMSProps) {
   const [chatInput, setChatInput] = useState('');
   const [isChatLoading, setIsChatLoading] = useState(false);
 
-  const isSuperUser = currentUser.role === 'admin' || currentUser.role === 'founder';
+  const isSuperUser = currentUser.role === 'admin' || currentUser.role === 'founder' || currentUser.role === 'hr';
 
   const getLessonIcon = (title: string) => {
     const t = title.toLowerCase();

@@ -6,6 +6,7 @@ import { AttendanceTimesheetView } from './AttendanceTimesheetView';
 import { RecruitmentManagement } from './RecruitmentManagement';
 import { ShiftSchedulingMatrix } from './ShiftSchedulingMatrix';
 import { AttendanceCard } from './AttendanceCard';
+import { TrainingLMS } from './TrainingLMS';
 import { getStaffRealtimeStatus } from '../lib/staffStatus';
 import { Cpu, Server, Database, Key, Radio, Plus, Settings2, ShieldCheck, RefreshCw, Activity, Terminal, Calculator, DollarSign, GraduationCap, BookOpen, CheckCircle2, Search, Filter, Users, Tag, ChevronDown, LayoutGrid, List, Eye, Sparkles, Edit3, FileSpreadsheet, Calendar, Briefcase, Clock } from 'lucide-react';
 
@@ -43,6 +44,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
   const isHR = currentUser?.role === 'hr' || mode === 'hr';
   const defaultSubTab = mode === 'system' ? 'branches' : (mode === 'hr' ? 'payroll' : (isHR ? 'staff' : 'payroll'));
   const [activeSubTab, setActiveSubTab] = useState<'branches' | 'staff' | 'webhooks' | 'ai' | 'logs' | 'payroll' | 'lms' | 'recruitment'>(defaultSubTab);
+  const [lmsSubView, setLmsSubView] = useState<'lessons' | 'report'>('lessons');
   const [newStaffName, setNewStaffName] = useState('');
   const [newStaffPhone, setNewStaffPhone] = useState('');
   const [newStaffBranch, setNewStaffBranch] = useState<string>(branches[0]?.id || 'b1');
@@ -1532,16 +1534,74 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
 
       {activeSubTab === 'lms' && (
         <div className="space-y-6">
-          <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-slate-900/90">
-            <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-800">
-              <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
-                <BookOpen className="w-5 h-5 text-emerald-400" />
-                <span>Báo Cáo Tiến Độ Đào Tạo Nhân Sự Mới (60 Ngày)</span>
-              </h3>
-              <button onClick={fetchLmsData} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg flex items-center gap-2 transition-all">
-                <RefreshCw className="w-3 h-3" /> Cập nhật Data
+          {/* Sub-header navigation: 60 Bài Học LMS vs Báo Cáo Tiến Độ */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-slate-900 border border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <GraduationCap className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-bold text-white">Học Viện Phụ Kiện 88 (LMS 60 Ngày)</h3>
+                <p className="text-xs text-slate-400">
+                  {lmsSubView === 'lessons' 
+                    ? 'Đang xem Lộ trình & Nội dung 60 bài học đào tạo hội nhập & chuyên môn' 
+                    : 'Báo cáo tiến độ học tập và hoàn thành của nhân sự 8 chi nhánh'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-slate-950 p-1.5 rounded-xl border border-slate-800 self-start sm:self-auto">
+              <button
+                type="button"
+                onClick={() => setLmsSubView('lessons')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  lmsSubView === 'lessons'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Xem 60 Bài Học</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setLmsSubView('report')}
+                className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-2 ${
+                  lmsSubView === 'report'
+                    ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>Tiến Độ Nhân Sự</span>
               </button>
             </div>
+          </div>
+
+          {/* View 1: Toàn bộ 60 bài học đào tạo LMS */}
+          {lmsSubView === 'lessons' && (
+            currentUser ? (
+              <TrainingLMS currentUser={currentUser} />
+            ) : (
+              <div className="p-8 text-center text-slate-400">
+                Vui lòng đăng nhập để xem nội dung đào tạo.
+              </div>
+            )
+          )}
+
+          {/* View 2: Báo cáo tiến độ nhân sự */}
+          {lmsSubView === 'report' && (
+            <div className="glass-card rounded-2xl p-5 border border-emerald-500/30 bg-slate-900/90">
+              <div className="flex justify-between items-center mb-4 pb-4 border-b border-slate-800">
+                <h3 className="text-sm font-bold text-slate-100 flex items-center gap-2">
+                  <BookOpen className="w-5 h-5 text-emerald-400" />
+                  <span>Báo Cáo Tiến Độ Đào Tạo Nhân Sự Mới (60 Ngày)</span>
+                </h3>
+                <button onClick={fetchLmsData} className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold rounded-lg flex items-center gap-2 transition-all">
+                  <RefreshCw className="w-3 h-3" /> Cập nhật Data
+                </button>
+              </div>
 
             <div className="space-y-6">
               {branches.map(branch => {
@@ -1597,8 +1657,9 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               })}
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
+    )}
 
       {/* Recruitment Management Subtab */}
       {activeSubTab === 'recruitment' && (
