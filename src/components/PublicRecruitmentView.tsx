@@ -230,12 +230,12 @@ export const PublicRecruitmentView: React.FC<PublicRecruitmentViewProps> = ({
               </button>
             )}
             <a
-              href="tel:0939000088"
+              href="tel:0394336726"
               className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center gap-1.5"
             >
               <Phone className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">Hotline HR:</span>
-              <span className="font-bold">0939.00.00.88</span>
+              <span className="font-bold">0394.336.726</span>
             </a>
           </div>
         </div>
