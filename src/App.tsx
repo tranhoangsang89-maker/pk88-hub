@@ -1355,6 +1355,7 @@ export function App() {
     return (
       <PublicRecruitmentView
         branches={branches}
+        currentUser={currentUser}
         onBackToApp={() => {
           handleNavigateTab(currentUser ? (currentUser.role === 'hr' || currentUser.role === 'admin' ? 'admin' : 'attendance') : 'attendance');
         }}

@@ -16,7 +16,20 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 16/10/2026) - QUAN TRỌNG
 
-### F. Chuẩn Hóa Thuật Toán Tính Trễ Tự Động & Chốt Ca Văn Phòng (NEW - 16/10)
+### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (NEW - 16/10)
+1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**
+   - Chỉ duy nhất **Founder (Ngô Hồng Thao)**, **Admin (Trần Hoàng Sang)** và **HR (Phan Hoàng Khánh)** mới có quyền chỉnh sửa nội dung trang tuyển dụng.
+   - Nhân viên tại quầy, kỹ thuật viên, quản lý shop, khách vãng lai và ứng viên tuyệt đối không thấy bất kỳ nút hoặc công cụ chỉnh sửa nào.
+2. **Khả Năng Tùy Biến Toàn Diện ([RecruitmentEditModal.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/RecruitmentEditModal.tsx)):**
+   - **Quản lý vị trí tuyển dụng:** Thêm mới vị trí, sửa tiêu đề, mức lương, khung ca, mô tả công việc, yêu cầu ứng viên, quyền lợi nổi bật, bật/tắt hiển thị (Ẩn/Hiện vị trí tạm thời mà không cần xóa), xóa vị trí.
+   - **Quản lý Banner & Hero:** Chỉnh sửa huy hiệu đầu trang, tiêu đề chính, đoạn mô tả giới thiệu, số điện thoại Hotline HR trực tiếp.
+   - **Cam kết vàng:** Tùy biến tiêu đề và mô tả cho 4 thẻ cam kết quyền lợi của chuỗi.
+3. **Lưu Trữ Đám Mây & Xuất Bản Realtime ([recruitmentService.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/recruitmentService.ts)):**
+   - Đồng bộ ngay lập tức lên Supabase Cloud (`job_applications` config row) và `localStorage`.
+   - Tất cả ứng viên và người xem trên mọi thiết bị sẽ thấy ngay nội dung mới nhất mà không cần deploy lại mã nguồn.
+   - Kèm nút Khôi phục mặc định để dễ dàng hoàn tác nếu cần.
+
+### F. Chuẩn Hóa Thuật Toán Tính Trễ Tự Động & Chốt Ca Văn Phòng (16/10)
 1. **Thuật Toán Tính Trễ Tự Động Với 10 Phút Ân Hạn (`calculateAttendanceIsLate`):**
    - Đặt thời gian ân hạn chuẩn: **10 phút** (`GRACE_PERIOD_MINUTES = 10`). Check-in trong vòng 10 phút sau giờ bắt đầu ca được công nhận 100% Đúng Giờ / Hợp Lệ.
    - So sánh trực tiếp timestamp check-in thực tế với mốc bắt đầu ca:

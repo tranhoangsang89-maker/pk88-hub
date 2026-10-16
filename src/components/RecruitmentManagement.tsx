@@ -131,14 +131,16 @@ export const RecruitmentManagement: React.FC<RecruitmentManagementProps> = ({
       try {
         const parsed = JSON.parse(cached);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Chuẩn hóa branch_id nếu là mã legacy cn_mt, cn_bt1...
-          return parsed.map((item: any) => {
-            if (item.branch_id === 'cn_mt' || item.branch_id === 'cn_bt1' || item.branch_id === 'cn_ct') {
-              const realId = getBranchIdByCode(item.branch_id);
-              if (realId) return { ...item, branch_id: realId };
-            }
-            return item;
-          });
+          // Chuẩn hóa branch_id nếu là mã legacy cn_mt, cn_bt1... và lọc bỏ row cấu hình
+          return parsed
+            .filter((item: any) => item.role_applied !== 'CONFIG' && item.branch_id !== 'SYSTEM_CONFIG')
+            .map((item: any) => {
+              if (item.branch_id === 'cn_mt' || item.branch_id === 'cn_bt1' || item.branch_id === 'cn_ct') {
+                const realId = getBranchIdByCode(item.branch_id);
+                if (realId) return { ...item, branch_id: realId };
+              }
+              return item;
+            });
         }
       } catch (e) {}
     }
@@ -174,9 +176,10 @@ export const RecruitmentManagement: React.FC<RecruitmentManagementProps> = ({
 
       if (error) {
         console.warn('Lỗi fetch job_applications từ Supabase (dùng cache local):', error.message);
-      } else if (data && data.length > 0) {
-        setApplications(data);
-        localStorage.setItem('pk88_job_applications', JSON.stringify(data));
+      } else if (data) {
+        const candidateData = data.filter((item: any) => item.role_applied !== 'CONFIG' && item.branch_id !== 'SYSTEM_CONFIG');
+        setApplications(candidateData);
+        localStorage.setItem('pk88_job_applications', JSON.stringify(candidateData));
       }
     } catch (err) {
       console.error('Lỗi khi fetch ứng viên:', err);
