@@ -1408,8 +1408,8 @@ export function App() {
       )}
 
 
-      {/* Test Role Switcher Bar */}
-      {currentUser && !isCustomerMode && (
+      {/* Test Role Switcher Bar: Chỉ dành cho Admin và Founder kiểm tra hệ thống */}
+      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'founder') && !isCustomerMode && (
         <RoleSwitcher
           currentRole={currentUser.role}
           onRoleChange={handleRoleChange}

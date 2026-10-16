@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Staff, UserRole } from '../types';
 import { MOCK_STAFF } from '../lib/mockData';
-import { Lock, Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle, HelpCircle, MessageSquare, RotateCcw, CheckCircle2 } from 'lucide-react';
+import { Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle, HelpCircle, MessageSquare, RotateCcw, CheckCircle2 } from 'lucide-react';
 
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
@@ -14,7 +14,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
   const [phone, setPhone] = useState(''); // Mặc định để trống để bảo mật
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [showQuickLogins, setShowQuickLogins] = useState<boolean>(false); // Mặc định ẩn danh sách test
   const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
   const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
 
@@ -62,15 +61,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     onLoginSuccess(foundStaff);
   };
 
-  const quickLogins = [
-    { label: 'Ngô Hồng Thao (Founder)', phone: '0777888688', role: 'Chủ Doanh Nghiệp' },
-    { label: 'Trần Hoàng Sang (Admin)', phone: '0888003205', role: 'Admin' },
-    { label: 'Phan Hoàng Khánh (HR)', phone: '0394336726', role: 'Chuyên Viên HC - NS' },
-    { label: 'Thùy Dương (CHT Phú Khương)', phone: '0939998322', role: 'Quản Lý Cửa Hàng' },
-    { label: 'Trung Hiếu (Kỹ Thuật Trưởng)', phone: '0939118793', role: 'Kỹ Thuật Sửa Chữa' },
-    { label: 'Bích Trâm (Kế Toán VP)', phone: '0985059514', role: 'Kế Toán Trưởng' },
-    { label: 'Tiểu My (Bán Hàng)', phone: '0392399534', role: 'Nhân Viên Quầy' },
-  ];
 
   return (
     <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-4">
@@ -149,51 +139,6 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
           </button>
         </form>
 
-        {/* Toggle Fast Test Login Shortcuts (Bảo Mật: Mặc định ẩn, bấm nút mới bung ra) */}
-        <div className="mt-5 pt-4 border-t border-slate-800/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 flex items-center gap-1">
-              <Lock className="w-3 h-3 text-slate-500" />
-              Chế độ nội bộ:
-            </span>
-            <button
-              type="button"
-              onClick={() => setShowQuickLogins(!showQuickLogins)}
-              className="text-[11px] font-bold text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1 cursor-pointer"
-            >
-              <span>{showQuickLogins ? '▲ Ẩn danh sách Test' : '▼ Bật đăng nhập Test mẫu'}</span>
-            </button>
-          </div>
-
-          {showQuickLogins && (
-            <div className="mt-3 animate-fade-in space-y-2">
-              <div className="text-[10px] text-amber-400/80 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1.5 rounded-lg">
-                ⚠️ Chế độ dùng để kiểm thử nhanh phân quyền. Khi vận hành thật nên ẩn phần này.
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                {quickLogins.map((ql, idx) => {
-                  const pass = getStaffPassword(ql.phone);
-                  return (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => {
-                        setPhone(ql.phone);
-                        setPassword(pass);
-                      }}
-                      className="p-2 bg-slate-950/80 hover:bg-slate-800 border border-slate-800 rounded-xl text-left transition-all group cursor-pointer"
-                    >
-                      <div className="text-[11px] font-bold text-slate-200 group-hover:text-amber-400 transition-colors">
-                        {ql.label}
-                      </div>
-                      <div className="text-[10px] text-slate-500 font-mono">{ql.phone}</div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* Guest / Customer Lookup & Recruitment Shortcuts */}
         <div className="mt-4 pt-4 border-t border-slate-800 space-y-2 text-center">
