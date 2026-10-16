@@ -27,6 +27,9 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 3. **Tự Động Kích Hoạt Quét GPS (Auto-detect Location):**
    - Tự động gọi `navigator.geolocation.getCurrentPosition` ngay khi nhân viên vừa truy cập tab Chấm Công mà không bắt buộc phải bấm nút trước.
    - Khi chưa có tọa độ GPS thật, nút hành động chính đóng vai trò nhắc nhở: *"BẤM LẤY VỊ TRÍ GPS THỰC TẾ ĐỂ BẬT CHẤM CÔNG"*, ngăn ngừa việc nhân viên bấm nhầm sang gửi đơn giải trình.
+4. **Bổ Sung Khối Văn Phòng Vào Trung Tâm Cảnh Báo Đỏ Telegram ([ExecutiveDashboard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ExecutiveDashboard.tsx)):**
+   - Đã gỡ bỏ điều kiện ngoại lệ `&& b.code !== 'PK88_VANPHONG'` từng loại trừ Văn Phòng khỏi cảnh báo chưa mở ca.
+   - Đưa Khối Văn Phòng vào giám sát tự động bình đẳng như 6 chi nhánh cửa hàng: Sau 09:00 sáng, nếu chưa có nhân sự văn phòng nào check-in ca hành chính, hệ thống sẽ phát cảnh báo đỏ *"Văn phòng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca hành chính"*, kèm biểu tượng tòa nhà văn phòng và danh bạ nhân sự văn phòng trực tiếp (Gọi điện / Zalo).
 
 ### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**

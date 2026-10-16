@@ -28,6 +28,7 @@ import {
   Zap,
   Check,
   Store,
+  Building2,
   ShieldAlert
 } from 'lucide-react';
 import {
@@ -219,21 +220,28 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     });
   }
 
-  // E. Chi nhánh đang mở nhưng chưa có ai mở ca sau 9h00 sáng
+  // E. Chi nhánh / Văn phòng đang mở nhưng chưa có ai mở ca sau 9h00 sáng
   const currentHour = new Date().getHours();
   if (currentHour >= 9) {
     activeBranches.forEach(b => {
-      const hasCheckin = todayLogs.some(l => l.branchId === b.id);
-      if (!hasCheckin && b.code !== 'PK88_VANPHONG') {
+      const hasCheckin = todayLogs.some(l => 
+        l.branchId === b.id || 
+        (b.code && l.notes?.includes(b.code)) || 
+        (b.name && l.notes?.includes(b.name))
+      );
+      const isOffice = b.code === 'PK88_VANPHONG' || b.name.includes('Văn Phòng');
+      if (!hasCheckin) {
         realAlerts.push({
           id: `alt-no-checkin-${b.id}`,
           type: 'CHƯA MỞ CA',
           category: 'OPEN_SHIFT',
           branch: b.name.replace('Phụ Kiện 88 - ', ''),
           branchId: b.id,
-          message: 'Cửa hàng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca sáng',
+          message: isOffice 
+            ? 'Văn phòng làm việc nhưng chưa ghi nhận nhân sự check-in ca hành chính' 
+            : 'Cửa hàng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca sáng',
           severity: 'HIGH',
-          time: 'Ca sáng',
+          time: isOffice ? 'Ca VP' : 'Ca sáng',
           payload: { branch: b }
         });
       }
@@ -678,7 +686,9 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
                   'bg-orange-500/10 border-orange-500/30 text-orange-400'
                 }`}>
                   {selectedAlert.category === 'CHECKOUT' && <Clock className="w-5 h-5" />}
-                  {selectedAlert.category === 'OPEN_SHIFT' && <Store className="w-5 h-5" />}
+                  {selectedAlert.category === 'OPEN_SHIFT' && (
+                    selectedAlert.branch.includes('Văn Phòng') ? <Building2 className="w-5 h-5" /> : <Store className="w-5 h-5" />
+                  )}
                   {selectedAlert.category === 'LEAVE' && <Calendar className="w-5 h-5" />}
                   {selectedAlert.category === 'GPS' && <MapPin className="w-5 h-5" />}
                   {selectedAlert.category === 'REPAIR' && <Wrench className="w-5 h-5" />}
@@ -769,20 +779,25 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
               {selectedAlert.category === 'OPEN_SHIFT' && (() => {
                 const branchObj = selectedAlert.payload?.branch || branches.find(b => b.id === selectedAlert.branchId);
                 const assignedStaff = staffList.filter(s => s.branchId === branchObj?.id && s.isActive);
+                const isOffice = branchObj?.code === 'PK88_VANPHONG' || branchObj?.name?.includes('Văn Phòng');
 
                 return (
                   <div className="space-y-4">
                     <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-xl text-xs text-rose-300 leading-relaxed flex items-start gap-2">
-                      <Store className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                      {isOffice ? <Building2 className="w-4 h-4 flex-shrink-0 mt-0.5 text-rose-400" /> : <Store className="w-4 h-4 flex-shrink-0 mt-0.5" />}
                       <div>
-                        <p className="font-bold">Cửa hàng chưa có nhân sự check-in mở ca sau 09:00 sáng:</p>
+                        <p className="font-bold">
+                          {isOffice 
+                            ? 'Văn phòng chưa có nhân sự check-in mở ca hành chính sau 09:00 sáng:' 
+                            : 'Cửa hàng chưa có nhân sự check-in mở ca sau 09:00 sáng:'}
+                        </p>
                         <p className="text-slate-400 text-[11px] mt-0.5">{branchObj?.address || 'Địa chỉ đang cập nhật'}</p>
                       </div>
                     </div>
 
                     <div>
                       <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">
-                        Danh sách nhân sự thuộc chi nhánh ({assignedStaff.length} người):
+                        {isOffice ? `Danh sách nhân sự văn phòng (${assignedStaff.length} người):` : `Danh sách nhân sự thuộc chi nhánh (${assignedStaff.length} người):`}
                       </h4>
                       {assignedStaff.length === 0 ? (
                         <p className="text-xs text-slate-500 italic p-3 bg-slate-950 rounded-xl">Chưa có nhân viên nào được phân bổ vào chi nhánh này trong danh bạ.</p>
