@@ -59,6 +59,12 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      + **Phiên Sáng (07:00 - 12:00):** Check-in vào ca sáng -> 12:00 Bấm Tan Ca (Check-out) bàn giao tiền/két, về nhà nghỉ ngơi tự do.
      + **Phiên Chiều/Tối (17:00 - 22:00):** 17:00 Đến cửa hàng Check-in vào ca mới -> 22:00 Bấm Tan Ca (Check-out).
      + Bảng chấm công (Tab 1.2) tự động ghi nhận đủ 2 phiên và tổng hợp thành 10 tiếng làm việc (1.25 công).
+9. **Đồng Bộ Hai Chiều Toàn Diện Lên Supabase Cloud Cho Ma Trận Chia Ca (Tab 1.3) ([shiftService.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/shiftService.ts) & [ShiftSchedulingMatrix.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ShiftSchedulingMatrix.tsx)):**
+   - Khắc phục triệt để tình trạng lịch làm việc chỉ lưu cục bộ ở `localStorage` của từng máy, khiến bản live Vercel (`pk88-hub.vercel.app`) hiển thị trống (0.0h).
+   - Tích hợp lưu trữ đám mây hai chiều trên Supabase:
+     + Mọi thao tác phân ca: Đổ ca tự động 15 ngày, đổi ca trên ô, đánh dấu nghỉ luân phiên, điều động chéo, gánh ca khẩn cấp đều được tự động lưu lên Supabase Cloud tức thời.
+     + Khi bất kỳ ai truy cập website từ điện thoại hay máy tính khác, hệ thống tự động tải toàn bộ lịch phân ca mới nhất từ Supabase Cloud.
+     + Bổ sung nút hành động `[☁️ Đồng Bộ Cloud]` trên thanh điều khiển để Cửa hàng trưởng và Admin có thể kiểm tra và ép đồng bộ dữ liệu tức thì.
 
 ### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**

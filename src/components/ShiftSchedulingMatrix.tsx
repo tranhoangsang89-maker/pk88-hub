@@ -14,7 +14,9 @@ import {
   clearBranchAssignments,
   clearAllAssignments,
   deleteAssignment,
-  clearStaffAssignmentsAtBranch
+  clearStaffAssignmentsAtBranch,
+  fetchShiftAssignmentsFromCloud,
+  syncShiftAssignmentsToCloud
 } from '../lib/shiftService';
 import { 
   Calendar, 
@@ -155,9 +157,27 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   // Shift Definitions & Assignments
   const [shiftDefs, setShiftDefs] = useState<ShiftDefinition[]>(() => getShiftDefinitions());
   const [assignments, setAssignments] = useState<ShiftAssignment[]>(() => getAllAssignments(staffList, branches));
+  const [isCloudSyncing, setIsCloudSyncing] = useState<boolean>(false);
 
   useEffect(() => {
-    setAssignments(getAllAssignments(staffList, branches));
+    let active = true;
+    setIsCloudSyncing(true);
+    fetchShiftAssignmentsFromCloud().then(cloudList => {
+      if (!active) return;
+      if (cloudList && cloudList.length > 0) {
+        setAssignments(cloudList);
+      } else {
+        const local = getAllAssignments(staffList, branches);
+        if (local.length > 0) {
+          syncShiftAssignmentsToCloud(local);
+        }
+      }
+      setIsCloudSyncing(false);
+    }).catch(() => {
+      if (active) setIsCloudSyncing(false);
+    });
+
+    return () => { active = false; };
   }, [staffList, branches]);
 
   // Modals state
@@ -863,6 +883,31 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                 >
                   <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                   <span>📥 Xuất Excel</span>
+                </button>
+
+                {/* Đồng Bộ Cloud Supabase */}
+                <button
+                  type="button"
+                  onClick={async () => {
+                    setIsCloudSyncing(true);
+                    showToast('☁️ Đang đồng bộ dữ liệu với máy chủ Supabase Cloud...');
+                    const cloud = await fetchShiftAssignmentsFromCloud();
+                    if (cloud && cloud.length > 0) {
+                      setAssignments(cloud);
+                      showToast(`☁️ Đã nạp thành công ${cloud.length} ca làm việc từ Supabase Cloud!`);
+                    } else {
+                      const local = getAllAssignments(staffList, branches);
+                      await syncShiftAssignmentsToCloud(local);
+                      showToast(`☁️ Đã tải ${local.length} ca làm việc lên Supabase Cloud thành công!`);
+                    }
+                    setIsCloudSyncing(false);
+                  }}
+                  disabled={isCloudSyncing}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-400 text-cyan-200 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+                  title="Đồng bộ lịch chia ca 2 chiều với máy chủ Supabase Cloud"
+                >
+                  <RefreshCw className={`w-4 h-4 text-cyan-400 ${isCloudSyncing ? 'animate-spin' : ''}`} />
+                  <span>{isCloudSyncing ? 'Đang đồng bộ...' : '☁️ Đồng Bộ Cloud'}</span>
                 </button>
 
                 {/* Xóa Lịch Kỳ Này để xếp mới từ đầu */}

@@ -45,6 +45,18 @@ export const DEFAULT_COMPANY_SHIFTS: ShiftDefinition[] = [
     notes: 'Dành cho Khối Văn phòng, Kế toán, HR, Marketing (Nghỉ trưa 2h: 11:30 - 13:30)'
   },
   {
+    id: 'def_vp_thu7',
+    branchId: null,
+    code: 'VP_THU_7',
+    name: 'VP Thứ 7',
+    startTime: '07:30',
+    endTime: '15:30',
+    hours: 8.0,
+    color: 'sky',
+    isCompanyDefault: true,
+    notes: 'Ca làm việc Thứ 7 Khối Văn Phòng (07:30 - 15:30)'
+  },
+  {
     id: 'def_ca_gay_standard',
     branchId: null,
     code: 'CA_GAY',
@@ -111,6 +123,8 @@ export function calculateShiftHours(startTime: string, endTime: string): number 
   if (!startTime || !endTime) return 8.5;
   // Ca Hành Chính VP: 07:30 - 17:30 (Trừ 2 tiếng nghỉ trưa 11:30 - 13:30 => 8.0 tiếng)
   if (startTime === '07:30' && endTime === '17:30') return 8.0;
+  // Ca VP Thứ 7: 07:30 - 15:30 => 8.0 tiếng
+  if (startTime === '07:30' && endTime === '15:30') return 8.0;
   // Ca Gãy PK88: 07:00 - 12:00 (5h) + 17:00 - 22:00 (5h) => 10.0 tiếng
   if (startTime === '07:00' && endTime === '22:00') return 10.0;
 
@@ -206,22 +220,64 @@ export function seedInitialAssignments(staffList: Staff[] = [], branches: Branch
   return [];
 }
 
-const MOCK_CLEARED_FLAG = 'pk88_shift_mock_cleared_v3';
+export const SHIFT_CLOUD_RECORD_ID = '00000000-0000-0000-0000-000000000002';
+export const SHIFT_DEFS_CLOUD_RECORD_ID = '00000000-0000-0000-0000-000000000003';
 
-// Get all assignments with localStorage persistence (Clean slate, no mock data)
-export function getAllAssignments(staffList: Staff[] = [], branches: Branch[] = []): ShiftAssignment[] {
+// Sync shift assignments to Supabase Cloud DB
+export async function syncShiftAssignmentsToCloud(assignments: ShiftAssignment[]): Promise<boolean> {
   try {
-    // Auto-wipe old mock data once so user tests on 100% clean slate
-    if (!localStorage.getItem(MOCK_CLEARED_FLAG)) {
-      localStorage.removeItem(SHIFT_ASSIGNMENTS_STORAGE_KEY);
-      localStorage.setItem(MOCK_CLEARED_FLAG, 'true');
-      return [];
+    const { error } = await supabase.from('job_applications').upsert({
+      id: SHIFT_CLOUD_RECORD_ID,
+      branch_id: 'SYSTEM_CONFIG',
+      full_name: 'PK88_SHIFT_ASSIGNMENTS_CLOUD',
+      phone: '0988888888',
+      role_applied: 'CONFIG',
+      status: 'pending',
+      notes: JSON.stringify(assignments)
+    });
+    if (error) {
+      console.warn('Lỗi lưu lịch làm việc lên Supabase Cloud:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Exception đồng bộ lịch lên Supabase:', err);
+    return false;
+  }
+}
+
+// Fetch shift assignments from Supabase Cloud DB
+export async function fetchShiftAssignmentsFromCloud(): Promise<ShiftAssignment[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .select('notes')
+      .eq('id', SHIFT_CLOUD_RECORD_ID)
+      .maybeSingle();
+
+    if (error || !data || !data.notes) {
+      return null;
     }
 
+    const parsed: ShiftAssignment[] = JSON.parse(data.notes);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(parsed));
+      return parsed;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Lỗi đọc lịch làm việc từ Supabase Cloud:', err);
+    return null;
+  }
+}
+
+// Get all assignments with localStorage persistence & Cloud fallback
+export function getAllAssignments(staffList: Staff[] = [], branches: Branch[] = []): ShiftAssignment[] {
+  try {
     const raw = localStorage.getItem(SHIFT_ASSIGNMENTS_STORAGE_KEY);
     if (raw) {
       const parsed: ShiftAssignment[] = JSON.parse(raw);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
     return [];
   } catch (e) {
@@ -232,6 +288,7 @@ export function getAllAssignments(staffList: Staff[] = [], branches: Branch[] = 
 // Clear all assignments
 export function clearAllAssignments(): ShiftAssignment[] {
   localStorage.removeItem(SHIFT_ASSIGNMENTS_STORAGE_KEY);
+  syncShiftAssignmentsToCloud([]);
   return [];
 }
 
@@ -245,6 +302,7 @@ export function clearBranchAssignments(branchId: string, cycleDates?: string[]):
     remaining = all.filter(a => a.workingBranchId !== branchId);
   }
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(remaining));
+  syncShiftAssignmentsToCloud(remaining);
   return remaining;
 }
 
@@ -253,6 +311,7 @@ export function deleteAssignment(assignmentId: string): ShiftAssignment[] {
   const all = getAllAssignments();
   const remaining = all.filter(a => a.id !== assignmentId);
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(remaining));
+  syncShiftAssignmentsToCloud(remaining);
   return remaining;
 }
 
@@ -281,6 +340,7 @@ export function clearStaffAssignmentsAtBranch(
   });
 
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(remaining));
+  syncShiftAssignmentsToCloud(remaining);
   return remaining;
 }
 
@@ -296,6 +356,7 @@ export function saveAssignment(assignment: ShiftAssignment): ShiftAssignment[] {
     updated = [assignment, ...all];
   }
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(updated));
+  syncShiftAssignmentsToCloud(updated);
   return updated;
 }
 
@@ -347,6 +408,7 @@ export function autoFillBiWeeklyCycle(params: {
   const combined = [...remaining, ...newAssignments];
 
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(combined));
+  syncShiftAssignmentsToCloud(combined);
   return combined;
 }
 
@@ -361,6 +423,7 @@ export function reportSickLeaveAndOpenShift(assignmentId: string, reason: string
   target.bountyBonus = bountyBonus;
 
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(all));
+  syncShiftAssignmentsToCloud(all);
   return [...all];
 }
 
@@ -380,6 +443,7 @@ export function claimOpenShift(assignmentId: string, claimingStaff: Staff): Shif
   target.notes = `🎯 Đã gánh ca thay cho ${originalStaffName} (+${(target.bountyBonus || 50000).toLocaleString('vi-VN')}đ)`;
 
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(all));
+  syncShiftAssignmentsToCloud(all);
   return [...all];
 }
 
@@ -435,6 +499,7 @@ export function dispatchCrossBranchStaff(params: {
 
   const updated = [...filtered, ...newCrossAssignments];
   localStorage.setItem(SHIFT_ASSIGNMENTS_STORAGE_KEY, JSON.stringify(updated));
+  syncShiftAssignmentsToCloud(updated);
   return updated;
 }
 

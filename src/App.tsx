@@ -21,7 +21,7 @@ import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
 import { RoleSwitcher } from './components/RoleSwitcher';
 import { supabase } from './lib/supabase';
-import { calculateAttendanceIsLate } from './lib/shiftService';
+import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
@@ -465,6 +465,7 @@ export function App() {
     fetchTickets();
     fetchMarketingPosts();
     fetchLeaveRequests();
+    fetchShiftAssignmentsFromCloud();
   }, []);
 
   // Lắng nghe sự kiện nút "Back" / "Forward" trên điện thoại và trình duyệt
