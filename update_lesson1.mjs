@@ -8,7 +8,7 @@ const supabase = createClient(supabaseUrl, supabaseAnonKey);
 const richContent = `
 # Chào mừng bạn đến với Đại gia đình Phụ Kiện 88!
 
-![Cửa hàng Phụ Kiện 88](/store_cover.jpg)
+![Cửa hàng Phụ Kiện 88](/banner-bai-1.png)
 
 > Sự khác biệt lớn nhất giữa một nhân viên bình thường và một chuyên gia tư vấn xuất sắc nằm ở sự thấu cảm và nền tảng kiến thức vững chắc. Hãy bắt đầu hành trình của bạn ngay hôm nay!
 
