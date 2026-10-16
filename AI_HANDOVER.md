@@ -30,6 +30,16 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 4. **Bổ Sung Khối Văn Phòng Vào Trung Tâm Cảnh Báo Đỏ Telegram ([ExecutiveDashboard.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ExecutiveDashboard.tsx)):**
    - Đã gỡ bỏ điều kiện ngoại lệ `&& b.code !== 'PK88_VANPHONG'` từng loại trừ Văn Phòng khỏi cảnh báo chưa mở ca.
    - Đưa Khối Văn Phòng vào giám sát tự động bình đẳng như 6 chi nhánh cửa hàng: Sau 09:00 sáng, nếu chưa có nhân sự văn phòng nào check-in ca hành chính, hệ thống sẽ phát cảnh báo đỏ *"Văn phòng trực tuyến nhưng chưa ghi nhận nhân sự check-in ca hành chính"*, kèm biểu tượng tòa nhà văn phòng và danh bạ nhân sự văn phòng trực tiếp (Gọi điện / Zalo).
+5. **Chuẩn Hóa Thứ Tự Hiển Thị 7 Chi Nhánh Toàn Hệ Thống:**
+   - Đã thiết lập hàm sắp xếp chuẩn `sortBranchesByPriority` và `getBranchOrderIndex` ([mockData.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/mockData.ts)):
+     1. **Văn Phòng**
+     2. **Phú Khương**
+     3. **Đồng Khởi**
+     4. **Mỹ Tho**
+     5. **Cần Thơ**
+     6. **Vĩnh Long**
+     7. **Thủ Đức**
+   - Đồng bộ hiển thị từ danh mục Cảnh Báo Đỏ Telegram, Menu đổi chi nhánh trên thanh điều hướng đầu trang, đến bảng xếp hạng vận hành chuỗi.
 
 ### G. Tùy Biến Nội Dung Tuyển Dụng Động Cho Founder, Admin & HR Phan Hoàng Khánh (16/10)
 1. **Phân Quyền Biên Tập Nghiêm Ngặt (Strict RBAC):**

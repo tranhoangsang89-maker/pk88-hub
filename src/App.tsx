@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { UserRole, Branch, AttendanceRecord, RepairTicket, Staff, LeaveRequest, LeaveStatus } from './types';
-import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS } from './lib/mockData';
+import { INITIAL_BRANCHES, MOCK_STAFF, MOCK_REPAIR_TICKETS, MOCK_LEAVE_REQUESTS, sortBranchesByPriority } from './lib/mockData';
 import { AttendanceCard } from './components/AttendanceCard';
 import { ExecutiveDashboard } from './components/ExecutiveDashboard';
 import { RepairTicketView } from './components/RepairTicketView';
@@ -319,22 +319,23 @@ export function App() {
           lng: d.lng,
           isActive: d.is_active !== undefined ? d.is_active : true
         }));
-        setBranches(formatted);
+        const sortedBranches = sortBranchesByPriority(formatted);
+        setBranches(sortedBranches);
         
         // Tự động nhận diện chi nhánh chuẩn xác theo nhân sự đang đăng nhập
         setSelectedBranch(prev => {
           // 1. Ưu tiên chi nhánh của nhân viên hiện tại đang đăng nhập
           if (currentUser?.branchId) {
-            const userBranch = formatted.find(b => b.id === currentUser.branchId);
+            const userBranch = sortedBranches.find(b => b.id === currentUser.branchId);
             if (userBranch) return userBranch;
           }
           // 2. Giữ nguyên chi nhánh đang chọn nếu nó vẫn tồn tại
-          const stillValid = formatted.find(b => b.id === prev.id);
+          const stillValid = sortedBranches.find(b => b.id === prev.id);
           if (stillValid) return stillValid;
-          // 3. Mặc định ưu tiên Văn Phòng
-          const vp = formatted.find(b => b.code === 'PK88_VANPHONG');
+          // 3. Mặc định ưu tiên Văn Phòng (đầu danh sách)
+          const vp = sortedBranches.find(b => b.code === 'PK88_VANPHONG');
           if (vp) return vp;
-          return formatted[0];
+          return sortedBranches[0];
         });
       }
     } catch (err) {
@@ -354,7 +355,7 @@ export function App() {
 
   const handleAddBranch = async (newBranch: Branch) => {
     // Optimistic update
-    setBranches([...branches, newBranch]);
+    setBranches(sortBranchesByPriority([...branches, newBranch]));
     
     // Supabase
     const { error } = await supabase.from('branches').insert([{

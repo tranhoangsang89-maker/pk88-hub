@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Branch, AttendanceRecord, MarketingPost, LeaveRequest, RepairTicket, Staff } from '../types';
 import { supabase } from '../lib/supabase';
+import { sortBranchesByPriority, getBranchOrderIndex } from '../lib/mockData';
 import { 
   TrendingUp, 
   AlertTriangle, 
@@ -80,7 +81,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   onNavigateTab,
   onRefreshAttendance
 }) => {
-  const activeBranches = branches.filter(b => b.isActive);
+  const activeBranches = sortBranchesByPriority(branches.filter(b => b.isActive));
   const inactiveBranches = branches.filter(b => !b.isActive);
   const closedBranchNames = inactiveBranches.map(b => b.name.replace('Phụ Kiện 88 - ', '')).join(', ');
 
@@ -248,8 +249,19 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
     });
   }
 
+  // Sắp xếp Red Flags theo thứ tự ưu tiên chuẩn của chuỗi:
+  // 1. Văn Phòng -> 2. Phú Khương -> 3. Đồng Khởi -> 4. Mỹ Tho -> 5. Cần Thơ -> 6. Vĩnh Long -> 7. Thủ Đức
+  realAlerts.sort((a, b) => {
+    if (a.category === 'OPEN_SHIFT' && b.category === 'OPEN_SHIFT') {
+      return getBranchOrderIndex(a.branch) - getBranchOrderIndex(b.branch);
+    }
+    if (a.category !== 'OPEN_SHIFT' && b.category === 'OPEN_SHIFT') return -1;
+    if (a.category === 'OPEN_SHIFT' && b.category !== 'OPEN_SHIFT') return 1;
+    return 0;
+  });
+
   // 5. Hiệu suất thực tế theo từng chi nhánh
-  const branchMetrics = branches.map(b => {
+  const branchMetrics = sortBranchesByPriority(branches).map(b => {
     const isOnline = b.isActive;
     const shortName = b.name.replace('Phụ Kiện 88 - ', 'PK88 ');
     const branchTickets = tickets.filter(t => t.branchId === b.id);
