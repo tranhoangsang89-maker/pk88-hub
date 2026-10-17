@@ -620,11 +620,11 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
               <h3 className="text-base font-extrabold text-slate-100 flex items-center gap-2">
                 <span>Nhật Ký & Quản Trị Chấm Công Chi Tiết (GPS Timesheet)</span>
                 <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  Chuẩn AFOODS Hub
+                  PK88 Hub
                 </span>
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Theo dõi chi tiết từng lượt vào/ra, đối soát bán kính GPS Geofence (200m), phát hiện đi trễ và xuất báo cáo Excel (.xlsx).
+                Theo dõi chi tiết từng lượt vào/ra, đối soát bán kính GPS Geofence (100m), phát hiện đi trễ và xuất báo cáo Excel (.xlsx).
               </p>
             </div>
           </div>
