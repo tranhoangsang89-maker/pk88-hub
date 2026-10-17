@@ -183,8 +183,14 @@ export function App() {
             } else if (item.notes.includes('[ĐÃ DUYỆT GIẢI TRÌNH') || item.notes.includes('[CHẤM BÙ')) {
               disputeStatus = 'APPROVED';
               if (item.notes.includes('[CHẤM BÙ BỞI ')) {
-                const match = item.notes.match(/\[CHẤM BÙ BỞI ([^\]]+) lúc/);
-                if (match) disputeHandledBy = match[1];
+                const matchApprover = item.notes.match(/\[CHẤM BÙ BỞI ([^\]]+)\]/);
+                if (matchApprover) {
+                  disputeHandledBy = matchApprover[1];
+                }
+                const matchReason = item.notes.match(/\]: (.*)$/);
+                if (matchReason) {
+                  disputeReason = matchReason[1].trim();
+                }
               }
             } else if (item.notes.includes('[TỪ CHỐI GIẢI TRÌNH')) {
               disputeStatus = 'REJECTED';

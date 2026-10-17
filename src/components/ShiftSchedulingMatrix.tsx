@@ -2550,27 +2550,36 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
                       if (isCompensated) {
                         return (
-                          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-1.5 shadow-sm">
+                          <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2 shadow-sm">
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                                <ShieldCheck className="w-4 h-4 text-amber-400" />
                                 <span>LỊCH SỬ CHẤM BÙ CÔNG (AUDIT TRAIL)</span>
                               </span>
-                              <span className="text-[9px] font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full font-bold">
-                                ĐÃ DUYỆT
+                              <span className="text-[10px] font-mono text-amber-300 bg-amber-500/20 px-2.5 py-0.5 rounded-full font-extrabold border border-amber-500/40">
+                                ✓ ĐÃ DUYỆT CÔNG
                               </span>
                             </div>
-                            <div className="text-[10px] text-slate-300">
-                              🛡️ Phê duyệt: <strong className="text-amber-300">{latest.disputeHandledBy || 'Quản lý'}</strong>
+                            <div className="p-2.5 rounded-xl bg-slate-950/80 border border-amber-500/30 text-xs space-y-1">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[11px] text-slate-400">🛡️ Người phê duyệt:</span>
+                                <strong className="text-amber-300 font-bold text-xs">{latest.disputeHandledBy || 'Quản trị hệ thống'}</strong>
+                              </div>
+                              {latest.disputeReason && (
+                                <div className="flex items-start justify-between gap-2 pt-1 border-t border-slate-800">
+                                  <span className="text-[11px] text-slate-400 shrink-0">📝 Lý do bù:</span>
+                                  <span className="text-slate-200 font-medium text-right text-[11px] italic">"{latest.disputeReason}"</span>
+                                </div>
+                              )}
                             </div>
                             <div className="grid grid-cols-2 gap-2 text-xs">
-                              <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
-                                <div className="text-[9.5px] text-slate-400">Giờ vào:</div>
-                                <div className="text-amber-300 font-bold font-mono">{inTime}</div>
+                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                                <div className="text-[10px] text-slate-400">Giờ vào được duyệt:</div>
+                                <div className="text-amber-300 font-bold font-mono text-sm">{inTime}</div>
                               </div>
-                              <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
-                                <div className="text-[9.5px] text-slate-400">Giờ ra:</div>
-                                <div className="text-amber-300 font-bold font-mono">{outTime}</div>
+                              <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                                <div className="text-[10px] text-slate-400">Giờ ra được duyệt:</div>
+                                <div className="text-amber-300 font-bold font-mono text-sm">{outTime}</div>
                               </div>
                             </div>
                           </div>

@@ -1078,10 +1078,17 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                         )}
 
                         {isApprovedDispute && (
-                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                            <span>Đã duyệt hợp lệ</span>
-                          </span>
+                          <div className="flex flex-col items-center gap-0.5">
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                              <CheckCircle2 className="w-3 h-3 text-amber-400" />
+                              <span>{record.notes?.includes('[CHẤM BÙ') ? '⚡ Đã chấm bù' : 'Đã duyệt hợp lệ'}</span>
+                            </span>
+                            {record.disputeHandledBy && (
+                              <span className="text-[9px] text-slate-400 font-mono" title={`Người phê duyệt: ${record.disputeHandledBy}`}>
+                                Duyệt bởi: <strong className="text-amber-300 font-semibold">{record.disputeHandledBy}</strong>
+                              </span>
+                            )}
+                          </div>
                         )}
 
                         {isRejectedDispute && (
