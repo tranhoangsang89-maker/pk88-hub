@@ -9,6 +9,8 @@ import {
   claimOpenShift, 
   dispatchCrossBranchStaff, 
   saveShiftDefinition, 
+  deleteShiftDefinition,
+  resetDefaultShiftDefinitions,
   calculateShiftHours, 
   getBiWeeklyDates,
   clearBranchAssignments,
@@ -580,6 +582,29 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     const nextList = saveAssignment(updated);
     setAssignments(nextList);
     closeCellModal();
+  };
+
+  // Xóa bớt khung ca chưa hợp lý (Dành cho HR & Admin)
+  const handleDeleteShiftDefinition = (def: ShiftDefinition) => {
+    if (!canManageSchedule) {
+      showToast('⛔ Bạn không có quyền xóa khung ca làm việc!');
+      return;
+    }
+    if (window.confirm(`Bạn có chắc chắn muốn xóa khung ca "${def.name}" (${def.startTime} - ${def.endTime}) khỏi danh sách lựa chọn không?\n\n(LƯU Ý: Thao tác này chỉ ẩn khung ca khỏi bảng chọn, không làm mất các ngày đã phân ca trước đó)`)) {
+      const nextDefs = deleteShiftDefinition(def.id);
+      setShiftDefs(nextDefs);
+      showToast(`🗑️ Đã xóa khung ca "${def.name}"`);
+    }
+  };
+
+  // Khôi phục lại toàn bộ khung ca mặc định của công ty
+  const handleResetDefaultShiftDefinitions = () => {
+    if (!canManageSchedule) return;
+    if (window.confirm('Bạn có muốn khôi phục lại toàn bộ danh sách các khung ca mặc định của công ty không?')) {
+      const nextDefs = resetDefaultShiftDefinitions();
+      setShiftDefs(nextDefs);
+      showToast('🔄 Đã khôi phục danh sách khung ca mặc định!');
+    }
   };
 
   // Assignments for active modal cell
@@ -1603,19 +1628,49 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                 {/* Nếu là Quản lý / HR: Có quyền chọn ca để xếp đi làm lại */}
                 {canManageSchedule && (
                   <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <label className="text-xs font-bold text-slate-300">Xếp lịch đi làm lại cho nhân sự:</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold text-slate-300">Xếp lịch đi làm lại cho nhân sự:</label>
+                      {canManageSchedule && (
+                        <button
+                          type="button"
+                          onClick={handleResetDefaultShiftDefinitions}
+                          className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
+                          title="Khôi phục lại các khung ca mặc định của công ty"
+                        >
+                          🔄 Khôi phục mặc định
+                        </button>
+                      )}
+                    </div>
                     <div className="grid grid-cols-2 gap-2">
                       {shiftDefs.map(def => (
-                        <button
+                        <div
                           key={def.id}
-                          onClick={() => handleQuickShiftChange(def)}
-                          className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 text-left transition-all cursor-pointer"
+                          className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
                         >
-                          <div className="font-bold text-xs text-slate-200">{def.name}</div>
-                          <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                            {def.startTime} - {def.endTime} ({def.hours}h)
-                          </div>
-                        </button>
+                          <button
+                            type="button"
+                            onClick={() => handleQuickShiftChange(def)}
+                            className="flex-1 text-left cursor-pointer min-w-0"
+                          >
+                            <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                              {def.startTime} - {def.endTime} ({def.hours}h)
+                            </div>
+                          </button>
+                          {canManageSchedule && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteShiftDefinition(def);
+                              }}
+                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
+                              title={`Xóa khung giờ "${def.name}"`}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       ))}
                     </div>
                     <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2">
@@ -1755,21 +1810,51 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                 {canManageSchedule ? (
                   <>
                     <div className="space-y-2">
-                      <label className="text-xs font-bold text-slate-300">
-                        {dayAssignmentsForModal.length >= 2 ? 'Đổi ca chính:' : 'Chọn loại ca:'}
-                      </label>
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-bold text-slate-300">
+                          {dayAssignmentsForModal.length >= 2 ? 'Đổi ca chính:' : 'Chọn loại ca:'}
+                        </label>
+                        {canManageSchedule && (
+                          <button
+                            type="button"
+                            onClick={handleResetDefaultShiftDefinitions}
+                            className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
+                            title="Khôi phục lại các khung ca mặc định của công ty"
+                          >
+                            🔄 Khôi phục mặc định
+                          </button>
+                        )}
+                      </div>
                       <div className="grid grid-cols-2 gap-2">
                         {shiftDefs.map(def => (
-                          <button
+                          <div
                             key={def.id}
-                            onClick={() => handleQuickShiftChange(def)}
-                            className="p-2.5 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 text-left transition-all cursor-pointer"
+                            className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
                           >
-                            <div className="font-bold text-xs text-slate-200">{def.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              {def.startTime} - {def.endTime} ({def.hours}h)
-                            </div>
-                          </button>
+                            <button
+                              type="button"
+                              onClick={() => handleQuickShiftChange(def)}
+                              className="flex-1 text-left cursor-pointer min-w-0"
+                            >
+                              <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                {def.startTime} - {def.endTime} ({def.hours}h)
+                              </div>
+                            </button>
+                            {canManageSchedule && (
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteShiftDefinition(def);
+                                }}
+                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
+                                title={`Xóa khung giờ "${def.name}"`}
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            )}
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -1802,16 +1887,34 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           {shiftDefs.map(def => (
-                            <button
+                            <div
                               key={`sec_${def.id}`}
-                              onClick={() => handleAddSecondShift(def)}
-                              className="p-2.5 rounded-xl border border-amber-500/30 bg-slate-950 hover:border-amber-400 text-left transition-all cursor-pointer"
+                              className="relative group/shift p-2 rounded-xl border border-amber-500/30 bg-slate-950 hover:border-amber-400 transition-all flex items-center justify-between gap-1 shadow-sm"
                             >
-                              <div className="font-bold text-xs text-slate-200">{def.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                {def.startTime} - {def.endTime} ({def.hours}h)
-                              </div>
-                            </button>
+                              <button
+                                type="button"
+                                onClick={() => handleAddSecondShift(def)}
+                                className="flex-1 text-left cursor-pointer min-w-0"
+                              >
+                                <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                  {def.startTime} - {def.endTime} ({def.hours}h)
+                                </div>
+                              </button>
+                              {canManageSchedule && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteShiftDefinition(def);
+                                  }}
+                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
+                                  title={`Xóa khung giờ "${def.name}"`}
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              )}
+                            </div>
                           ))}
                         </div>
                       </div>

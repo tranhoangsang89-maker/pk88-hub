@@ -149,6 +149,20 @@ export function getShiftDefinitions(branchId?: string): ShiftDefinition[] {
       localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(defs));
     } else {
       let updated = false;
+
+      // Loại bỏ các ca mà HR/Admin đã xóa vào blacklist
+      try {
+        const rawDeleted = localStorage.getItem('pk88_deleted_shift_def_ids') || '[]';
+        const deletedList: string[] = JSON.parse(rawDeleted);
+        if (Array.isArray(deletedList) && deletedList.length > 0) {
+          const filtered = defs.filter(d => !deletedList.includes(d.id));
+          if (filtered.length !== defs.length) {
+            defs = filtered;
+            updated = true;
+          }
+        }
+      } catch (e) {}
+
       // Đồng bộ Ca Hành Chính VP chuẩn 8 tiếng (nghỉ trưa 2h)
       defs = defs.map(d => {
         if ((d.code === 'HANH_CHINH' || d.id === 'def_ca_van_phong') && d.hours !== 8.0) {
@@ -157,14 +171,7 @@ export function getShiftDefinitions(branchId?: string): ShiftDefinition[] {
         }
         return d;
       });
-      // Tự động bổ sung Ca Gãy nếu chưa có trong cache
-      if (!defs.some(d => d.code === 'CA_GAY' || d.id === 'def_ca_gay_standard')) {
-        const gayDef = DEFAULT_COMPANY_SHIFTS.find(d => d.code === 'CA_GAY');
-        if (gayDef) {
-          defs.splice(3, 0, gayDef);
-          updated = true;
-        }
-      }
+
       if (updated) {
         localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(defs));
       }
@@ -191,6 +198,34 @@ export function saveShiftDefinition(def: ShiftDefinition): ShiftDefinition[] {
   }
   localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(updated));
   return updated;
+}
+
+// Delete Shift Definition (Dành cho HR & Admin xóa bớt các khung ca thừa/rối mắt)
+export function deleteShiftDefinition(defId: string): ShiftDefinition[] {
+  const current = getShiftDefinitions();
+  const updated = current.filter(d => d.id !== defId);
+  localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(updated));
+
+  // Ghi nhận ID đã xóa để không tự phục hồi ngầm
+  try {
+    const rawDeleted = localStorage.getItem('pk88_deleted_shift_def_ids') || '[]';
+    const deletedList: string[] = JSON.parse(rawDeleted);
+    if (!deletedList.includes(defId)) {
+      deletedList.push(defId);
+      localStorage.setItem('pk88_deleted_shift_def_ids', JSON.stringify(deletedList));
+    }
+  } catch (e) {}
+
+  return updated;
+}
+
+// Khôi phục toàn bộ danh sách ca mặc định công ty
+export function resetDefaultShiftDefinitions(): ShiftDefinition[] {
+  try {
+    localStorage.removeItem('pk88_deleted_shift_def_ids');
+  } catch (e) {}
+  localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(DEFAULT_COMPANY_SHIFTS));
+  return DEFAULT_COMPANY_SHIFTS;
 }
 
 // Generate Bi-weekly Dates
