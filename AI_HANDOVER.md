@@ -255,6 +255,12 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Quyền toàn chuỗi:** Chỉ duy nhất 3 vai trò cấp cao (**Founder, HR, Admin**) mới có quyền chuyển đổi qua lại giữa tất cả các chi nhánh trên hệ thống (cả Header Navbar và Ma Trận Lịch Làm Việc).
    - **Cửa Hàng Trưởng (Manager) & Nhân viên:** Khóa cứng 100% vào đúng chi nhánh của mình (`currentUser.branchId`), ẩn hoàn toàn menu chọn chi nhánh khác và thay bằng huy hiệu `🔒 Cố định`. Cửa hàng trưởng chỉ quản lý và xem nội bộ lịch làm việc của chi nhánh mình phụ trách, triệt tiêu việc xem lẫn lộn giữa các shop.
 
+12. **Sửa Triệt Để Lỗi Đồng Bộ Chấm Bù Lên Supabase & Khớp Dữ Liệu Nhân Sự (NEW - 17/10):**
+   - **Lỗi schema Supabase:** Bảng `attendance` trên database chưa có các cột `dispute_status`, `dispute_handled_by`... khiến lệnh `insert` bị lỗi Postgres `42703 (column does not exist)`. Đã loại bỏ các trường thừa khỏi payload `insertPayload` và chuẩn hóa cấu trúc `notes`.
+   - **Khớp mã nhân sự (Local vs DB):** Định danh nhân sự ở giao diện là `s-pk88-036` trong khi Supabase dùng UUID. Đã chuẩn hóa chuỗi ghi chú `notes` luôn bao gồm đầy đủ Họ tên và Số điện thoại nhân viên: `Võ Tuấn Anh (0915755063) - [CHẤM BÙ BỞI ...]`.
+   - **Bộ lọc đa tiêu chí:** Hàm `getStaffRecordsForDate` được nâng cấp đối soát qua: `staff.id`, `staff.phone`, `staff.fullName`, `staff.code` và định dạng ngày chuẩn múi giờ Việt Nam (`Asia/Ho_Chi_Minh` UTC+7).
+   - **App.tsx Fallback:** Tự động nhận diện chuỗi `[CHẤM BÙ` trong `notes` để gán `disputeStatus = 'APPROVED'` và bóc tách thông tin người duyệt `disputeHandledBy`. Sau khi bấm Chấm bù, ô ngày lập tức cập nhật huy hiệu `⚡ 07:30 (Bù)` vĩnh viễn trên Supabase.
+
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
    - Lưu trữ hồ sơ ứng viên: `id`, `branch_id`, `full_name`, `phone`, `role_applied`, `experience_note`, `status` (`pending` | `interview` | `hired` | `rejected`), `interview_date`, `notes`, `created_at`.

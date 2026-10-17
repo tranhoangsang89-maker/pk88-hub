@@ -393,16 +393,29 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     return { dayOfWeek, dayNum, isToday };
   };
 
+  // Helper to extract local date (YYYY-MM-DD) in Vietnam time
+  const getLocalDateStr = (iso?: string): string => {
+    if (!iso) return '';
+    try {
+      const d = new Date(iso);
+      if (isNaN(d.getTime())) return iso.slice(0, 10);
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(d);
+    } catch {
+      return iso.slice(0, 10);
+    }
+  };
+
   // Helper to extract attendance records for a staff on a specific date
   const getStaffRecordsForDate = (staff: Staff, dateStr: string): AttendanceRecord[] => {
     if (!localAttendanceLogs || localAttendanceLogs.length === 0) return [];
     return localAttendanceLogs.filter(log => {
       if (!log.checkIn) return false;
-      const logDate = log.checkIn.slice(0, 10);
+      const logDate = getLocalDateStr(log.checkIn);
       if (logDate !== dateStr) return false;
       const isMatch = log.staffId === staff.id ||
-        (log.notes && staff.phone && log.notes.includes(staff.phone)) ||
-        (log.notes && staff.fullName && log.notes.toLowerCase().includes(staff.fullName.toLowerCase()));
+        (staff.phone && log.notes && log.notes.includes(staff.phone)) ||
+        (staff.fullName && log.notes && log.notes.toLowerCase().includes(staff.fullName.toLowerCase())) ||
+        (staff.code && log.notes && log.notes.includes(staff.code));
       return isMatch;
     });
   };
@@ -938,8 +951,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       const nowTimestamp = new Date();
       const timeAuditStr = `${nowTimestamp.toLocaleTimeString('vi-VN')} ${nowTimestamp.toLocaleDateString('vi-VN')}`;
 
-      const checkInDate = new Date(`${dateStr}T${compensateCheckIn}:00`);
-      const checkOutDate = new Date(`${dateStr}T${compensateCheckOut}:00`);
+      const checkInDate = new Date(`${dateStr}T${compensateCheckIn}:00+07:00`);
+      const checkOutDate = new Date(`${dateStr}T${compensateCheckOut}:00+07:00`);
       if (checkOutDate.getTime() < checkInDate.getTime()) {
         checkOutDate.setDate(checkOutDate.getDate() + 1);
       }
@@ -951,7 +964,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
       const shiftType = selectedCellAssignment?.shiftCode || 'HANH_CHINH';
       const reasonText = compensateReason.trim() || 'Nhân viên đi làm đầy đủ nhưng quên bấm công';
-      const fullNote = `[CHẤM BÙ BỞI ${approverName} (${approverRole}) lúc ${timeAuditStr}]: ${reasonText}`;
+      const fullNote = `${staff.fullName} (${staff.phone || staff.code || ''}) - [CHẤM BÙ BỞI ${approverName} (${approverRole}) lúc ${timeAuditStr}]: ${reasonText}`;
 
       // Resolve db staff id & branch id
       let dbStaffId = staff.id;
@@ -999,7 +1012,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       // 1. Optimistic UI Update: Prepend to localAttendanceLogs immediately
       setLocalAttendanceLogs(prev => [newAttendanceRecord, ...prev]);
 
-      // 2. Insert into Supabase cloud table
+      // 2. Insert into Supabase cloud table (chỉ gửi các cột thực tế tồn tại trong database)
       try {
         const insertPayload: any = {
           staff_id: dbStaffId,
@@ -1012,9 +1025,6 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           lng: currentBranch.lng || 106.7009,
           distance_meters: 0,
           is_verified: true,
-          dispute_status: 'APPROVED',
-          dispute_handled_by: `${approverName} (${approverRole})`,
-          dispute_handled_at: nowTimestamp.toISOString(),
           notes: fullNote
         };
         const { data, error } = await supabase.from('attendance').insert([insertPayload]).select();

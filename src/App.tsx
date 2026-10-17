@@ -180,8 +180,12 @@ export function App() {
             if (item.notes.includes('[GIẢI TRÌNH CHỜ DUYỆT]')) {
               disputeStatus = 'PENDING';
               disputeReason = item.notes.replace(/^.*\[GIẢI TRÌNH CHỜ DUYỆT\]:?/, '').trim();
-            } else if (item.notes.includes('[ĐÃ DUYỆT GIẢI TRÌNH')) {
+            } else if (item.notes.includes('[ĐÃ DUYỆT GIẢI TRÌNH') || item.notes.includes('[CHẤM BÙ')) {
               disputeStatus = 'APPROVED';
+              if (item.notes.includes('[CHẤM BÙ BỞI ')) {
+                const match = item.notes.match(/\[CHẤM BÙ BỞI ([^\]]+) lúc/);
+                if (match) disputeHandledBy = match[1];
+              }
             } else if (item.notes.includes('[TỪ CHỐI GIẢI TRÌNH')) {
               disputeStatus = 'REJECTED';
             }
