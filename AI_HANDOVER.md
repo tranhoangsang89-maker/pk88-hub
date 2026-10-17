@@ -54,6 +54,15 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Đối soát ngày quá khứ:** Các ngày trước đó trong kỳ tự động hiển thị `✓ 07:18` (đã chấm công) hoặc `⚠️ Chưa CC` (vắng/chưa có log GPS).
    - **Cửa sổ chi tiết (Cell Modal):** Khi bấm vào ô bất kỳ, bảng ma trận hiển thị hộp thông tin GPS thực tế: Giờ vào ca, Giờ ra ca, Trạng thái trễ/đúng giờ, Ghi chú vị trí.
 
+6. **Tối Ưu Trải Nghiệm Di Động & Chế Độ Xem Theo Ngày (Mobile View & Compact Matrix):**
+   - **Nút Chuyển Chế Độ Xem (View Mode Switcher):** Cung cấp 2 chế độ xem linh hoạt:
+     + `📱 Xem Theo Ngày (Thoáng Di Động)`: Tự động kích hoạt khi mở trên màn hình điện thoại (< 768px). Hiển thị thanh cuộn chọn ngày ngang (`T5 15 | T6 16 | 🟢 T7 17 HÔM NAY | CN 18...`) và danh sách thẻ nhân sự dạng dọc thoáng đãng, to rõ, dễ đọc, không cần vuốt ngang khổ sở.
+     + `📊 Bảng Ma Trận (15 Ngày)`: Cho phép chuyển sang xem toàn bộ lưới 15 ngày bất kỳ lúc nào chỉ bằng 1 chạm.
+   - **Thu Gọn Cột Cố Định Trên Điện Thoại (Compact Matrix Layout):**
+     + Cột tên nhân sự cố định (sticky) giảm từ `w-56` (224px) xuống `w-32 sm:w-56` (128px) trên điện thoại, giải phóng gần 100px chiều rộng.
+     + Nhờ vậy, ngay trên điện thoại, bảng ma trận hiển thị đồng thời được **4 đến 5 ngày** thay vì chỉ 1 ngày duy nhất bị cụt như trước đó.
+     + Avatar, tên, chức vụ và ô ngày đều co giãn mượt mà theo chuẩn mobile-first.
+
 ### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).

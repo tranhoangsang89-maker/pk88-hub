@@ -102,6 +102,11 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
+  // Chế độ xem: 'matrix' (Bảng ma trận 15 ngày) hoặc 'daily' (Thẻ di động theo ngày thoáng mát)
+  const isMobileInitial = typeof window !== 'undefined' && window.innerWidth < 768;
+  const [viewMode, setViewMode] = useState<'matrix' | 'daily'>(isMobileInitial ? 'daily' : 'matrix');
+  const [selectedDailyDate, setSelectedDailyDate] = useState<string>(todayStr);
+
   // Tính số ngày tối đa trong tháng đang chọn (28, 29, 30 hoặc 31 ngày)
   const lastDayOfMonth = useMemo(() => {
     return new Date(selectedYear, selectedMonth, 0).getDate();
@@ -286,8 +291,15 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     if (cycleDates.length > 0) {
       setDispatchStartDate(cycleDates[0]);
       setDispatchEndDate(cycleDates[cycleDates.length - 1]);
+      if (!cycleDates.includes(selectedDailyDate)) {
+        if (cycleDates.includes(todayStr)) {
+          setSelectedDailyDate(todayStr);
+        } else {
+          setSelectedDailyDate(cycleDates[0]);
+        }
+      }
     }
-  }, [cycleDates]);
+  }, [cycleDates, todayStr]);
 
   // Selected Branch object
   const currentBranch = useMemo(() => {
@@ -1572,111 +1584,358 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         </div>
       </div>
 
-      {/* Main Bi-weekly Matrix Table */}
-      <div className="glass-card rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-2xl">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse min-w-[1100px]">
-            <thead>
-              <tr className="bg-slate-950 border-b border-slate-800 text-[11px] font-bold text-slate-400">
-                {/* Fixed Staff Column */}
-                <th className="py-3 px-4 w-56 sticky left-0 bg-slate-950 z-20 border-r border-slate-800">
-                  NHÂN SỰ ({currentBranch.name})
-                </th>
+      {/* View Mode Toggle: [ 📱 Xem Theo Ngày (Tiện Di Động) ] vs [ 📊 Bảng Ma Trận (15 Ngày) ] */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-slate-950 p-1.5 rounded-2xl border border-slate-800 shadow-inner">
+        <div className="flex items-center gap-1 w-full sm:w-auto">
+          <button
+            type="button"
+            onClick={() => setViewMode('daily')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'daily'
+                ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span>📱 Xem Theo Ngày (Thoáng Di Động)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setViewMode('matrix')}
+            className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              viewMode === 'matrix'
+                ? 'bg-cyan-500 text-slate-950 font-black shadow-md shadow-cyan-500/20'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+            }`}
+          >
+            <span>📊 Bảng Ma Trận (15 Ngày)</span>
+          </button>
+        </div>
 
-                {/* 15 Days Columns */}
-                {cycleDates.map(dateStr => {
-                  const { dayOfWeek, dayNum, isToday } = formatDateHeader(dateStr);
-                  const hasOpenShiftOnDay = assignments.some(
-                    a => a.workingBranchId === selectedBranchId && a.date === dateStr && a.status === 'OPEN_SHIFT'
-                  );
-                  const hasCrossBranchOnDay = assignments.some(
-                    a => a.workingBranchId === selectedBranchId && a.date === dateStr && a.isCrossBranch && a.status !== 'OFF'
-                  );
+        <div className="text-[11px] text-slate-400 px-2 flex items-center gap-1.5 justify-center sm:justify-end">
+          <span>💡</span>
+          <span>{viewMode === 'daily' ? 'Chế độ cuộn dọc từng thẻ tối ưu 100% cho màn hình điện thoại' : 'Chế độ lưới ngang tổng quan 15 ngày chi nhánh'}</span>
+        </div>
+      </div>
 
-                  return (
-                    <th
-                      key={dateStr}
-                      className={`py-2 px-1 text-center min-w-[68px] border-r border-slate-800/60 transition-colors relative ${
-                        hasOpenShiftOnDay ? 'bg-rose-950/50 border-rose-500/60' :
-                        hasCrossBranchOnDay ? 'bg-amber-950/40 border-amber-500/50' :
-                        isToday ? 'bg-cyan-500/20 border-cyan-400/80 text-cyan-300 ring-1 ring-cyan-500/40' : ''
-                      }`}
-                    >
-                      <div className="flex items-center justify-center gap-1 text-[10px] uppercase font-mono">
-                        <span>{dayOfWeek}</span>
-                        {isToday && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" title="Ngày hiện tại (Live Presence)" />
-                        )}
-                        {hasOpenShiftOnDay && (
-                          <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" title="Có ca trống cần gánh!" />
-                        )}
-                        {hasCrossBranchOnDay && (
-                          <span className="text-[10px]" title="Có nhân sự tăng cường chéo!">✈️</span>
-                        )}
-                      </div>
-                      <div className={`text-sm font-extrabold ${
-                        hasOpenShiftOnDay ? 'text-rose-400 animate-pulse font-black' :
-                        hasCrossBranchOnDay ? 'text-amber-400 font-black' :
-                        isToday ? 'text-cyan-300 font-black' : 'text-slate-200'
-                      }`}>
-                        {dayNum}
-                      </div>
-                      {isToday && (
-                        <div className="text-[7.5px] font-black uppercase text-cyan-400 tracking-wider font-mono">
-                          HÔM NAY
-                        </div>
-                      )}
-                    </th>
-                  );
-                })}
-
-                {/* Total Column */}
-                <th className="py-2.5 px-3 text-center w-28 bg-slate-950 border-b border-slate-800" title="Tổng số giờ công kế hoạch theo lịch đã phân ca trong kỳ">
-                  <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">GIỜ KẾ HOẠCH</div>
-                  <div className="text-[9px] text-emerald-400/90 font-mono font-medium">(Dự kiến)</div>
-                </th>
-              </tr>
-            </thead>
-
-            <tbody className="divide-y divide-slate-800/60 text-xs">
-              {activeStaffForMatrix.map((staff) => {
-                const isCross = staff.branchId !== selectedBranchId;
-                const homeBranch = branches.find(b => b.id === (staff.homeBranchId || staff.branchId));
-                
-                // Calculate staff total hours in this cycle
-                let staffCycleHours = 0;
+      {viewMode === 'daily' ? (
+        /* CHẾ ĐỘ XEM THEO NGÀY (GIAO DIỆN DI ĐỘNG CAO CẤP, RỘNG RÃI) */
+        <div className="space-y-4">
+          {/* Thanh Chọn Ngày Ngang (Horizontal Scroll Date Picker) */}
+          <div className="glass-card p-3 rounded-2xl border border-slate-800 bg-slate-900/80 shadow-lg">
+            <div className="text-[11px] font-bold text-slate-400 mb-2.5 px-1 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                <span>CHỌN NGÀY TRONG KỲ:</span>
+              </span>
+              <span className="text-cyan-300 font-mono text-xs font-extrabold bg-cyan-500/10 px-2 py-0.5 rounded-lg border border-cyan-500/20">
+                {formatDateHeader(selectedDailyDate).dayOfWeek}, {selectedDailyDate} {selectedDailyDate === todayStr ? '• HÔM NAY' : ''}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-700">
+              {cycleDates.map(dStr => {
+                const { dayOfWeek, dayNum, isToday } = formatDateHeader(dStr);
+                const isSelected = dStr === selectedDailyDate;
+                const hasOpenShiftOnDay = assignments.some(
+                  a => a.workingBranchId === selectedBranchId && a.date === dStr && a.status === 'OPEN_SHIFT'
+                );
 
                 return (
-                  <tr key={staff.id} className="hover:bg-slate-800/30 transition-colors group">
-                    {/* Staff Profile Cell */}
-                    <td className="py-2.5 px-4 sticky left-0 bg-slate-900 group-hover:bg-slate-850 z-10 border-r border-slate-800">
-                      <div className="flex items-center gap-2.5">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 border ${
-                          isCross 
-                            ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
-                            : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                  <button
+                    key={dStr}
+                    type="button"
+                    onClick={() => setSelectedDailyDate(dStr)}
+                    className={`flex-shrink-0 px-3 py-2 rounded-xl text-center transition-all cursor-pointer border relative min-w-[56px] ${
+                      isSelected
+                        ? 'bg-cyan-500 text-slate-950 font-black border-cyan-400 shadow-lg shadow-cyan-500/25 ring-2 ring-cyan-400/50 scale-105'
+                        : isToday
+                          ? 'bg-cyan-500/15 text-cyan-300 font-bold border-cyan-500/40 hover:bg-cyan-500/25'
+                          : 'bg-slate-950 text-slate-400 hover:text-slate-200 border-slate-800 hover:bg-slate-900'
+                    }`}
+                  >
+                    <div className="text-[9.5px] uppercase font-mono">{dayOfWeek}</div>
+                    <div className="text-sm font-black mt-0.5">{dayNum}</div>
+                    {isToday && (
+                      <div className={`text-[7px] font-black uppercase tracking-wider mt-0.5 ${isSelected ? 'text-slate-950' : 'text-cyan-400'}`}>
+                        HÔM NAY
+                      </div>
+                    )}
+                    {hasOpenShiftOnDay && (
+                      <span className="w-2 h-2 rounded-full bg-rose-500 absolute -top-1 -right-1 animate-ping" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Danh Sách Thẻ Nhân Viên Cho Ngày Đang Chọn */}
+          <div className="space-y-3">
+            {activeStaffForMatrix.map(staff => {
+              const isCross = staff.branchId !== selectedBranchId;
+              const homeBranch = branches.find(b => b.id === (staff.homeBranchId || staff.branchId));
+              const dayAsgs = assignments.filter(
+                a => isAssignmentForStaff(a, staff) && a.date === selectedDailyDate && a.workingBranchId === selectedBranchId
+              );
+              const isToday = selectedDailyDate === todayStr;
+              const isPast = selectedDailyDate < todayStr;
+              const isOff = dayAsgs.length > 0 && dayAsgs.every(a => a.status === 'OFF');
+              const isCaGay = dayAsgs.length === 1 && (dayAsgs[0].shiftCode === 'CA_GAY' || dayAsgs[0].shiftName?.toLowerCase().includes('gãy'));
+              const isMultiple = dayAsgs.length >= 2;
+
+              return (
+                <div
+                  key={staff.id}
+                  onClick={() => handleCellClick(staff, selectedDailyDate)}
+                  className="glass-card p-3.5 rounded-2xl border border-slate-800 bg-slate-900/90 hover:border-cyan-500/40 transition-all shadow-md cursor-pointer space-y-3 group"
+                >
+                  {/* Dòng Tiêu Đề Thẻ: Thông Tin Nhân Sự + Nút Thao Tác */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm flex-shrink-0 border ${
+                        isCross
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                          : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                      }`}>
+                        {staff.fullName.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-slate-100 text-sm">{staff.fullName}</span>
+                          {(['founder', 'admin'].includes(staff.role?.toLowerCase() || '') || staff.code === 'PK88-FOUNDER') && (
+                            <span className="text-xs select-none" title="Quản trị tối cao">👑</span>
+                          )}
+                          {isCross && (
+                            <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-500/40 font-bold">
+                              ✈️ Tăng cường
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-slate-400 flex items-center gap-1.5 mt-0.5">
+                          <span className="font-mono text-cyan-400/90">{staff.code || 'NV'}</span>
+                          <span>•</span>
+                          <span>{formatRoleVN(staff.role)}</span>
+                          {isCross && <span className="text-slate-500">• Gốc: {homeBranch?.name}</span>}
+                        </div>
+                      </div>
+                    </div>
+
+                    {canManageSchedule && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCellClick(staff, selectedDailyDate);
+                        }}
+                        className="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl text-xs font-bold transition-all flex items-center gap-1"
+                      >
+                        <span>✏️ Đổi ca</span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Chi Tiết Ca Làm Việc */}
+                  <div className="p-3 rounded-xl bg-slate-950/70 border border-slate-800/80 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                        Ca làm việc {formatDateHeader(selectedDailyDate).dayOfWeek} ({selectedDailyDate}):
+                      </span>
+                      {dayAsgs.length > 0 && !isOff && (
+                        <span className="text-xs font-mono font-bold text-emerald-400">
+                          {dayAsgs.reduce((s, a) => s + (a.hours || 0), 0).toFixed(1)}h công
+                        </span>
+                      )}
+                    </div>
+
+                    {isCaGay ? (
+                      /* Ca Gãy */
+                      <div className="grid grid-cols-2 gap-2">
+                        <div className="p-2 rounded-lg bg-amber-500/15 border border-amber-500/30 text-amber-200">
+                          <div className="font-bold text-xs">☀️ Ca Sáng</div>
+                          <div className="text-[10px] font-mono font-bold text-amber-300 mt-0.5">07:00 - 12:00 (5h)</div>
+                        </div>
+                        <div className="p-2 rounded-lg bg-indigo-500/15 border border-indigo-500/30 text-indigo-200">
+                          <div className="font-bold text-xs">🌙 Ca Tối</div>
+                          <div className="text-[10px] font-mono font-bold text-indigo-300 mt-0.5">17:00 - 22:00 (5h)</div>
+                        </div>
+                      </div>
+                    ) : isMultiple ? (
+                      /* 2 Ca độc lập */
+                      <div className="grid grid-cols-2 gap-2">
+                        {dayAsgs.map((asg, idx) => (
+                          <div key={asg.id || idx} className={`p-2 rounded-lg border text-xs font-medium ${getShiftBadgeStyle(asg)}`}>
+                            <div className="font-bold">{asg.shiftName}</div>
+                            <div className="text-[10px] font-mono font-bold opacity-80 mt-0.5">{asg.startTime} - {asg.endTime} ({asg.hours}h)</div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : dayAsgs.length === 1 ? (
+                      /* 1 Ca đơn */
+                      isOff ? (
+                        <div className="p-2.5 rounded-lg bg-slate-900 border border-slate-800 text-slate-400 text-xs font-bold flex items-center justify-between">
+                          <span>🌴 Nghỉ luân phiên (OFF)</span>
+                          <span className="text-[10px] text-slate-500 font-normal">Không tính giờ công</span>
+                        </div>
+                      ) : (
+                        <div className={`p-2.5 rounded-lg border text-xs flex items-center justify-between ${getShiftBadgeStyle(dayAsgs[0])}`}>
+                          <div>
+                            <div className="font-bold">{dayAsgs[0].shiftName}</div>
+                            <div className="text-[10px] font-mono opacity-80 mt-0.5">{dayAsgs[0].startTime} - {dayAsgs[0].endTime}</div>
+                          </div>
+                          <span className="font-mono font-bold text-xs">{dayAsgs[0].hours} giờ</span>
+                        </div>
+                      )
+                    ) : (
+                      /* Chưa xếp ca */
+                      <div className="p-2.5 rounded-lg bg-slate-900/50 border border-dashed border-slate-800 text-slate-500 text-xs text-center">
+                        <span>Chưa phân ca ngày này (Bấm để xếp ca)</span>
+                      </div>
+                    )}
+
+                    {/* Trạng Thái Chấm Công Thực Tế GPS (Hôm nay) */}
+                    {isToday && (() => {
+                      const attStatus = getTodayAttendanceStatus(staff, dayAsgs);
+                      if (!attStatus || attStatus.type === 'OFF') return null;
+                      return (
+                        <div className={`flex items-center gap-2 p-2.5 rounded-xl border text-xs font-bold ${attStatus.badgeClass}`}>
+                          <span className={`w-2 h-2 rounded-full flex-shrink-0 ${attStatus.dotClass}`} />
+                          <span>{attStatus.label}</span>
+                          <span className="text-[10px] font-normal opacity-80 ml-auto hidden sm:inline">{attStatus.tooltip}</span>
+                        </div>
+                      );
+                    })()}
+
+                    {/* Đối Soát Ngày Quá Khứ */}
+                    {isPast && dayAsgs.some(a => a.status !== 'OFF') && (() => {
+                      const pastRecords = getStaffRecordsForDate(staff, selectedDailyDate);
+                      if (pastRecords.length > 0) {
+                        const firstIn = pastRecords[0].checkIn ? new Date(pastRecords[0].checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                        return (
+                          <div className="flex items-center gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
+                            <span>✓ Đã chấm công GPS lúc:</span>
+                            <span className="font-mono">{firstIn}</span>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold">
+                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
+                            <span>Không ghi nhận dữ liệu chấm công GPS ngày này</span>
+                          </div>
+                        );
+                      }
+                    })()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        /* CHẾ ĐỘ XEM MA TRẬN 15 NGÀY (TỐI ƯU CỘT GỌN CHO CẢ DI ĐỘNG & MÁY TÍNH) */
+        <div className="glass-card rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-2xl">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse min-w-[1000px]">
+              <thead>
+                <tr className="bg-slate-950 border-b border-slate-800 text-[11px] font-bold text-slate-400">
+                  {/* Fixed Staff Column (w-32 on mobile, w-56 on desktop) */}
+                  <th className="py-2.5 px-2 sm:px-4 w-32 sm:w-56 sticky left-0 bg-slate-950 z-20 border-r border-slate-800">
+                    NHÂN SỰ ({currentBranch.name})
+                  </th>
+
+                  {/* 15 Days Columns */}
+                  {cycleDates.map(dateStr => {
+                    const { dayOfWeek, dayNum, isToday } = formatDateHeader(dateStr);
+                    const hasOpenShiftOnDay = assignments.some(
+                      a => a.workingBranchId === selectedBranchId && a.date === dateStr && a.status === 'OPEN_SHIFT'
+                    );
+                    const hasCrossBranchOnDay = assignments.some(
+                      a => a.workingBranchId === selectedBranchId && a.date === dateStr && a.isCrossBranch && a.status !== 'OFF'
+                    );
+
+                    return (
+                      <th
+                        key={dateStr}
+                        className={`py-2 px-0.5 sm:px-1 text-center min-w-[56px] sm:min-w-[68px] border-r border-slate-800/60 transition-colors relative ${
+                          hasOpenShiftOnDay ? 'bg-rose-950/50 border-rose-500/60' :
+                          hasCrossBranchOnDay ? 'bg-amber-950/40 border-amber-500/50' :
+                          isToday ? 'bg-cyan-500/20 border-cyan-400/80 text-cyan-300 ring-1 ring-cyan-500/40' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-center gap-1 text-[10px] uppercase font-mono">
+                          <span>{dayOfWeek}</span>
+                          {isToday && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" title="Ngày hiện tại (Live Presence)" />
+                          )}
+                          {hasOpenShiftOnDay && (
+                            <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" title="Có ca trống cần gánh!" />
+                          )}
+                          {hasCrossBranchOnDay && (
+                            <span className="text-[10px]" title="Có nhân sự tăng cường chéo!">✈️</span>
+                          )}
+                        </div>
+                        <div className={`text-sm font-extrabold ${
+                          hasOpenShiftOnDay ? 'text-rose-400 animate-pulse font-black' :
+                          hasCrossBranchOnDay ? 'text-amber-400 font-black' :
+                          isToday ? 'text-cyan-300 font-black' : 'text-slate-200'
                         }`}>
-                          {staff.fullName.charAt(0)}
+                          {dayNum}
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex items-center gap-1.5">
-                            <span className="font-bold text-slate-200 truncate block text-xs">
-                              {staff.fullName}
-                            </span>
-                            {isCross && (
-                              <span className="text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/40 font-bold whitespace-nowrap">
-                                ✈️ Tăng cường
+                        {isToday && (
+                          <div className="text-[7.5px] font-black uppercase text-cyan-400 tracking-wider font-mono">
+                            HÔM NAY
+                          </div>
+                        )}
+                      </th>
+                    );
+                  })}
+
+                  {/* Total Column */}
+                  <th className="py-2.5 px-3 text-center w-28 bg-slate-950 border-b border-slate-800" title="Tổng số giờ công kế hoạch theo lịch đã phân ca trong kỳ">
+                    <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">GIỜ KẾ HOẠCH</div>
+                    <div className="text-[9px] text-emerald-400/90 font-mono font-medium">(Dự kiến)</div>
+                  </th>
+                </tr>
+              </thead>
+
+              <tbody className="divide-y divide-slate-800/60 text-xs">
+                {activeStaffForMatrix.map((staff) => {
+                  const isCross = staff.branchId !== selectedBranchId;
+                  const homeBranch = branches.find(b => b.id === (staff.homeBranchId || staff.branchId));
+                  
+                  // Calculate staff total hours in this cycle
+                  let staffCycleHours = 0;
+
+                  return (
+                    <tr key={staff.id} className="hover:bg-slate-800/30 transition-colors group">
+                      {/* Staff Profile Cell (w-32 on mobile, w-56 on desktop) */}
+                      <td className="py-2 px-1.5 sm:px-4 w-32 sm:w-56 sticky left-0 bg-slate-900 group-hover:bg-slate-850 z-10 border-r border-slate-800">
+                        <div className="flex items-center gap-1.5 sm:gap-2.5">
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 border ${
+                            isCross 
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40' 
+                              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                          }`}>
+                            {staff.fullName.charAt(0)}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="font-bold text-slate-200 text-[11px] sm:text-xs leading-tight line-clamp-2 sm:truncate block">
+                                {staff.fullName}
                               </span>
-                            )}
+                              {isCross && (
+                                <span className="text-[8px] sm:text-[9px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/40 font-bold whitespace-nowrap hidden sm:inline-block">
+                                  ✈️ Tăng cường
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                              <span className="font-mono text-cyan-400/90">{staff.code || 'NV'}</span>
+                              <span className="hidden sm:inline">•</span>
+                              <span className="text-slate-500 hidden sm:inline">
+                                {isCross ? `Gốc: ${homeBranch?.name}` : staff.role}
+                              </span>
+                            </div>
                           </div>
-                          <div className="text-[10px] text-slate-400 flex items-center gap-1">
-                            <span className="font-mono">{staff.code || 'NV'}</span>
-                            <span>•</span>
-                            <span className="text-slate-500">
-                              {isCross ? `Gốc: ${homeBranch?.name}` : staff.role}
-                            </span>
-                          </div>
-                        </div>
 
                         {/* Nút Xóa Lịch Nhân Sự / Hủy Điều Động - Khóa hoàn toàn đối với Founder & Admin */}
                         {(['founder', 'admin'].includes(staff.role?.toLowerCase() || '') || staff.code === 'PK88-FOUNDER' || staff.code === 'PK88-ADMIN') ? (
@@ -1899,6 +2158,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           </table>
         </div>
       </div>
+      )}
 
       {/* Legend & Instructions */}
       <div className="flex flex-col gap-3 text-xs text-slate-400 bg-slate-950/50 p-3.5 rounded-2xl border border-slate-800">
