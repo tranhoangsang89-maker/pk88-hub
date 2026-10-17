@@ -214,6 +214,7 @@ export interface LeaveRequest {
   status: LeaveStatus;
   approvedBy?: string;
   rejectedBy?: string;
+  rejectionReason?: string;
   createdAt: string;
   replacementStaffName?: string;
   aiRiskAssessment?: string;

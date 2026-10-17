@@ -12,7 +12,7 @@ interface AIHRModalProps {
   staffList: Staff[];
   leaveRequests: LeaveRequest[];
   onSubmitLeaveRequest: (newReq: LeaveRequest) => void;
-  onUpdateLeaveStatus: (reqId: string, status: LeaveStatus, approvedBy: string) => void;
+  onUpdateLeaveStatus: (reqId: string, status: LeaveStatus, approvedBy: string, rejectionReason?: string) => void;
 }
 
 export const AIHRModal: React.FC<AIHRModalProps> = ({
@@ -33,6 +33,10 @@ export const AIHRModal: React.FC<AIHRModalProps> = ({
   const [endDate, setEndDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [reason, setReason] = useState<string>('');
   const [replacementStaff, setReplacementStaff] = useState<string>('');
+
+  // Rejection reason prompt state
+  const [rejectingRequestId, setRejectingRequestId] = useState<string | null>(null);
+  const [rejectionReasonInput, setRejectionReasonInput] = useState<string>('');
 
   // Helper for Role Priority for Approval
   const ROLE_PRIORITY: Record<string, number> = {
@@ -608,9 +612,17 @@ QUY TẮC BẮT BUỘC VỀ TRÍ NHỚ NỐI NỐI NGỮ CẢNH (CHAT CONTEXT PE
                         )}
 
                         {req.status === 'REJECTED' && (
-                          <div className="text-[11px] bg-rose-950/40 p-2.5 rounded-xl border border-rose-500/30 text-rose-300 font-mono flex items-center justify-between">
-                            <span className="flex items-center gap-1.5"><XCircle className="w-4 h-4 text-rose-400" /> Người bấm từ chối đơn:</span>
-                            <strong className="text-rose-200">{req.rejectedBy || req.approvedBy || 'Cửa Hàng Trưởng'}</strong>
+                          <div className="text-[11px] bg-rose-950/40 p-2.5 rounded-xl border border-rose-500/30 text-rose-300 font-mono space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="flex items-center gap-1.5"><XCircle className="w-4 h-4 text-rose-400" /> Người bấm từ chối đơn:</span>
+                              <strong className="text-rose-200">{req.rejectedBy || req.approvedBy || 'Cửa Hàng Trưởng'}</strong>
+                            </div>
+                            {req.rejectionReason && (
+                              <div className="pt-1 border-t border-rose-500/20 text-rose-200/90 text-[11px] flex items-start gap-1">
+                                <span className="text-rose-400 font-bold shrink-0">💬 Lý do từ chối:</span>
+                                <span className="italic font-sans">"{req.rejectionReason}"</span>
+                              </div>
+                            )}
                           </div>
                         )}
 
@@ -630,16 +642,16 @@ QUY TẮC BẮT BUỘC VỀ TRÍ NHỚ NỐI NỐI NGỮ CẢNH (CHAT CONTEXT PE
                                 const handler = `${currentUser?.fullName} (${currentUser?.role ? currentUser.role.toUpperCase() : 'MANAGER'})`;
                                 onUpdateLeaveStatus(req.id, 'APPROVED', handler);
                               }}
-                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                              className="flex-1 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-950/40"
                             >
                               <CheckCircle2 className="w-4 h-4" /> Duyệt Cho Nghỉ
                             </button>
                             <button
                               onClick={() => {
-                                const handler = `${currentUser?.fullName} (${currentUser?.role ? currentUser.role.toUpperCase() : 'MANAGER'})`;
-                                onUpdateLeaveStatus(req.id, 'REJECTED', handler);
+                                setRejectingRequestId(req.id);
+                                setRejectionReasonInput('');
                               }}
-                              className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                              className="flex-1 py-2 bg-rose-600 hover:bg-rose-500 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-rose-950/40"
                             >
                               <XCircle className="w-4 h-4" /> Từ Chối Đơn
                             </button>
@@ -735,6 +747,116 @@ QUY TẮC BẮT BUỘC VỀ TRÍ NHỚ NỐI NỐI NGỮ CẢNH (CHAT CONTEXT PE
           )}
         </div>
       </div>
+
+      {/* MODAL NHẬP LÝ DO TỪ CHỐI ĐƠN PHÉP (DÀNH CHO MANAGER / HR) */}
+      {rejectingRequestId && (() => {
+        const targetReq = leaveRequests.find(r => r.id === rejectingRequestId);
+        const quickReasons = [
+          'Trùng lịch trực / Thiếu nhân sự vận hành ca',
+          'Chưa tìm được nhân sự trực thay thế hợp lệ',
+          'Đã hết quỹ ngày phép năm quy định',
+          'Cần hỗ trợ chiến dịch cao điểm của chi nhánh',
+          'Lý do chưa rõ ràng, vui lòng liên hệ trực tiếp CHT/HR'
+        ];
+
+        return (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+            <div className="glass-card max-w-md w-full p-6 rounded-2xl border border-rose-500/40 bg-slate-900 shadow-2xl space-y-4">
+              <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center font-bold">
+                    <XCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-slate-100">Từ Chối Đơn Nghỉ Phép</h3>
+                    <p className="text-xs text-slate-400">Gửi kèm lý do minh bạch cho nhân viên</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setRejectingRequestId(null)}
+                  className="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              {targetReq && (
+                <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Nhân viên:</span>
+                    <strong className="text-slate-200">{targetReq.staffName} ({targetReq.role?.toUpperCase()})</strong>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Thời gian xin nghỉ:</span>
+                    <span className="font-mono text-cyan-400 font-bold">{targetReq.startDate} {targetReq.startDate !== targetReq.endDate ? `đến ${targetReq.endDate}` : ''}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Lý do xin nghỉ:</span>
+                    <span className="text-slate-300 italic">"{targetReq.reason}"</span>
+                  </div>
+                </div>
+              )}
+
+              <div>
+                <label className="text-[11px] font-bold text-slate-300 block mb-1.5">
+                  Lý do từ chối (Bắt buộc để nhân viên nắm rõ):
+                </label>
+
+                {/* Quick Reasons Chips */}
+                <div className="flex flex-wrap gap-1.5 mb-2.5">
+                  {quickReasons.map((qr, qidx) => (
+                    <button
+                      key={qidx}
+                      type="button"
+                      onClick={() => setRejectionReasonInput(qr)}
+                      className={`text-[10px] px-2.5 py-1 rounded-lg border font-medium transition-all cursor-pointer ${
+                        rejectionReasonInput === qr
+                          ? 'bg-rose-500/30 text-rose-200 border-rose-500/60'
+                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-300'
+                      }`}
+                    >
+                      {qr}
+                    </button>
+                  ))}
+                </div>
+
+                <textarea
+                  rows={3}
+                  value={rejectionReasonInput}
+                  onChange={(e) => setRejectionReasonInput(e.target.value)}
+                  placeholder="Nhập lý do từ chối cụ thể để nhân viên nắm rõ..."
+                  className="w-full p-2.5 bg-slate-950 border border-slate-700 rounded-xl text-slate-200 text-xs focus:outline-none focus:border-rose-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => setRejectingRequestId(null)}
+                  className="px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+                >
+                  Hủy bỏ
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!rejectingRequestId) return;
+                    const finalReason = rejectionReasonInput.trim() || 'Không đáp ứng điều kiện vận hành';
+                    const handler = `${currentUser?.fullName} (${currentUser?.role ? currentUser.role.toUpperCase() : 'MANAGER'})`;
+                    onUpdateLeaveStatus(rejectingRequestId, 'REJECTED', handler, finalReason);
+                    setRejectingRequestId(null);
+                  }}
+                  className="px-4 py-2 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-900/30 cursor-pointer"
+                >
+                  <XCircle className="w-4 h-4" />
+                  <span>Xác Nhận Từ Chối</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 };

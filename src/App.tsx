@@ -296,24 +296,36 @@ export function App() {
       if (error) {
         console.warn('Supabase leave_requests notice:', error.message);
       } else if (data) {
-        const formatted: LeaveRequest[] = data.map((item: any) => ({
-          id: item.id,
-          staffId: item.staff_id,
-          staffName: item.staff_name,
-          phone: item.phone,
-          branchId: item.branch_id,
-          role: item.role,
-          startDate: item.start_date,
-          endDate: item.end_date,
-          reason: item.reason,
-          type: item.type,
-          status: item.status,
-          approvedBy: item.approved_by,
-          rejectedBy: item.rejected_by,
-          createdAt: item.created_at,
-          replacementStaffName: item.replacement_staff_name,
-          aiRiskAssessment: item.ai_risk_assessment
-        }));
+        const formatted: LeaveRequest[] = data.map((item: any) => {
+          let rejectedBy = item.rejected_by;
+          let rejectionReason = item.rejection_reason;
+          // Fallback nếu reason nằm trong rejected_by theo cú pháp "Tên (ROLE) - Lý do: ..."
+          if (!rejectionReason && rejectedBy && rejectedBy.includes(' - Lý do: ')) {
+            const parts = rejectedBy.split(' - Lý do: ');
+            rejectedBy = parts[0];
+            rejectionReason = parts[1];
+          }
+
+          return {
+            id: item.id,
+            staffId: item.staff_id,
+            staffName: item.staff_name,
+            phone: item.phone,
+            branchId: item.branch_id,
+            role: item.role,
+            startDate: item.start_date,
+            endDate: item.end_date,
+            reason: item.reason,
+            type: item.type,
+            status: item.status,
+            approvedBy: item.approved_by,
+            rejectedBy,
+            rejectionReason,
+            createdAt: item.created_at,
+            replacementStaffName: item.replacement_staff_name,
+            aiRiskAssessment: item.ai_risk_assessment
+          };
+        });
         setLeaveRequests(formatted);
         localStorage.setItem('pk88_leave_requests', JSON.stringify(formatted));
       }
@@ -1104,7 +1116,7 @@ export function App() {
     }
   };
 
-  const handleUpdateLeaveStatus = async (reqId: string, status: LeaveStatus, handlerName: string) => {
+  const handleUpdateLeaveStatus = async (reqId: string, status: LeaveStatus, handlerName: string, rejectionReason?: string) => {
     // 1. Optimistic update and persist local cache
     setLeaveRequests(prev => {
       const updated = prev.map(r => {
@@ -1113,7 +1125,8 @@ export function App() {
             ...r,
             status,
             approvedBy: status === 'APPROVED' ? handlerName : r.approvedBy,
-            rejectedBy: status === 'REJECTED' ? handlerName : r.rejectedBy
+            rejectedBy: status === 'REJECTED' ? handlerName : r.rejectedBy,
+            rejectionReason: status === 'REJECTED' ? (rejectionReason || r.rejectionReason) : r.rejectionReason
           };
         }
         return r;
@@ -1126,6 +1139,10 @@ export function App() {
     try {
       const target = leaveRequests.find(r => r.id === reqId);
       if (target) {
+        const finalRejectedBy = status === 'REJECTED' 
+          ? (rejectionReason ? `${handlerName} - Lý do: ${rejectionReason}` : handlerName)
+          : (status === 'APPROVED' ? null : target.rejectedBy || null);
+
         const { error } = await supabase.from('leave_requests').upsert({
           id: target.id,
           staff_id: target.staffId,
@@ -1139,7 +1156,7 @@ export function App() {
           type: target.type,
           status,
           approved_by: status === 'APPROVED' ? handlerName : (status === 'REJECTED' ? null : target.approvedBy || null),
-          rejected_by: status === 'REJECTED' ? handlerName : (status === 'APPROVED' ? null : target.rejectedBy || null),
+          rejected_by: finalRejectedBy,
           replacement_staff_name: target.replacementStaffName || '',
           ai_risk_assessment: target.aiRiskAssessment || '',
           created_at: target.createdAt || new Date().toISOString()
