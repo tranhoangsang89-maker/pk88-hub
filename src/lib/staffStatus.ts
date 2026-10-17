@@ -78,18 +78,24 @@ export function getStaffRealtimeStatus(
     ? [...todayLogs].sort((a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime())[0]
     : null;
 
-  // Nếu đã check-in và CHƯA check-out -> Đang trực ca tại shop hoặc tạm nghỉ trưa luân phiên
+  // Nếu đã check-in và CHƯA check-out -> Đang trực ca tại shop hoặc tạm nghỉ trưa / ăn tối luân phiên
   if (latestLog && !latestLog.checkOut) {
     const isBreak = latestLog.isOnBreak || 
-      (latestLog.notes && latestLog.notes.includes('[ĐANG NGHỈ TRƯA]') && !latestLog.notes.includes('[KẾT THÚC NGHỈ TRƯA]'));
+      (latestLog.notes && 
+        (latestLog.notes.includes('[ĐANG NGHỈ TRƯA]') || latestLog.notes.includes('[ĐANG NGHỈ ĂN TỐI]') || latestLog.notes.includes('[ĐANG NGHỈ GIỮA CA]')) && 
+        !latestLog.notes.includes('[KẾT THÚC NGHỈ TRƯA]') && !latestLog.notes.includes('[KẾT THÚC NGHỈ ĂN TỐI]') && !latestLog.notes.includes('[KẾT THÚC NGHỈ GIỮA CA]'));
 
     if (isBreak) {
+      const isEveningBreak = latestLog.shiftType === 'CA_CHIEU' || 
+        (latestLog.notes && latestLog.notes.includes('ĂN TỐI')) || 
+        currentTimeVal >= 16.0;
+
       return {
         code: 'ON_BREAK',
-        label: '☕ Đang nghỉ trưa',
+        label: isEveningBreak ? '🍱 Đang ăn tối' : '☕ Đang nghỉ trưa',
         colorClass: 'bg-amber-500/20 text-amber-300 border-amber-500/40 shadow-sm shadow-amber-500/20 ring-1 ring-amber-500/30',
         dotColor: 'bg-amber-400',
-        description: `Đang tạm nghỉ trưa luân phiên tại shop (Bắt đầu lúc: ${latestLog.breakStart ? new Date(latestLog.breakStart).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'gần đây'})`
+        description: `Đang tạm nghỉ ${isEveningBreak ? 'ăn tối' : 'ăn trưa'} luân phiên tại shop (Bắt đầu lúc: ${latestLog.breakStart ? new Date(latestLog.breakStart).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'gần đây'})`
       };
     }
 

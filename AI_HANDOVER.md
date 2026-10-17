@@ -38,6 +38,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Cơ chế xác nhận 2 lớp:** Bấm nút *"BẤM CHẤM CÔNG TAN CA"* sẽ mở Modal cảnh báo trực quan trước khi ghi nhận vào cơ sở dữ liệu.
    - **Cảnh báo về sớm thông minh:** Tự động tính toán giờ vào, giờ dự kiến kết thúc ca làm, số giờ đã làm thực tế và số giờ/phút còn thiếu. Nếu về sớm trước giờ tan ca, modal chuyển sang màu cam hổ phách (`Amber-500`) cảnh báo nhân viên về việc vi phạm rời ca sớm.
    - **Nút hành động an toàn làm mặc định:** Nút ưu tiên số 1 màu xanh lá `[🟢 TÔI BẤM NHẦM — TIẾP TỤC LÀM VIỆC]` nằm trên cùng để nếu nhân viên chạm vội sẽ đóng popup ngay; nút xác nhận chốt tan ca nằm ở dưới để nhân sự chỉ bấm khi thực sự muốn kết thúc ca.
+7. **Tùy Biến Linh Hoạt Nghỉ Ăn Trưa & Ăn Tối Luân Phiên Theo Ca Làm ([`AttendanceCard.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx), [`staffStatus.ts`](file:///d:/PK88%20AI%20AUTOMATION/src/lib/staffStatus.ts), [`App.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/App.tsx)):**
+   - **Tự động nhận diện ca làm & thời gian thực tế:**
+     + **Ca Sáng (07:00 - 15:30) & Ca Hành Chính (trước 16:00):** Nút hiển thị `☕ TẠM NGHỈ ĂN TRƯA (LUÂN PHIÊN 30 - 45 PHÚT)`, trạng thái toàn chuỗi là `☕ Đang nghỉ trưa`.
+     + **Ca Chiều (13:30 - 22:00) & Khung giờ tối (sau 16:00):** Tự động chuyển thành `🍱 TẠM NGHỈ ĂN TỐI (LUÂN PHIÊN 30 - 45 PHÚT)`, icon hộp cơm `UtensilsCrossed`, trạng thái toàn chuỗi là `🍱 Đang ăn tối`.
+   - **Cơ chế ghi nhận chính xác:** Nhân viên bấm ăn cơm không làm mất ca, đồng hồ đếm giờ chạy rõ ràng và có nút `[🟢 ĐÃ ĂN XONG — BẤM QUAY LẠI TRỰC QUẦY]`, không yêu cầu quét lại GPS.
 
 ### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (16/10)
 1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**

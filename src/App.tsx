@@ -175,7 +175,9 @@ export function App() {
           }
 
           const isOnBreak = (item as any).is_on_break === true || 
-            (item.notes && item.notes.includes('[ĐANG NGHỈ TRƯA]') && !item.notes.includes('[KẾT THÚC NGHỈ TRƯA]'));
+            (item.notes && 
+              (item.notes.includes('[ĐANG NGHỈ TRƯA]') || item.notes.includes('[ĐANG NGHỈ ĂN TỐI]') || item.notes.includes('[ĐANG NGHỈ GIỮA CA]')) && 
+              !item.notes.includes('[KẾT THÚC NGHỈ TRƯA]') && !item.notes.includes('[KẾT THÚC NGHỈ ĂN TỐI]') && !item.notes.includes('[KẾT THÚC NGHỈ GIỮA CA]'));
 
           return {
             id: item.id,

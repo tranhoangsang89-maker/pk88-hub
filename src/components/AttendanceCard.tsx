@@ -27,7 +27,8 @@ import {
   RotateCw,
   Loader2,
   Compass,
-  Coffee
+  Coffee,
+  UtensilsCrossed
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
@@ -262,25 +263,60 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
   };
 
+  // Xác định bữa ăn / nghỉ giữa ca linh hoạt theo ca làm & khung giờ thực tế (Ca sáng: Ăn trưa, Ca chiều: Ăn tối)
+  const getBreakConfig = () => {
+    const shift = activeRecord?.shiftType || selectedShift;
+    const currentHour = new Date().getHours();
+    const isEvening = shift === 'CA_CHIEU' || currentHour >= 16;
+
+    if (isEvening) {
+      return {
+        label: 'Ăn Tối',
+        shortBadge: '🍱 Đang Ăn Tối',
+        actionLabel: '🍱 TẠM NGHỈ ĂN TỐI (LUÂN PHIÊN 30 - 45 PHÚT)',
+        bannerTitle: 'ĐANG TẠM NGHỈ ĂN TỐI LUÂN PHIÊN (30 - 45 PHÚT)',
+        toastStart: '🍱 Đã bắt đầu tạm nghỉ ăn tối luân phiên (30-45 phút)!',
+        toastEnd: (durationMins: number) => `🟢 Đã quay lại trực quầy! Tổng thời gian nghỉ ăn tối: ${durationMins} phút.`,
+        noteTag: 'ĐANG NGHỈ ĂN TỐI',
+        noteEndTag: 'KẾT THÚC NGHỈ ĂN TỐI',
+        isEvening: true
+      };
+    }
+
+    return {
+      label: 'Ăn Trưa',
+      shortBadge: '☕ Đang Nghỉ Trưa',
+      actionLabel: '☕ TẠM NGHỈ ĂN TRƯA (LUÂN PHIÊN 30 - 45 PHÚT)',
+      bannerTitle: 'ĐANG TẠM NGHỈ ĂN TRƯA LUÂN PHIÊN (30 - 45 PHÚT)',
+      toastStart: '☕ Đã bắt đầu tạm nghỉ ăn trưa luân phiên (30-45 phút)!',
+      toastEnd: (durationMins: number) => `🟢 Đã quay lại trực quầy! Tổng thời gian nghỉ trưa: ${durationMins} phút.`,
+      noteTag: 'ĐANG NGHỈ TRƯA',
+      noteEndTag: 'KẾT THÚC NGHỈ TRƯA',
+      isEvening: false
+    };
+  };
+
   const handleToggleBreak = async () => {
     if (!activeRecord) return;
     const now = new Date();
     const nowIso = now.toISOString();
     const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const breakCfg = getBreakConfig();
 
     if (!isOnBreak) {
-      // Bắt đầu nghỉ trưa luân phiên
+      // Bắt đầu nghỉ trưa / ăn tối luân phiên
       setIsOnBreak(true);
       setBreakStartTime(now.getTime());
       setBreakElapsedSeconds(0);
       try {
         localStorage.setItem(`pk88_break_state_${activeRecord.id}`, JSON.stringify({
           isOnBreak: true,
-          breakStart: nowIso
+          breakStart: nowIso,
+          breakType: breakCfg.label
         }));
       } catch (e) {}
 
-      const noteAdd = ` | [ĐANG NGHỈ TRƯA lúc ${timeStr}]`;
+      const noteAdd = ` | [${breakCfg.noteTag} lúc ${timeStr}]`;
       const updatedNotes = (activeRecord.notes || '') + noteAdd;
 
       try {
@@ -297,9 +333,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         breakStart: nowIso,
         notes: updatedNotes
       });
-      showToast('☕ Đã bắt đầu tạm nghỉ trưa luân phiên (30-45 phút)!');
+      showToast(breakCfg.toastStart);
     } else {
-      // Đã ăn trưa xong, quay lại trực quầy
+      // Đã ăn xong, quay lại trực quầy
       const durationMins = Math.max(1, Math.round(breakElapsedSeconds / 60));
       setIsOnBreak(false);
       setBreakStartTime(null);
@@ -308,7 +344,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         localStorage.removeItem(`pk88_break_state_${activeRecord.id}`);
       } catch (e) {}
 
-      const noteAdd = ` | [KẾT THÚC NGHỈ TRƯA lúc ${timeStr} (Đã nghỉ ${durationMins}p)]`;
+      const noteAdd = ` | [${breakCfg.noteEndTag} lúc ${timeStr} (Đã nghỉ ${durationMins}p)]`;
       const updatedNotes = (activeRecord.notes || '') + noteAdd;
 
       try {
@@ -326,7 +362,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         breakMinutes: durationMins,
         notes: updatedNotes
       });
-      showToast(`🟢 Đã quay lại trực quầy! Tổng thời gian nghỉ trưa: ${durationMins} phút.`);
+      showToast(breakCfg.toastEnd(durationMins));
     }
   };
 
@@ -863,7 +899,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           isOnBreak ? (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
-              <span>☕ Đang Nghỉ Trưa</span>
+              <span>{getBreakConfig().shortBadge}</span>
             </span>
           ) : (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 animate-pulse">
@@ -918,13 +954,17 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       {isCurrentlyCheckedIn && activeRecord && (
         <div className="space-y-2">
           {isOnBreak ? (
-            /* TRẠNG THÁI: ĐANG NGHỈ TRƯA LUÂN PHIÊN (BREAK TIMER) */
+            /* TRẠNG THÁI: ĐANG NGHỈ TRƯA / ĂN TỐI LUÂN PHIÊN (BREAK TIMER) */
             <div className="bg-gradient-to-r from-amber-950/80 via-slate-950 to-amber-950/80 border-2 border-amber-500/60 rounded-2xl p-4 text-center space-y-3 shadow-xl relative overflow-hidden animate-in fade-in">
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 animate-pulse"></div>
               
               <div className="flex items-center justify-center gap-2 text-xs font-extrabold text-amber-300">
-                <Coffee className="w-4 h-4 text-amber-400 animate-bounce" />
-                <span>ĐANG TẠM NGHỈ ĂN TRƯA LUÂN PHIÊN (30 - 45 PHÚT)</span>
+                {getBreakConfig().isEvening ? (
+                  <UtensilsCrossed className="w-4 h-4 text-amber-400 animate-bounce" />
+                ) : (
+                  <Coffee className="w-4 h-4 text-amber-400 animate-bounce" />
+                )}
+                <span>{getBreakConfig().bannerTitle}</span>
               </div>
 
               <div className="text-4xl font-black font-mono tracking-widest text-amber-300 drop-shadow-[0_0_14px_rgba(245,158,11,0.5)]">
@@ -966,14 +1006,18 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                 </div>
               </div>
 
-              {/* Nút Bắt Đầu Tạm Nghỉ Ăn Trưa Luân Phiên (Dành cho ca thẳng bán lẻ) */}
+              {/* Nút Bắt Đầu Tạm Nghỉ Ăn Trưa / Ăn Tối Luân Phiên (Dành cho ca thẳng bán lẻ) */}
               <button
                 type="button"
                 onClick={handleToggleBreak}
                 className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-950/20 active:scale-95"
               >
-                <Coffee className="w-4 h-4 text-amber-400" />
-                <span>☕ TẠM NGHỈ ĂN TRƯA (LUÂN PHIÊN 30 - 45 PHÚT)</span>
+                {getBreakConfig().isEvening ? (
+                  <UtensilsCrossed className="w-4 h-4 text-amber-400" />
+                ) : (
+                  <Coffee className="w-4 h-4 text-amber-400" />
+                )}
+                <span>{getBreakConfig().actionLabel}</span>
               </button>
             </div>
           )}
