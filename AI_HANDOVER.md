@@ -261,6 +261,22 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Bộ lọc đa tiêu chí:** Hàm `getStaffRecordsForDate` được nâng cấp đối soát qua: `staff.id`, `staff.phone`, `staff.fullName`, `staff.code` và định dạng ngày chuẩn múi giờ Việt Nam (`Asia/Ho_Chi_Minh` UTC+7).
    - **App.tsx Fallback:** Tự động nhận diện chuỗi `[CHẤM BÙ` trong `notes` để gán `disputeStatus = 'APPROVED'` và bóc tách thông tin người duyệt `disputeHandledBy`. Sau khi bấm Chấm bù, ô ngày lập tức cập nhật huy hiệu `⚡ 07:30 (Bù)` vĩnh viễn trên Supabase.
 
+13. **Thu Hồi & Nút Xóa Nhanh Bản Ghi Chấm Bù / Chấm Nhầm (NEW - 17/10):**
+   - **Xóa nhầm tức thời:** Bổ sung nút thùng rác đỏ **`[🗑️]`** tại cột Thao tác quản lý của bảng `AttendanceTimesheetView.tsx` cho cấp Founder, Admin, HR, CHT.
+   - Khi phát hiện chấm nhầm ca hoặc trùng lặp dữ liệu, quản lý có thể xóa vĩnh viễn bản ghi khỏi Supabase kèm modal xác nhận an toàn, không lo bị nhân đôi giờ công.
+
+14. **Minh Bạch Thông Tin Audit Trail Người Duyệt Chấm Bù (NEW - 17/10):**
+   - Hộp thoại chi tiết khi click vào ô đã chấm bù hiển thị khối **`LỊCH SỬ CHẤM BÙ CÔNG (AUDIT TRAIL) ✓ ĐÃ DUYỆT CÔNG`**: Hiển thị rõ Người phê duyệt (kèm chức danh), thời điểm duyệt chính xác, lý do chấm bù, giờ vào - giờ ra được công nhận.
+   - Bảng Timesheet hiển thị huy hiệu `⚡ Đã chấm bù` kèm dòng `Duyệt bởi: [Tên người duyệt]`.
+
+15. **Hộp Thoại Nhập & Hiển Thị Minh Bạch Lý Do Từ Chối Nghỉ Phép (NEW - 17/10):**
+   - Khi Quản lý / HR bấm `Từ Chối Đơn` trong [AIHRModal.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/AIHRModal.tsx), hệ thống hiển thị Popup nhập lý do từ chối với 5 nút gợi ý chọn nhanh (Quick Chips) chuẩn vận hành chuỗi.
+   - Lý do từ chối được hiển thị minh bạch cho nhân viên thấy ngay trên thẻ đơn phép (`💬 Lý do từ chối: "..."`) và lưu vết lên Supabase `leave_requests`.
+
+16. **Chuẩn Hóa Chức Danh Kế Toán & Tối Ưu Navbar Mobile (NEW - 17/10):**
+   - **Chức danh Kế Toán:** Đổi hiển thị từ `Kế Toán Trưởng` sang `Kế Toán` thân thiện, giảm áp lực theo mong muốn của bạn Bích Trâm trên toàn hệ thống (Hồ sơ nhân sự, danh bạ chi nhánh, Admin panel).
+   - **Navbar Mobile 2 Hàng:** Tách thanh công cụ trên điện thoại thành 2 dòng riêng biệt: Hàng 1 (Chấm công, Đồng bộ, Chi nhánh) và Hàng 2 (Avatar cá nhân, Họ tên đầy đủ, Nút Đăng xuất, Khách QR, Tuyển dụng), giải quyết triệt để tình trạng Avatar và tên bị tràn mép/khuất màn hình.
+
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
    - Lưu trữ hồ sơ ứng viên: `id`, `branch_id`, `full_name`, `phone`, `role_applied`, `experience_note`, `status` (`pending` | `interview` | `hired` | `rejected`), `interview_date`, `notes`, `created_at`.
