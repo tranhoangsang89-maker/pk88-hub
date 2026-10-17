@@ -57,20 +57,28 @@ export const AIChatDrawer: React.FC<AIChatDrawerProps> = ({ currentUser, isCusto
 
   return (
     <>
-      {/* Floating Action Button */}
+      {/* Floating Action Button: Compact & elegant icon on mobile, above bottom navigation */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 z-40 bg-gradient-to-r from-amber-500 via-rose-600 to-pink-600 text-slate-950 p-3.5 rounded-full shadow-2xl hover:scale-105 transition-all glow-red flex items-center gap-2 font-extrabold text-xs cursor-pointer"
+          className="fixed bottom-28 right-3.5 md:bottom-6 md:right-6 z-40 bg-gradient-to-tr from-amber-500 via-rose-500 to-pink-500 text-slate-950 p-2.5 md:p-3 rounded-full shadow-xl shadow-rose-500/25 hover:scale-110 active:scale-95 transition-all flex items-center justify-center cursor-pointer group border border-white/30"
+          title="Trợ Lý AI Chị 8 & Bé 8 (Trực tuyến 24/7)"
+          aria-label="Trợ Lý AI Chị 8 & Bé 8"
         >
-          <Sparkles className="w-5 h-5 text-slate-950 animate-spin-slow" />
-          <span className="font-bold">Trợ Lý AI Chị 8 & Bé 8</span>
+          <div className="relative flex items-center justify-center">
+            <Bot className="w-5 h-5 text-slate-950" />
+            <Sparkles className="w-3 h-3 text-white absolute -top-1.5 -right-1.5 animate-pulse" />
+            <span className="absolute -bottom-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-slate-950"></span>
+          </div>
+          <span className="hidden md:inline font-extrabold text-xs ml-1.5 text-slate-950">
+            Trợ Lý AI Chị 8
+          </span>
         </button>
       )}
 
       {/* Live Chatbot Modal / Drawer */}
       {isOpen && (
-        <div className="fixed bottom-4 right-4 z-50 w-full max-w-md h-[600px] glass-card bg-slate-950 rounded-3xl border border-amber-500/40 shadow-2xl overflow-hidden flex flex-col transition-all">
+        <div className="fixed inset-x-2 bottom-2 md:inset-x-auto md:bottom-4 md:right-4 z-50 w-auto md:w-full md:max-w-md h-[560px] max-h-[85vh] glass-card bg-slate-950 rounded-3xl border border-amber-500/40 shadow-2xl overflow-hidden flex flex-col transition-all">
           {/* Header Bar */}
           <div className="bg-gradient-to-r from-slate-900 via-rose-950 to-slate-900 p-3.5 border-b border-amber-500/30 flex items-center justify-between text-slate-100">
             <div className="flex items-center gap-2.5">

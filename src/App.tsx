@@ -19,7 +19,6 @@ import { StaffDetailModal } from './components/StaffDetailModal';
 import { CounterServiceView } from './components/CounterServiceView';
 import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
-import { RoleSwitcher } from './components/RoleSwitcher';
 import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
@@ -1430,13 +1429,6 @@ export function App() {
       )}
 
 
-      {/* Test Role Switcher Bar: Chỉ dành cho Admin và Founder kiểm tra hệ thống */}
-      {currentUser && (currentUser.role === 'admin' || currentUser.role === 'founder') && !isCustomerMode && (
-        <RoleSwitcher
-          currentRole={currentUser.role}
-          onRoleChange={handleRoleChange}
-        />
-      )}
 
       {/* Main Header Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-md">

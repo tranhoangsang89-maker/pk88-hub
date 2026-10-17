@@ -24,6 +24,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - Bổ sung trọn bộ thẻ Apple Meta Tags trong [`index.html`](file:///d:/PK88%20AI%20AUTOMATION/index.html): `apple-touch-icon`, `apple-mobile-web-app-capable: yes`, thanh trạng thái `black-translucent`, tên app `PK88 Portal`, `viewport-fit=cover`.
 3. **Tích Hợp Service Worker Offline-First:**
    - Tạo [`public/sw.js`](file:///d:/PK88%20AI%20AUTOMATION/public/sw.js) và tự động đăng ký trong [`src/main.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/main.tsx) khi chạy production, kích hoạt tính năng cài đặt ứng dụng trên Chrome/Android.
+4. **Tối Ưu Giao Diện Di Động & Chống Rối Mắt (Mobile Layout Polish):**
+   - **Xóa bỏ hoàn toàn thanh `RoleSwitcher`:** Triệt tiêu hoàn toàn dải nút test vai trò chiếm 30% diện tích màn hình trên mobile.
+   - **Nút Trợ Lý AI Chị 8 & Bé 8 tinh tế:** Chuyển từ nút viên thuốc dài sang **icon tròn nhỏ gọn tinh tế** (`Bot` + `Sparkles` + Online dot), nâng vị trí lên `bottom-28 right-3.5` trên mobile để nằm hoàn toàn bên trên thanh menu đáy, tuyệt đối không bao giờ đè lên bất kỳ tab nào của bất kỳ vai trò nào.
+   - **Bảo toàn chuẩn Menu đáy theo vai trò:** Nhân viên, Cửa hàng trưởng, Marketing, Kế toán (3 - 4 tabs) hiển thị 1 hàng ngang chuẩn, to rõ, dễ bấm; Admin & Founder giữ nguyên cấu trúc đa tab.
 
 ### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (16/10)
 1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**
