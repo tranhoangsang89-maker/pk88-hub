@@ -358,6 +358,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         return 'bg-purple-500/20 border-purple-500/40 text-purple-300';
       case 'CA_THU_VIEC':
         return 'bg-amber-500/20 border-amber-500/40 text-amber-300';
+      case 'CA_GAY':
+        return 'bg-amber-500/20 border-amber-500/50 text-amber-300';
       case 'TANG_CUONG':
         return 'bg-orange-500/20 border-orange-500/40 text-orange-300';
       default:
@@ -371,6 +373,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     if (asg.shiftCode === 'CA_SANG') return 'Sáng';
     if (asg.shiftCode === 'CA_CHIEU') return 'Chiều';
     if (asg.shiftCode === 'CA_TRUA') return 'Trưa';
+    if (asg.shiftCode === 'CA_GAY') return 'Ca Gãy';
     if (asg.shiftCode === 'CA_THU_VIEC') return 'Thử việc';
     if (asg.shiftCode === 'TANG_CUONG') return 'T.Cường';
     if (asg.shiftName) {
@@ -621,7 +624,11 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     if (asg.shiftCode === 'CA_CHIEU' || asg.shiftName?.toLowerCase().includes('chiều')) {
       return `Chiều (${asg.startTime}-${asg.endTime})`;
     }
-    // Ca Trưa / Gãy
+    // Ca Gãy
+    if (asg.shiftCode === 'CA_GAY' || asg.shiftName?.toLowerCase().includes('gãy')) {
+      return `Ca Gãy (${asg.startTime}-${asg.endTime})`;
+    }
+    // Ca Trưa
     if (asg.shiftCode === 'CA_TRUA' || asg.shiftName?.toLowerCase().includes('trưa')) {
       return `Trưa (${asg.startTime}-${asg.endTime})`;
     }
@@ -1409,6 +1416,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/40"></span>
             <span>Ca Thử Việc (07:00 - 15:00)</span>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <span className="w-3 h-3 rounded bg-amber-500/20 border border-amber-500/50"></span>
+            <span>Ca Gãy (07:00-12:00 & 17:00-22:00)</span>
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-rose-500/20 border border-rose-500 text-rose-300 font-black animate-pulse"></span>
