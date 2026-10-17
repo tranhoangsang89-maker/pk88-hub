@@ -35,6 +35,12 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Nút `[ ☁️ Đồng Bộ Cloud ]`:** Cập nhật 2 chiều đồng thời cả Lịch Ca & Khung Giờ với Supabase Cloud.
    - **Biên dịch Production:** `npm run build` thành công 100% (2.518 modules, 0 errors).
 
+4. **Chuẩn Hóa Thuật Ngữ "Giờ Công Kế Hoạch" (Tránh Hiểu Lầm Vận Hành):**
+   - **Đổi nhãn KPI chính:** Đổi từ `Tổng Giờ Công Kỳ` thành `Giờ Công Kế Hoạch (Dự kiến)` kèm nhãn phụ `Định mức phân ca kỳ này`.
+   - **Đổi tiêu đề cột bảng:** Cột tổng chuyển thành `GIỜ KẾ HOẠCH (Dự kiến)`.
+   - **Đổi dòng chân bảng:** Dòng tổng chuyển thành `TỔNG GIỜ KẾ HOẠCH SHOP / NGÀY`.
+   - **Chỉ dẫn phân biệt rõ ràng:** Bổ sung ghi chú hướng dẫn: Ma trận 1.1 dùng để lập kế hoạch & phân ca tương lai; Giờ công làm việc thực tế được ghi nhận độc lập qua Chấm công GPS (tab 1.2 & 1.3) để đối soát lương cuối kỳ.
+
 ### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).

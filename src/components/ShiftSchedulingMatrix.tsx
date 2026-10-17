@@ -1239,11 +1239,20 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           <Users className="w-5 h-5 text-cyan-400 opacity-80" />
         </div>
 
-        <div className="glass-card p-3.5 rounded-2xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">
+        <div 
+          className="glass-card p-3.5 rounded-2xl border border-slate-800 bg-slate-900/60 flex items-center justify-between"
+          title="Tổng số giờ làm việc theo lịch phân ca dự kiến của toàn bộ nhân sự tại shop trong kỳ này. Dùng để dự toán quỹ lương và đối soát với giờ chấm công GPS thực tế."
+        >
           <div>
-            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Tổng Giờ Công Kỳ</div>
+            <div className="flex items-center gap-1.5 text-[10px] text-slate-400 font-bold uppercase tracking-wider">
+              <span>Giờ Công Kế Hoạch</span>
+              <span className="text-[9px] bg-emerald-500/10 text-emerald-300 font-semibold px-1 py-0.2 rounded border border-emerald-500/30">Dự kiến</span>
+            </div>
             <div className="text-xl font-extrabold text-emerald-400 font-mono mt-0.5">
               {totalHours.toFixed(1)} <span className="text-xs text-slate-400 font-normal">giờ</span>
+            </div>
+            <div className="text-[9.5px] text-slate-500 mt-0.5">
+              Định mức phân ca kỳ này
             </div>
           </div>
           <Clock className="w-5 h-5 text-emerald-400 opacity-80" />
@@ -1355,8 +1364,9 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                 })}
 
                 {/* Total Column */}
-                <th className="py-3 px-3 text-center w-24 bg-slate-950">
-                  TỔNG GIỜ
+                <th className="py-2.5 px-3 text-center w-28 bg-slate-950 border-b border-slate-800" title="Tổng số giờ công kế hoạch theo lịch đã phân ca trong kỳ">
+                  <div className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">GIỜ KẾ HOẠCH</div>
+                  <div className="text-[9px] text-emerald-400/90 font-mono font-medium">(Dự kiến)</div>
                 </th>
               </tr>
             </thead>
@@ -1555,7 +1565,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
             <tfoot>
               <tr className="bg-slate-950 border-t-2 border-slate-800 font-bold text-xs text-slate-300">
                 <td className="py-3 px-4 sticky left-0 bg-slate-950 border-r border-slate-800 text-[11px] uppercase tracking-wider text-cyan-400 font-extrabold">
-                  TỔNG GIỜ CÔNG SHOP / NGÀY
+                  TỔNG GIỜ KẾ HOẠCH SHOP / NGÀY
                 </td>
                 {cycleDates.map(dateStr => {
                   const dayHours = assignments
@@ -1572,8 +1582,9 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     </td>
                   );
                 })}
-                <td className="py-3 px-3 text-center font-mono text-cyan-400 font-black text-sm">
-                  {totalHours.toFixed(0)}h
+                <td className="py-2.5 px-3 text-center font-mono bg-slate-950" title="Tổng giờ công kế hoạch toàn shop trong kỳ">
+                  <div className="text-emerald-400 font-black text-sm">{totalHours.toFixed(0)}h</div>
+                  <div className="text-[9px] text-slate-500 font-sans font-normal">Kế hoạch</div>
                 </td>
               </tr>
             </tfoot>
@@ -1610,8 +1621,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
             <span className="text-rose-300 font-bold">Ca Trống (Nghỉ Ốm - Cần Gánh)</span>
           </div>
         </div>
-        <div className="text-slate-500 text-[11px]">
-          💡 Click vào ô bất kỳ để đổi ca, chấm ngày OFF hoặc báo nghỉ ốm đột xuất
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-slate-500 text-[11px]">
+          <div>💡 Click vào ô bất kỳ để đổi ca, thêm ca 2 hoặc chấm ngày OFF</div>
+          <div className="hidden sm:inline text-slate-700">•</div>
+          <div className="text-cyan-400/90 font-medium">📋 Giờ thực tế được đối soát tại tab 1.2 Nhật Ký Chấm Công GPS</div>
         </div>
       </div>
 
