@@ -30,7 +30,8 @@ import {
   Camera,
   ThumbsUp,
   ThumbsDown,
-  XCircle
+  XCircle,
+  Trash2
 } from 'lucide-react';
 
 interface AttendanceTimesheetViewProps {
@@ -82,6 +83,8 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   const [manualTime, setManualTime] = useState<string>('17:30');
   const [manualNotes, setManualNotes] = useState<string>('');
   const [isUpdatingDb, setIsUpdatingDb] = useState<boolean>(false);
+
+  const canManage = ['founder', 'admin', 'hr', 'manager'].includes(currentUser?.role?.toLowerCase() || '');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -259,6 +262,31 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
       setRejectionReasonInput('');
     } catch (err: any) {
       showToast(`❌ Lỗi: ${err.message}`);
+    } finally {
+      setIsUpdatingDb(false);
+    }
+  };
+
+  // Delete attendance record action (Founder, Admin, HR, CHT)
+  const [recordToDelete, setRecordToDelete] = useState<AttendanceRecord | null>(null);
+  const handleDeleteRecordAction = async (record: AttendanceRecord) => {
+    setIsUpdatingDb(true);
+    const staffName = getStaffInfo(record).name;
+    try {
+      const { error } = await supabase
+        .from('attendance')
+        .delete()
+        .eq('id', record.id);
+
+      if (error) {
+        console.warn('Supabase delete attendance error:', error.message);
+      }
+
+      onRefreshLogs?.();
+      showToast(`🗑️ Đã xóa bản ghi chấm công của ${staffName}!`);
+      setRecordToDelete(null);
+    } catch (err: any) {
+      showToast(`❌ Lỗi khi xóa bản ghi: ${err.message}`);
     } finally {
       setIsUpdatingDb(false);
     }
@@ -1143,23 +1171,71 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                           </button>
                         </div>
                       ) : isApprovedDispute ? (
-                        <span className="text-[10px] text-emerald-400 font-semibold block">
-                          Đã tính lương
-                        </span>
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-[10px] text-emerald-400 font-semibold">
+                            Đã tính lương
+                          </span>
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setRecordToDelete(record)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title="Xóa bản ghi chấm bù / chấm sai"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       ) : isRejectedDispute ? (
-                        <span className="text-[10px] text-rose-400 font-semibold block">
-                          Không tính công
-                        </span>
+                        <div className="flex items-center justify-center gap-2">
+                          <span className="text-[10px] text-rose-400 font-semibold">
+                            Không tính công
+                          </span>
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setRecordToDelete(record)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title="Xóa bản ghi"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       ) : isMissedCheckout || isCurrentlyWorking ? (
-                        <button
-                          type="button"
-                          onClick={() => handleOpenCheckoutModal(record)}
-                          className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/40 transition-colors cursor-pointer"
-                        >
-                          Chốt ca
-                        </button>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCheckoutModal(record)}
+                            className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 hover:bg-cyan-900/40 transition-colors cursor-pointer"
+                          >
+                            Chốt ca
+                          </button>
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setRecordToDelete(record)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title="Xóa bản ghi chấm nhầm"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       ) : (
-                        <span className="text-[10px] text-slate-500">Đã chốt</span>
+                        <div className="flex items-center justify-center gap-1.5">
+                          <span className="text-[10px] text-slate-500">Đã chốt</span>
+                          {canManage && (
+                            <button
+                              type="button"
+                              onClick={() => setRecordToDelete(record)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                              title="Xóa bản ghi"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          )}
+                        </div>
                       )}
                     </td>
                   </tr>
@@ -1367,6 +1443,67 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
               >
                 {isUpdatingDb ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Check className="w-3.5 h-3.5" />}
                 <span>{isUpdatingDb ? 'Đang lưu...' : 'Xác Nhận & Lưu Supabase'}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 8. Modal Xác Nhận Xóa Bản Ghi Chấm Công (Dành cho Founder/Admin/HR/CHT) */}
+      {recordToDelete && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in">
+          <div className="glass-card max-w-sm w-full p-5 rounded-2xl border border-rose-500/40 bg-slate-900 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-rose-500/20 border border-rose-500/40 text-rose-400 flex items-center justify-center shrink-0">
+                <Trash2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-extrabold text-slate-100">Xác Nhận Xóa Bản Ghi</h3>
+                <p className="text-xs text-slate-400">Hành động này sẽ xóa dữ liệu trên Supabase.</p>
+              </div>
+            </div>
+
+            <div className="p-3 rounded-xl bg-slate-950 border border-slate-800 text-xs space-y-1">
+              <div className="flex justify-between">
+                <span className="text-slate-400">Nhân viên:</span>
+                <span className="font-bold text-slate-200">{getStaffInfo(recordToDelete).name}</span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-400">Giờ vào:</span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {new Date(recordToDelete.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} ({new Date(recordToDelete.checkIn).toLocaleDateString('vi-VN')})
+                </span>
+              </div>
+              {recordToDelete.checkOut && (
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Giờ ra:</span>
+                  <span className="font-mono font-bold text-slate-300">
+                    {new Date(recordToDelete.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <p className="text-[11px] text-amber-400/90 bg-amber-500/10 border border-amber-500/20 p-2.5 rounded-xl">
+              💡 Lưu ý: Chỉ xóa khi chấm nhầm hoặc trùng lặp dữ liệu ca làm việc.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setRecordToDelete(null)}
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                type="button"
+                onClick={() => handleDeleteRecordAction(recordToDelete)}
+                disabled={isUpdatingDb}
+                className="px-4 py-1.5 bg-gradient-to-r from-rose-600 to-pink-600 hover:from-rose-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-lg shadow-rose-900/30 disabled:opacity-50 cursor-pointer"
+              >
+                {isUpdatingDb ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+                <span>{isUpdatingDb ? 'Đang xóa...' : 'Xóa vĩnh viễn'}</span>
               </button>
             </div>
           </div>
