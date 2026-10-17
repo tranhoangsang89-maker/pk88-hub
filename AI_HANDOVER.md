@@ -16,7 +16,26 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 17/10/2026) - QUAN TRỌNG
 
-### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (NEW - 17/10)
+### K. Nâng Cấp Ma Trận Chia Ca & Đồng Bộ 100% Supabase Cloud (NEW - 17/10/2026)
+1. **Hỗ Trợ Toàn Diện Ca Gãy & 2 Thẻ Ca Nhỏ Lồng Nhau Trong Cùng 1 Ô Ngày:**
+   - **Ca Gãy chuẩn chuỗi (`CA_GAY`):** Khung giờ Sáng 07:00 – 12:00 (5h) và Tối 17:00 – 22:00 (5h), tổng 10.0h công. Trên bảng ma trận 15 ngày, tự động hiển thị thành **2 thẻ ca nhỏ lồng nhau** gọn gàng:
+     + Thẻ nhỏ trên: `☀️ Sáng 07:00-12:00` (Amber)
+     + Thẻ nhỏ dưới: `🌙 Tối 17:00-22:00` (Indigo)
+   - **Xếp 2 ca làm việc độc lập trong cùng 1 ngày:** Trong cửa sổ Xử Lý Ca Làm Việc, bổ sung nút `[ ➕ Thêm Ca Thứ 2 Trong Ngày (Ca Tối / Tăng Cường) ]`. Khi thêm, ô ngày lập tức hiển thị 2 thẻ nhỏ xếp chồng lên nhau (ví dụ `☀️ Sáng 07:00-15:30` và `⚡ T.Cường 18:00-22:00`).
+   - **Xuất Excel tự động:** Tự động ghép nối các ca trong ngày (VD: `Ca Gãy (7h-12h & 17h-22h)` hoặc `Sáng + T.Cường`) và cộng dồn giờ công chính xác 100%.
+
+2. **Tính Năng Xóa Khung Giờ Rối Mắt Dành Cho HR & Admin:**
+   - Bổ sung nút thùng rác **`🗑️`** bên cạnh từng khung ca trong menu chọn ca (cho phép xóa bỏ các khung giờ thừa/chưa hợp lý như Ca Trưa KiotViet, Ca Thử Việc 1, Ca Tăng Cường...).
+   - Cơ chế Blacklist thông minh: Khung giờ đã xóa không bao giờ tự động xuất hiện lại, đồng thời không làm ảnh hưởng đến các ca đã được xếp trước đó.
+   - Bổ sung nút **`[ 🔄 Khôi phục mặc định ]`** để HR/Admin có thể lấy lại danh sách ca chuẩn của công ty chỉ bằng 1 click.
+
+3. **Bảo Đảm Lưu Trữ 100% Lên Máy Chủ Supabase Cloud (Vận Hành Thực Tế An Toàn):**
+   - **Record Cloud `...0002`:** Lưu trữ toàn bộ Lịch phân ca (`ShiftAssignment`). Mỗi thao tác xếp ca, đổi ca, thêm ca 2, xóa ca, chấm OFF đều tự động gọi `syncShiftAssignmentsToCloud`.
+   - **Record Cloud `...0003`:** Lưu trữ toàn bộ Danh sách khung ca chuẩn (`ShiftDefinition`) và danh sách ca đã xóa.
+   - **Nút `[ ☁️ Đồng Bộ Cloud ]`:** Cập nhật 2 chiều đồng thời cả Lịch Ca & Khung Giờ với Supabase Cloud.
+   - **Biên dịch Production:** `npm run build` thành công 100% (2.518 modules, 0 errors).
+
+### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).
    - Tận dụng nhận diện logo thương hiệu có sẵn `logo-pk88.jpg` làm app icon chuẩn đa kích thước.
