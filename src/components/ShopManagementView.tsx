@@ -118,6 +118,7 @@ export const ShopManagementView: React.FC<ShopManagementViewProps> = ({
           currentUser={currentUser}
           onRefreshStaff={onRefreshStaff}
           defaultBranchId={currentBranch.id}
+          onRefreshAttendance={onRefreshAttendance}
         />
       )}
 

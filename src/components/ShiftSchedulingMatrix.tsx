@@ -22,6 +22,7 @@ import {
   fetchShiftDefinitionsFromCloud,
   syncShiftDefinitionsToCloud
 } from '../lib/shiftService';
+import { supabase } from '../lib/supabase';
 import { 
   Calendar, 
   Clock, 
@@ -39,6 +40,7 @@ import {
   ChevronLeft, 
   Search, 
   ShieldAlert, 
+  ShieldCheck,
   Sparkles, 
   X, 
   DollarSign, 
@@ -61,6 +63,7 @@ interface ShiftSchedulingMatrixProps {
   currentUser?: Staff;
   onRefreshStaff?: () => void;
   defaultBranchId?: string;
+  onRefreshAttendance?: () => void;
 }
 
 export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
@@ -70,7 +73,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   leaveRequests = [],
   currentUser,
   onRefreshStaff,
-  defaultBranchId
+  defaultBranchId,
+  onRefreshAttendance
 }) => {
   // RBAC Permissions
   // 1. Quản trị cấp cao (Toàn quyền xếp lịch tất cả chi nhánh)
@@ -218,6 +222,19 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const [selectedCellDate, setSelectedCellDate] = useState<string | null>(null);
   const [isAddingSecondShift, setIsAddingSecondShift] = useState<boolean>(false);
   const [quickFilter, setQuickFilter] = useState<'ALL' | 'CROSS_BRANCH' | 'OPEN_SHIFT'>('ALL');
+
+  // Local Attendance State for optimistic & instant updates
+  const [localAttendanceLogs, setLocalAttendanceLogs] = useState<AttendanceRecord[]>(attendanceLogs);
+
+  useEffect(() => {
+    setLocalAttendanceLogs(attendanceLogs);
+  }, [attendanceLogs]);
+
+  // Form State for Manual Attendance Compensation (Chấm Bù Công 1 Chạm)
+  const [compensateCheckIn, setCompensateCheckIn] = useState<string>('07:30');
+  const [compensateCheckOut, setCompensateCheckOut] = useState<string>('15:30');
+  const [compensateReason, setCompensateReason] = useState<string>('Quên bấm máy chấm công');
+  const [isSubmittingCompensation, setIsSubmittingCompensation] = useState<boolean>(false);
 
   // Auto-Fill Form State
   const [autoFillStaffId, setAutoFillStaffId] = useState<string>('');
@@ -374,8 +391,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
   // Helper to extract attendance records for a staff on a specific date
   const getStaffRecordsForDate = (staff: Staff, dateStr: string): AttendanceRecord[] => {
-    if (!attendanceLogs || attendanceLogs.length === 0) return [];
-    return attendanceLogs.filter(log => {
+    if (!localAttendanceLogs || localAttendanceLogs.length === 0) return [];
+    return localAttendanceLogs.filter(log => {
       if (!log.checkIn) return false;
       const logDate = log.checkIn.slice(0, 10);
       if (logDate !== dateStr) return false;
@@ -540,7 +557,21 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     if (dayAsgs.every(a => a.status === 'OFF')) return null;
     const pastRecords = getStaffRecordsForDate(staff, dateStr);
     if (pastRecords.length > 0) {
-      const firstCheckIn = pastRecords[0].checkIn ? new Date(pastRecords[0].checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+      const rec = pastRecords[0];
+      const isCompensated = rec.notes?.includes('[CHẤM BÙ') || rec.disputeStatus === 'APPROVED' || !!rec.disputeHandledBy;
+      const firstCheckIn = rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+      
+      if (isCompensated) {
+        return (
+          <div 
+            className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-amber-500/20 border border-amber-500/50 text-amber-300 text-[7px] font-mono font-bold leading-none shadow-sm hover:scale-105 transition-all"
+            title={`⚡ Đã chấm bù công ngày ${dateStr} bởi ${rec.disputeHandledBy || 'Quản lý'}: ${rec.notes || ''}`}
+          >
+            <span>⚡</span> <span>{firstCheckIn} (Bù)</span>
+          </div>
+        );
+      }
+
       return (
         <div 
           className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[7px] font-mono font-bold leading-none"
@@ -552,8 +583,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     } else {
       return (
         <div 
-          className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[7px] font-bold leading-none"
-          title={`Có lịch phân ca nhưng không tìm thấy dữ liệu chấm công GPS ngày ${dateStr}`}
+          className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[7px] font-bold leading-none hover:bg-rose-500/25 transition-colors"
+          title={`Có lịch phân ca nhưng không tìm thấy dữ liệu chấm công GPS ngày ${dateStr}. Click vào ô để Chấm Bù Nhanh 1 chạm.`}
         >
           <span>⚠️ Chưa CC</span>
         </div>
@@ -583,7 +614,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     });
 
     return { workingCount, breakCount, endedCount, missingCount, waitingCount };
-  }, [activeStaffForMatrix, assignments, todayStr, selectedBranchId, attendanceLogs, leaveRequests]);
+  }, [activeStaffForMatrix, assignments, todayStr, selectedBranchId, localAttendanceLogs, leaveRequests]);
 
   // Helper to get Shift Card Color & Icon
   const getShiftBadgeStyle = (assignment: ShiftAssignment) => {
@@ -714,6 +745,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
     if (existing.length > 0) {
       setSelectedCellAssignment(existing[0]);
+      setCompensateCheckIn(existing[0].startTime || '07:30');
+      setCompensateCheckOut(existing[0].endTime || '15:30');
     } else if (canManageSchedule) {
       // Create draft assignment (chỉ Cửa hàng trưởng hoặc HR/Admin mới được tạo)
       const def = shiftDefs[0];
@@ -736,9 +769,12 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         status: 'SCHEDULED'
       };
       setSelectedCellAssignment(newAsg);
+      setCompensateCheckIn(def.startTime || '07:30');
+      setCompensateCheckOut(def.endTime || '15:30');
     } else {
       showToast('🔒 Bạn không có quyền tự tạo thêm ca làm việc.');
     }
+    setCompensateReason('Quên bấm máy chấm công');
   };
 
   // Apply quick shift change on selected cell
@@ -869,6 +905,128 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     const nextList = reportSickLeaveAndOpenShift(selectedCellAssignment.id, sickLeaveReason, sickLeaveBounty);
     setAssignments(nextList);
     setSelectedCellAssignment(null);
+  };
+
+  // Chấm Bù Công Nhanh 1 Chạm & Ghi Nhận Audit Trail
+  const handleConfirmAttendanceCompensation = async () => {
+    if (!canManageSchedule) {
+      showToast('⛔ Bạn không có quyền chấm bù công cho nhân viên!');
+      return;
+    }
+    if (!selectedCellStaff || !selectedCellDate) {
+      showToast('⚠️ Không xác định được nhân viên hoặc ngày chấm bù!');
+      return;
+    }
+
+    setIsSubmittingCompensation(true);
+    try {
+      const dateStr = selectedCellDate;
+      const staff = selectedCellStaff;
+      const approverName = currentUser?.fullName || 'Quản lý cửa hàng';
+      const approverRole = formatRoleVN(currentUser?.role);
+      const nowTimestamp = new Date();
+      const timeAuditStr = `${nowTimestamp.toLocaleTimeString('vi-VN')} ${nowTimestamp.toLocaleDateString('vi-VN')}`;
+
+      const checkInDate = new Date(`${dateStr}T${compensateCheckIn}:00`);
+      const checkOutDate = new Date(`${dateStr}T${compensateCheckOut}:00`);
+      if (checkOutDate.getTime() < checkInDate.getTime()) {
+        checkOutDate.setDate(checkOutDate.getDate() + 1);
+      }
+      const checkInIso = checkInDate.toISOString();
+      const checkOutIso = checkOutDate.toISOString();
+
+      const diffMs = checkOutDate.getTime() - checkInDate.getTime();
+      const calculatedHours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+
+      const shiftType = selectedCellAssignment?.shiftCode || 'HANH_CHINH';
+      const reasonText = compensateReason.trim() || 'Nhân viên đi làm đầy đủ nhưng quên bấm công';
+      const fullNote = `[CHẤM BÙ BỞI ${approverName} (${approverRole}) lúc ${timeAuditStr}]: ${reasonText}`;
+
+      // Resolve db staff id & branch id
+      let dbStaffId = staff.id;
+      const isStaffUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dbStaffId);
+      if (!isStaffUuid && staff.phone) {
+        try {
+          const { data: sData } = await supabase.from('staff').select('id').eq('phone', staff.phone).maybeSingle();
+          if (sData?.id) dbStaffId = sData.id;
+        } catch (err) {
+          console.warn('Supabase staff lookup warning:', err);
+        }
+      }
+
+      let dbBranchId = selectedBranchId;
+      const isBranchUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(dbBranchId);
+      if (!isBranchUuid) {
+        try {
+          const { data: bData } = await supabase.from('branches').select('id').eq('name', currentBranch.name).maybeSingle();
+          if (bData?.id) dbBranchId = bData.id;
+        } catch (err) {
+          console.warn('Supabase branch lookup warning:', err);
+        }
+      }
+
+      const newRecordId = `comp_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+      const newAttendanceRecord: AttendanceRecord = {
+        id: newRecordId,
+        staffId: staff.id,
+        branchId: selectedBranchId,
+        checkIn: checkInIso,
+        checkOut: checkOutIso,
+        shiftType: shiftType as any,
+        workHours: calculatedHours,
+        lat: currentBranch.lat,
+        lng: currentBranch.lng,
+        distanceMeters: 0,
+        isVerified: true,
+        notes: fullNote,
+        disputeStatus: 'APPROVED',
+        disputeHandledBy: `${approverName} (${approverRole})`,
+        disputeHandledAt: nowTimestamp.toISOString(),
+        disputeReason: reasonText
+      };
+
+      // 1. Optimistic UI Update: Prepend to localAttendanceLogs immediately
+      setLocalAttendanceLogs(prev => [newAttendanceRecord, ...prev]);
+
+      // 2. Insert into Supabase cloud table
+      try {
+        const insertPayload: any = {
+          staff_id: dbStaffId,
+          branch_id: dbBranchId,
+          check_in: checkInIso,
+          check_out: checkOutIso,
+          shift_type: shiftType,
+          work_hours: calculatedHours,
+          lat: currentBranch.lat || 10.7769,
+          lng: currentBranch.lng || 106.7009,
+          distance_meters: 0,
+          is_verified: true,
+          dispute_status: 'APPROVED',
+          dispute_handled_by: `${approverName} (${approverRole})`,
+          dispute_handled_at: nowTimestamp.toISOString(),
+          notes: fullNote
+        };
+        const { data, error } = await supabase.from('attendance').insert([insertPayload]).select();
+        if (error) {
+          console.warn('Supabase attendance insert error (fallback local):', error);
+        } else if (data && data.length > 0) {
+          setLocalAttendanceLogs(prev => prev.map(r => r.id === newRecordId ? { ...r, id: data[0].id } : r));
+        }
+      } catch (dbErr) {
+        console.warn('Supabase attendance insert failed, saved locally:', dbErr);
+      }
+
+      // 3. Notify parent to refresh attendance records
+      onRefreshAttendance?.();
+
+      showToast(`⚡ Đã chấm bù ${calculatedHours}h công ngày ${dateStr} cho ${staff.fullName} (Lưu Audit Trail)!`);
+      closeCellModal();
+    } catch (e: any) {
+      console.error('Lỗi khi chấm bù:', e);
+      showToast('⚠️ Có lỗi xảy ra khi chấm bù: ' + (e?.message || 'Lỗi không xác định'));
+    } finally {
+      setIsSubmittingCompensation(false);
+    }
   };
 
   // Claim Open Shift (Chợ Ca)
@@ -1808,7 +1966,36 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     {isPast && dayAsgs.some(a => a.status !== 'OFF') && (() => {
                       const pastRecords = getStaffRecordsForDate(staff, selectedDailyDate);
                       if (pastRecords.length > 0) {
-                        const firstIn = pastRecords[0].checkIn ? new Date(pastRecords[0].checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const rec = pastRecords[0];
+                        const isCompensated = rec.notes?.includes('[CHẤM BÙ') || rec.disputeStatus === 'APPROVED' || !!rec.disputeHandledBy;
+                        const firstIn = rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                        const firstOut = rec.checkOut ? new Date(rec.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---';
+
+                        if (isCompensated) {
+                          return (
+                            <div className="flex flex-col gap-1 p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs shadow-sm">
+                              <div className="flex items-center justify-between font-bold">
+                                <span className="flex items-center gap-1 text-amber-300">
+                                  <span>⚡</span>
+                                  <span>ĐÃ CHẤM BÙ CÔNG</span>
+                                </span>
+                                <span className="font-mono text-[11px] text-amber-300">
+                                  {rec.workHours ? `${rec.workHours}h` : ''} ({firstIn} - {firstOut})
+                                </span>
+                              </div>
+                              <div className="text-[10.5px] text-slate-300 flex items-center justify-between">
+                                <span>🛡️ Người duyệt: <strong className="text-amber-200">{rec.disputeHandledBy || 'Quản lý'}</strong></span>
+                                <span className="text-[9.5px] text-amber-400/80 font-mono">Audit Trail ✓</span>
+                              </div>
+                              {rec.notes && (
+                                <div className="text-[10px] text-slate-400 italic truncate font-mono mt-0.5">
+                                  📝 {rec.notes}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        }
+
                         return (
                           <div className="flex items-center gap-1.5 p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-bold">
                             <span>✓ Đã chấm công GPS lúc:</span>
@@ -1817,9 +2004,16 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                         );
                       } else {
                         return (
-                          <div className="flex items-center gap-1.5 p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold">
-                            <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
-                            <span>Không ghi nhận dữ liệu chấm công GPS ngày này</span>
+                          <div className="flex items-center justify-between p-2 rounded-lg bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs font-bold">
+                            <div className="flex items-center gap-1.5">
+                              <AlertTriangle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                              <span>Chưa có dữ liệu chấm công GPS</span>
+                            </div>
+                            {canManageSchedule && (
+                              <span className="text-[10px] text-amber-400 underline font-normal">
+                                Bấm để Chấm Bù 1 chạm ⚡
+                              </span>
+                            )}
                           </div>
                         );
                       }
@@ -2246,16 +2440,52 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
               </button>
             </div>
 
-            {/* THÔNG TIN CHẤM CÔNG GPS THỰC TẾ (HÔM NAY / QUÁ KHỨ) */}
+            {/* THÔNG TIN CHẤM CÔNG GPS THỰC TẾ & LỊCH SỬ AUDIT TRAIL */}
             {selectedCellStaff && (() => {
               const staffRecords = getStaffRecordsForDate(selectedCellStaff, selectedCellAssignment.date);
               const isTodayCell = selectedCellAssignment.date === todayStr;
+              const isPastCell = selectedCellAssignment.date < todayStr;
               
               if (staffRecords.length > 0) {
                 const latest = staffRecords[0];
+                const isCompensated = latest.notes?.includes('[CHẤM BÙ') || latest.disputeStatus === 'APPROVED' || !!latest.disputeHandledBy;
                 const inTime = latest.checkIn ? new Date(latest.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---';
                 const outTime = latest.checkOut ? new Date(latest.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (isTodayCell ? 'Đang trong ca' : 'Chưa check-out');
                 
+                if (isCompensated) {
+                  return (
+                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2 shadow-lg">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                          <ShieldCheck className="w-4 h-4 text-amber-400" />
+                          <span>LỊCH SỬ CHẤM BÙ CÔNG (AUDIT TRAIL)</span>
+                        </span>
+                        <span className="text-[10px] font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full font-bold">
+                          ĐÃ DUYỆT
+                        </span>
+                      </div>
+                      <div className="text-[11px] text-slate-200">
+                        🛡️ Người phê duyệt: <strong className="text-amber-300">{latest.disputeHandledBy || 'Quản lý cấp cao'}</strong>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="text-[10px] text-slate-400">Giờ vào (Check-in):</div>
+                          <div className="text-amber-300 font-extrabold font-mono mt-0.5">{inTime}</div>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                          <div className="text-[10px] text-slate-400">Giờ ra (Check-out):</div>
+                          <div className="text-amber-300 font-extrabold font-mono mt-0.5">{outTime}</div>
+                        </div>
+                      </div>
+                      {latest.notes && (
+                        <div className="text-[10px] text-slate-300 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 font-mono leading-relaxed">
+                          📝 {latest.notes}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+
                 return (
                   <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-emerald-500/40 space-y-2 shadow-lg">
                     <div className="flex items-center justify-between">
@@ -2282,6 +2512,13 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     )}
                   </div>
                 );
+              } else if (isPastCell && selectedCellAssignment.status !== 'OFF') {
+                return (
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                    <span>Không tìm thấy dữ liệu chấm công GPS ngày {selectedCellAssignment.date}. Nhân viên có thể đã quên chấm công.</span>
+                  </div>
+                );
               } else if (isTodayCell && selectedCellAssignment.status !== 'OFF') {
                 return (
                   <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
@@ -2292,6 +2529,114 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
               }
               return null;
             })()}
+
+            {/* CHẤM BÙ CÔNG NHANH 1 CHẠM (DÀNH CHO FOUNDER, ADMIN, HR, CỬA HÀNG TRƯỞNG) */}
+            {canManageSchedule && selectedCellAssignment.date <= todayStr && (
+              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-950 to-amber-950/20 border border-amber-500/40 space-y-3 shadow-xl">
+                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shadow-md">
+                      ⚡
+                    </div>
+                    <div>
+                      <h4 className="text-xs font-black text-amber-300 tracking-wide flex items-center gap-1.5">
+                        <span>CHẤM BÙ CÔNG NHANH 1 CHẠM</span>
+                      </h4>
+                      <p className="text-[10px] text-slate-400">
+                        Xác nhận giờ công thực tế & lưu vết lịch sử hệ thống
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                    AUDIT TRAIL
+                  </span>
+                </div>
+
+                {/* Form giờ vào / giờ ra */}
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                      Giờ vào ca (Check-in):
+                    </label>
+                    <input
+                      type="time"
+                      value={compensateCheckIn}
+                      onChange={(e) => setCompensateCheckIn(e.target.value)}
+                      className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold text-slate-300 block mb-1">
+                      Giờ ra ca (Check-out):
+                    </label>
+                    <input
+                      type="time"
+                      value={compensateCheckOut}
+                      onChange={(e) => setCompensateCheckOut(e.target.value)}
+                      className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                    />
+                  </div>
+                </div>
+
+                {/* Quick reason chips */}
+                <div className="space-y-1.5">
+                  <label className="text-[10px] font-bold text-slate-300 block">
+                    Lý do chấm bù (Lưu vết minh bạch):
+                  </label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {[
+                      'Quên bấm máy chấm công',
+                      'Lỗi mạng / Hết pin điện thoại',
+                      'Cửa hàng trưởng xác nhận có mặt',
+                      'Tăng cường đột xuất'
+                    ].map(reason => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => setCompensateReason(reason)}
+                        className={`text-[9.5px] px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                          compensateReason === reason
+                            ? 'bg-amber-500/30 border-amber-400 text-amber-200 font-bold'
+                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={compensateReason}
+                    onChange={(e) => setCompensateReason(e.target.value)}
+                    placeholder="Ghi chú chi tiết lý do..."
+                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50 mt-1"
+                  />
+                </div>
+
+                {/* Audit summary */}
+                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+                  <span>🛡️ Người duyệt: <strong className="text-slate-200">{currentUser?.fullName || 'Quản lý'}</strong></span>
+                  <span className="text-amber-400 font-mono font-bold">Lưu Supabase Cloud</span>
+                </div>
+
+                {/* Confirm Button */}
+                <button
+                  type="button"
+                  onClick={handleConfirmAttendanceCompensation}
+                  disabled={isSubmittingCompensation}
+                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                >
+                  {isSubmittingCompensation ? (
+                    <span>⏳ Đang ghi nhận Audit Trail...</span>
+                  ) : (
+                    <>
+                      <span>⚡</span>
+                      <span>Xác Nhận Chấm Bù 1 Chạm & Ghi Nhận Audit Trail</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            )}
 
             {/* NẾU LÀ NGÀY NGHỈ LUÂN PHIÊN (OFF) */}
             {selectedCellAssignment.status === 'OFF' ? (

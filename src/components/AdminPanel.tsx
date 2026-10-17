@@ -709,6 +709,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                 leaveRequests={leaveRequests}
                 currentUser={currentUser}
                 onRefreshStaff={onRefreshStaff}
+                onRefreshAttendance={onRefreshAttendance}
               />
             ) : payrollSubView === 'timesheet' ? (
               <AttendanceTimesheetView

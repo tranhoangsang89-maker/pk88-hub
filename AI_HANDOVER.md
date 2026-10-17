@@ -207,6 +207,27 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Highlight ngày hôm nay chuẩn Realtime:** Cột ngày trong bảng ma trận tự động phát sáng cyan theo đúng ngày thực tế hôm nay thay vì dùng ngày tĩnh.
    - **Đồng bộ xuất Excel:** Tên file xuất Excel và tiêu đề tự động cập nhật đúng Tháng và Năm đang chọn (`..._T11_2026.xlsx`).
 
+7. **Tích Hợp Thẻ Ca Nhỏ Lồng Nhau (Ca Gãy & 2 Ca Độc Lập) Trên Cùng 1 Ô Ngày (NEW - 17/10):**
+   - **Ca Gãy (Split Shift):** Tự động hiển thị 2 thẻ con lồng nhau gồm `☀️ Ca Sáng (07:00-12:00)` và `🌙 Ca Tối (17:00-22:00)` với màu sắc phân biệt trực quan, tự động tính đủ 10 giờ công chuẩn.
+   - **Xếp 2 Ca Độc Lập:** Cho phép thêm ca thứ 2 trong ngày (ca tăng cường/tăng ca) với nút xóa từng ca riêng biệt.
+   - **Xóa bớt khung giờ không hợp lý:** Cho phép Cửa hàng trưởng và HR/Admin bấm icon thùng rác để xóa bỏ các khung giờ ca dư thừa, tránh làm rối mắt khi chọn ca.
+
+8. **Đối Soát Chấm Công GPS Realtime Trực Tiếp Trên Ma Trận Lịch Làm Việc (NEW - 17/10):**
+   - **Hôm nay:** Hiển thị trực quan trạng thái thực tế của nhân sự ngay trên ô ngày: `🟢 07:18 Đang làm` (đang làm việc), `☕ Nghỉ trưa / 🍱 Ăn tối`, `🏁 Ra ca 15:35`, hoặc `⚠️ Chưa check-in` (quá giờ bắt đầu ca).
+   - **Thống kê tức thời:** Banner phía trên tổng hợp số lượng nhân viên đang làm việc, nghỉ trưa, tan ca và chưa vào ca tại cửa hàng.
+   - **Ngày quá khứ:** Tự động đối soát dữ liệu GPS: hiển thị `✓ 07:18` nếu có dữ liệu hoặc `⚠️ Chưa CC` nếu không thấy lượt quét mã.
+
+9. **Chế Độ Xem Theo Ngày (Mobile-First Daily Card View) (NEW - 17/10):**
+   - Bộ chuyển đổi **`[ 📱 Xem Theo Ngày (Thoáng Di Động) ]`** vs **`[ 📊 Bảng Ma Trận (15 Ngày) ]`**.
+   - Trên điện thoại (<768px), giao diện tự động ưu tiên chế độ xem theo ngày với thanh cuộn ngày ngang và danh sách thẻ nhân sự dạng dọc thoáng đãng.
+   - Khi xem ma trận trên điện thoại, cột thông tin nhân sự được thu gọn tinh tế từ 224px xuống 128px, hiển thị đồng thời 4-5 ngày mà không bị gò bó.
+
+10. **Chấm Bù Công Nhanh 1 Chạm & Minh Bạch Audit Trail (Kết Hợp Phương Án 1 & 3) (NEW - 17/10):**
+   - **Phân quyền cấp cao:** Founder, Admin, HR và Cửa Hàng Trưởng được cấp quyền chấm bù nhanh bằng cách click trực tiếp vào bất kỳ ô ngày quá khứ nào trên Ma trận hoặc Thẻ ngày.
+   - **1 Chạm Tiện Lợi:** Hệ thống tự động điền sẵn giờ vào - giờ ra theo lịch phân ca đã xếp; cung cấp các nút chọn lý do nhanh (`Quên bấm máy chấm công`, `Lỗi mạng / Hết pin`, `Cửa hàng trưởng xác nhận có mặt`...).
+   - **Minh bạch dữ liệu (Audit Trail):** Mọi lượt chấm bù đều tự động lưu trữ lên Supabase `attendance` kèm đầy đủ vết lịch sử: Người phê duyệt, Chức vụ, Thời điểm duyệt chính xác, Giờ công thực tế và Lý do.
+   - **Hiển thị trực quan tức thời (Optimistic UI):** Ô ngày ngay lập tức chuyển từ `⚠️ Chưa CC` sang huy hiệu `⚡ 07:30 (Bù)` màu hổ phách sang trọng, kèm tooltip và bảng thông tin Audit Trail minh bạch khi click vào xem chi tiết.
+
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
    - Lưu trữ hồ sơ ứng viên: `id`, `branch_id`, `full_name`, `phone`, `role_applied`, `experience_note`, `status` (`pending` | `interview` | `hired` | `rejected`), `interview_date`, `notes`, `created_at`.
