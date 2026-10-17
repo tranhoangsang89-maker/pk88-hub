@@ -73,7 +73,7 @@ export const ROLE_COMPETENCY_CONFIG: Record<UserRole, {
     ]
   },
   accountant: {
-    title: 'Đánh Giá Năng Lực Kế Toán Trưởng',
+    title: 'Đánh Giá Năng Lực Kế Toán',
     dimensions: [
       { key: 'expertise', label: '1. Độ Chính Xác Sổ Sách & Phần Mềm MISA', color: 'text-cyan-400', progressGradient: 'from-cyan-500 to-blue-500' },
       { key: 'discipline', label: '2. Kiểm Soát Chi Phí, Ngân Sách & Dòng Tiền', color: 'text-emerald-400', progressGradient: 'from-emerald-500 to-teal-400' },
@@ -350,7 +350,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     staff.role === 'founder' ? 'Chủ Sở Hữu / Founder' :
     staff.role === 'admin' ? 'Admin' :
     staff.role === 'sales_head' ? 'Trưởng Phòng Kinh Doanh' :
-    staff.role === 'accountant' ? 'Kế Toán Trưởng' :
+    staff.role === 'accountant' ? 'Kế Toán' :
     staff.role === 'warehouse_accountant' ? 'Kế Toán Kho' :
     staff.role === 'marketing' ? 'Chuyên Viên Marketing' :
     staff.role === 'media' ? 'Chuyên Viên Media' :
@@ -853,7 +853,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                     <option value="manager">Quản Lý Chi Nhánh / CHT</option>
                     <option value="warehouse_accountant">Kế Toán Kho</option>
                     <option value="media">Chuyên Viên Media</option>
-                    <option value="accountant">Kế Toán Trưởng</option>
+                    <option value="accountant">Kế Toán</option>
                     <option value="hr">Chuyên Viên HC - NS</option>
                     <option value="marketing">Chuyên Viên Marketing</option>
                     <option value="sales_head">Trưởng Phòng Kinh Doanh</option>

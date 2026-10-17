@@ -980,7 +980,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   <option value="technician">🛠️ Kỹ Thuật Viên Sửa Chữa</option>
                   <option value="manager">🏢 Quản Lý Chi Nhánh</option>
                   <option value="sales_head">💼 Trưởng Phòng Kinh Doanh</option>
-                  <option value="accountant">📊 Kế Toán Trưởng</option>
+                  <option value="accountant">📊 Kế Toán</option>
                   <option value="warehouse_accountant">📦 Kế Toán Kho</option>
                   <option value="marketing">📢 Chuyên Viên Marketing</option>
                   <option value="media">🎬 Chuyên Viên Media</option>
@@ -1153,7 +1153,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                               {s.role === 'sales_head' ? 'TP. KINH DOANH' : 
                                s.role === 'media' ? 'MEDIA' :
                                s.role === 'warehouse_accountant' ? 'KẾ TOÁN KHO' :
-                               s.role === 'accountant' ? 'KẾ TOÁN TRƯỞNG' : s.role}
+                               s.role === 'accountant' ? 'KẾ TOÁN' : s.role}
                             </span>
                           </div>
 
@@ -1284,7 +1284,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                                 {s.role === 'sales_head' ? 'TP. KINH DOANH' :
                                  s.role === 'media' ? 'MEDIA' :
                                  s.role === 'warehouse_accountant' ? 'KẾ TOÁN KHO' :
-                                 s.role === 'accountant' ? 'KẾ TOÁN TRƯỞNG' : s.role}
+                                 s.role === 'accountant' ? 'KẾ TOÁN' : s.role}
                               </span>
                             </td>
                             <td className="p-3 text-center">

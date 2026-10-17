@@ -168,7 +168,7 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
             staffMember.role === 'founder' ? 'Founder' :
             staffMember.role === 'admin' ? 'Admin System' :
             staffMember.role === 'sales_head' ? 'TP. Kinh Doanh' :
-            staffMember.role === 'accountant' ? 'Kế Toán Trưởng' :
+            staffMember.role === 'accountant' ? 'Kế Toán' :
             staffMember.role === 'warehouse_accountant' ? 'Kế Toán Kho' :
             staffMember.role === 'marketing' ? 'Chuyên Viên Marketing' :
             staffMember.role === 'media' ? 'Chuyên Viên Media' :
