@@ -896,7 +896,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
         {/* Live Work Status Badge */}
         {isCurrentlyCheckedIn ? (
-          isOnBreak ? (
+          isOnBreak && !isOffice ? (
             <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-extrabold bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse">
               <span className="w-2 h-2 rounded-full bg-amber-400"></span>
               <span>{getBreakConfig().shortBadge}</span>
@@ -953,7 +953,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       {/* LIVE WORK TIMER & BREAK TIMER BANNER (When Checked In) */}
       {isCurrentlyCheckedIn && activeRecord && (
         <div className="space-y-2">
-          {isOnBreak ? (
+          {isOnBreak && !isOffice ? (
             /* TRẠNG THÁI: ĐANG NGHỈ TRƯA / ĂN TỐI LUÂN PHIÊN (BREAK TIMER) */
             <div className="bg-gradient-to-r from-amber-950/80 via-slate-950 to-amber-950/80 border-2 border-amber-500/60 rounded-2xl p-4 text-center space-y-3 shadow-xl relative overflow-hidden animate-in fade-in">
               <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500 animate-pulse"></div>
@@ -1006,19 +1006,21 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                 </div>
               </div>
 
-              {/* Nút Bắt Đầu Tạm Nghỉ Ăn Trưa / Ăn Tối Luân Phiên (Dành cho ca thẳng bán lẻ) */}
-              <button
-                type="button"
-                onClick={handleToggleBreak}
-                className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-950/20 active:scale-95"
-              >
-                {getBreakConfig().isEvening ? (
-                  <UtensilsCrossed className="w-4 h-4 text-amber-400" />
-                ) : (
-                  <Coffee className="w-4 h-4 text-amber-400" />
-                )}
-                <span>{getBreakConfig().actionLabel}</span>
-              </button>
+              {/* Nút Bắt Đầu Tạm Nghỉ Ăn Trưa / Ăn Tối Luân Phiên (Chỉ áp dụng cho các chi nhánh cửa hàng bán lẻ, KHÔNG hiển thị cho Khối Văn Phòng) */}
+              {!isOffice && (
+                <button
+                  type="button"
+                  onClick={handleToggleBreak}
+                  className="w-full py-2.5 px-4 rounded-xl font-extrabold text-xs bg-gradient-to-r from-amber-500/15 via-amber-500/10 to-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 flex items-center justify-center gap-2 transition-all cursor-pointer shadow-md shadow-amber-950/20 active:scale-95"
+                >
+                  {getBreakConfig().isEvening ? (
+                    <UtensilsCrossed className="w-4 h-4 text-amber-400" />
+                  ) : (
+                    <Coffee className="w-4 h-4 text-amber-400" />
+                  )}
+                  <span>{getBreakConfig().actionLabel}</span>
+                </button>
+              )}
             </div>
           )}
         </div>
