@@ -1478,153 +1478,163 @@ export function App() {
           </div>
 
           {/* User Account / Login & Branch Bar */}
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-            {/* Quick GPS Check-In Button for Staff (Except Founder) */}
-            {currentUser && currentUser.role !== 'founder' && !isCustomerMode && (
-              <button
-                onClick={() => handleNavigateTab('attendance')}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
-                  activeTab === 'attendance'
-                    ? 'bg-emerald-500 text-slate-950 font-extrabold ring-1 ring-emerald-400'
-                    : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                }`}
-                title="Bấm để Chấm Công Định Vị GPS"
-              >
-                <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
-                <span className="hidden sm:inline">Chấm Công GPS</span>
-              </button>
-            )}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+            {/* Hàng 1 trên Mobile: Các công cụ nhanh (GPS, Refresh, Chi nhánh) */}
+            <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end flex-wrap sm:flex-nowrap">
+              {/* Quick GPS Check-In Button for Staff (Except Founder) */}
+              {currentUser && currentUser.role !== 'founder' && !isCustomerMode && (
+                <button
+                  onClick={() => handleNavigateTab('attendance')}
+                  className={`px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm ${
+                    activeTab === 'attendance'
+                      ? 'bg-emerald-500 text-slate-950 font-extrabold ring-1 ring-emerald-400'
+                      : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                  }`}
+                  title="Bấm để Chấm Công Định Vị GPS"
+                >
+                  <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
+                  <span className="inline">Chấm Công</span>
+                </button>
+              )}
 
-            {/* Quick Post Button for Staff */}
-            {currentUser && !isCustomerMode && (
-              <button
-                onClick={handleOpenMarketingModal}
-                className="hidden sm:flex px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs items-center gap-1.5 shadow-md shadow-blue-500/20 transition-colors animate-pulse hover:animate-none"
-              >
-                <Send className="w-3.5 h-3.5" />
-                + Nộp Link Bài Đăng (5s)
-              </button>
-            )}
+              {/* Quick Post Button for Staff */}
+              {currentUser && !isCustomerMode && (
+                <button
+                  onClick={handleOpenMarketingModal}
+                  className="hidden md:flex px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs items-center gap-1.5 shadow-md shadow-blue-500/20 transition-colors animate-pulse hover:animate-none"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  + Nộp Link (5s)
+                </button>
+              )}
 
-            {/* Refresh DB Button */}
-            {currentUser && !isCustomerMode && (
-              <button
-                onClick={() => {
-                  fetchRealAttendance();
-                  fetchTickets();
-                  fetchMarketingPosts();
-                }}
-                className="p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
-                title="Tải lại dữ liệu từ Supabase Cloud"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingDb ? 'animate-spin' : ''}`} />
-              </button>
-            )}
+              {/* Refresh DB Button */}
+              {currentUser && !isCustomerMode && (
+                <button
+                  onClick={() => {
+                    fetchRealAttendance();
+                    fetchTickets();
+                    fetchMarketingPosts();
+                  }}
+                  className="p-1.5 sm:p-2 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-slate-300 rounded-xl text-xs flex items-center gap-1 cursor-pointer"
+                  title="Tải lại dữ liệu từ Supabase Cloud"
+                >
+                  <RefreshCw className={`w-3.5 h-3.5 text-cyan-400 ${loadingDb ? 'animate-spin' : ''}`} />
+                </button>
+              )}
 
-            {/* Branch Selector: Chỉ Founder, HR, Admin mới được chuyển chi nhánh */}
-            {!isCustomerMode && currentUser && (() => {
-              const canSwitchBranch = currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'hr';
+              {/* Branch Selector: Chỉ Founder, HR, Admin mới được chuyển chi nhánh */}
+              {!isCustomerMode && currentUser && (() => {
+                const canSwitchBranch = currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'hr';
 
-              if (canSwitchBranch) {
+                if (canSwitchBranch) {
+                  return (
+                    <div className="flex-1 sm:flex-initial flex items-center gap-1.5 bg-slate-950 px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-800 min-w-0">
+                      <Building2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                      <select
+                        value={selectedBranch.id}
+                        onChange={(e) => {
+                          const b = activeBranches.find((x) => x.id === e.target.value);
+                          if (b) setSelectedBranch(b);
+                        }}
+                        className="bg-transparent text-xs font-bold text-slate-200 pr-1 py-0.5 focus:outline-none cursor-pointer truncate w-full"
+                      >
+                        {activeBranches.map((b) => (
+                          <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
+                            {b.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  );
+                }
+
                 return (
-                  <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
-                    <Building2 className="w-4 h-4 text-amber-500" />
-                    <select
-                      value={selectedBranch.id}
-                      onChange={(e) => {
-                        const b = activeBranches.find((x) => x.id === e.target.value);
-                        if (b) setSelectedBranch(b);
-                      }}
-                      className="bg-transparent text-xs font-bold text-slate-200 pr-2 py-0.5 focus:outline-none cursor-pointer"
-                    >
-                      {activeBranches.map((b) => (
-                        <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
-                          {b.name}
-                        </option>
-                      ))}
-                    </select>
+                  <div 
+                    className="flex-1 sm:flex-initial flex items-center gap-1.5 bg-slate-950 px-2 sm:px-2.5 py-1.5 rounded-xl border border-slate-800 shadow-sm min-w-0"
+                    title={`Chi nhánh cố định: ${selectedBranch.name}`}
+                  >
+                    <Building2 className="w-3.5 h-3.5 text-amber-500 shrink-0" />
+                    <span className="text-xs font-bold text-slate-200 truncate">
+                      {selectedBranch.name}
+                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono select-none shrink-0" title="Chi nhánh cố định theo tài khoản">🔒</span>
                   </div>
                 );
-              }
+              })()}
+            </div>
 
-              return (
-                <div 
-                  className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 shadow-sm"
-                  title={`Chi nhánh cố định: ${selectedBranch.name}`}
-                >
-                  <Building2 className="w-4 h-4 text-amber-500" />
-                  <span className="text-xs font-bold text-slate-200 truncate max-w-[130px] sm:max-w-none">
-                    {selectedBranch.name}
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-mono select-none" title="Chi nhánh cố định theo tài khoản">🔒</span>
-                </div>
-              );
-            })()}
-
-            {/* Authenticated User Status */}
-            {currentUser && !isCustomerMode ? (
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowProfileModal(true)}
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-2 sm:px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all text-left group"
-                  title="Bấm để xem hồ sơ cá nhân và đổi mật khẩu"
-                >
-                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform flex-shrink-0">
-                    {currentUser.fullName.charAt(0)}
-                  </div>
-                  <div className="text-left">
-                    <div className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-1">
-                      <span className="truncate max-w-[75px] sm:max-w-none">{currentUser.fullName}</span>
-                      <KeyRound className="w-3 h-3 text-amber-400 flex-shrink-0" />
+            {/* Hàng 2 trên Mobile (cùng dòng trên PC): Avatar cá nhân, Đăng xuất, Khách QR, Tuyển dụng */}
+            <div className="flex items-center gap-2 justify-between sm:justify-end w-full sm:w-auto pt-1 sm:pt-0 border-t border-slate-800/60 sm:border-t-0">
+              {/* Authenticated User Status */}
+              {currentUser && !isCustomerMode ? (
+                <div className="flex items-center gap-1.5 sm:gap-2 flex-1 sm:flex-initial">
+                  <button
+                    type="button"
+                    onClick={() => setShowProfileModal(true)}
+                    className="flex-1 sm:flex-initial bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-2 sm:px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all text-left group min-w-0 shadow-sm"
+                    title="Bấm để xem hồ sơ cá nhân và đổi mật khẩu"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-gradient-to-tr from-amber-600 to-amber-400 text-slate-950 font-black text-xs flex items-center justify-center border border-amber-400/50 group-hover:scale-105 transition-transform shrink-0 shadow-sm">
+                      {currentUser.fullName.charAt(0)}
                     </div>
-                    <div className="text-[9px] text-amber-400/80 font-medium hidden sm:block">Đổi MK / Hồ sơ</div>
-                  </div>
-                </button>
+                    <div className="text-left min-w-0">
+                      <div className="text-xs font-extrabold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-1">
+                        <span className="truncate">{currentUser.fullName}</span>
+                        <KeyRound className="w-3 h-3 text-amber-400 shrink-0" />
+                      </div>
+                      <div className="text-[9.5px] text-amber-400/90 font-medium truncate">
+                        Đổi MK / Hồ sơ
+                      </div>
+                    </div>
+                  </button>
 
+                  <button
+                    onClick={handleLogout}
+                    className="p-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl text-xs font-medium flex items-center justify-center gap-1 transition-all cursor-pointer shrink-0"
+                    title="Đăng xuất khỏi tài khoản"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="text-[10px] font-bold hidden xs:inline">Thoát</span>
+                  </button>
+                </div>
+              ) : (
                 <button
-                  onClick={handleLogout}
-                  className="p-2 bg-slate-800 hover:bg-amber-900/40 hover:text-amber-300 text-slate-300 rounded-xl text-xs font-medium flex items-center gap-1 transition-all cursor-pointer"
-                  title="Đăng xuất khỏi tài khoản"
+                  onClick={() => {
+                    setIsCustomerMode(false);
+                    setShowLoginModal(true);
+                  }}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
                 >
-                  <LogOut className="w-4 h-4" />
+                  <ShieldCheck className="w-4 h-4" />
+                  <span>Đăng Nhập Nhân Sự</span>
                 </button>
-              </div>
-            ) : (
+              )}
+
+              {/* Toggle Customer Mode View */}
               <button
-                onClick={() => {
-                  setIsCustomerMode(false);
-                  setShowLoginModal(true);
-                }}
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold rounded-xl text-xs flex items-center gap-1.5 shadow-md cursor-pointer"
+                onClick={handleToggleCustomerMode}
+                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  isCustomerMode
+                    ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
+                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                }`}
+                title="Chế độ khách quét QR tra cứu bảo hành"
               >
-                <ShieldCheck className="w-4 h-4" />
-                <span>Đăng Nhập Nhân Sự</span>
+                <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                <span className="text-[11px] font-semibold">{isCustomerMode ? 'Thoát' : 'Khách QR'}</span>
               </button>
-            )}
 
-            {/* Toggle Customer Mode View */}
-            <button
-              onClick={handleToggleCustomerMode}
-              className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer ${
-                isCustomerMode
-                  ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
-                  : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
-              }`}
-            >
-              <QrCode className="w-4 h-4" />
-              <span>{isCustomerMode ? 'Thoát Khách QR' : 'Khách Tra Cứu QR'}</span>
-            </button>
-
-            {/* Nút xem trang Tuyển Dụng Công Khai */}
-            <button
-              onClick={() => handleNavigateTab('recruitment')}
-              className="px-3 py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Cổng ứng tuyển việc làm tại chuỗi Phụ Kiện 88"
-            >
-              <Briefcase className="w-4 h-4 text-amber-400" />
-              <span className="hidden sm:inline">Tuyển Dụng PK88</span>
-            </button>
+              {/* Nút xem trang Tuyển Dụng Công Khai */}
+              <button
+                onClick={() => handleNavigateTab('recruitment')}
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                title="Cổng ứng tuyển việc làm tại chuỗi Phụ Kiện 88"
+              >
+                <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                <span className="text-[11px] font-semibold">Tuyển Dụng</span>
+              </button>
+            </div>
           </div>
         </div>
       </header>
