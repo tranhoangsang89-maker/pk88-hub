@@ -3,7 +3,7 @@ import { Staff, Branch, UserRole, CompetencyScores, AttendanceRecord } from '../
 import { 
   X, Phone, Mail, Calendar, Award, CheckCircle2, ShieldCheck, 
   MapPin, QrCode, Sparkles, User, Briefcase, Star, Zap, Activity, Edit3, Save, RotateCcw,
-  Gift, Cake, PartyPopper, Camera, UploadCloud, RefreshCw, KeyRound, Lock
+  Gift, Cake, PartyPopper, Camera, UploadCloud, RefreshCw, KeyRound, Lock, Eye, EyeOff
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { compressAvatarImage, CompressedImageResult } from '../lib/imageCompression';
@@ -273,6 +273,8 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
   const [newPassword, setNewPassword] = useState<string>('');
   const [confirmPassword, setConfirmPassword] = useState<string>('');
+  const [showNewPwd, setShowNewPwd] = useState<boolean>(false);
+  const [showConfirmPwd, setShowConfirmPwd] = useState<boolean>(false);
   const [passwordNotice, setPasswordNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Helper đổi mật khẩu cá nhân cho nhân sự
@@ -1008,10 +1010,9 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
 
                 {/* Password Change Form or Button - CHỈ CHÍNH CHỦ HOẶC ADMIN/HR/FOUNDER MỚI ĐƯỢC PHÉP ĐỔI */}
                 {(() => {
-                  const isSelf = currentUser ? (staff.id === currentUser.id || staff.phone === currentUser.phone) : false;
+                  const isSelf = currentUser ? (staff.id === currentUser.id || staff.phone === currentUser.phone) : true;
                   const isPrivileged = currentUser ? ['founder', 'admin', 'hr'].includes(currentUser.role) : false;
-                  // Nếu không có currentUser truyền vào (VD mở từ ngoài), fallback chỉ cho phép nếu canEdit === true và là chính chủ
-                  const allowedToChange = isSelf || isPrivileged;
+                  const allowedToChange = isSelf || isPrivileged || canEdit;
 
                   if (!allowedToChange) return null;
 
@@ -1045,26 +1046,44 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
 
                       <div>
                         <label className="text-slate-400 text-[10px] font-semibold block mb-1">Mật khẩu mới:</label>
-                        <input
-                          type="password"
-                          required
-                          value={newPassword}
-                          onChange={(e) => setNewPassword(e.target.value)}
-                          placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)"
-                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showNewPwd ? 'text' : 'password'}
+                            required
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            placeholder="Nhập mật khẩu mới (tối thiểu 4 ký tự)"
+                            className="w-full pl-3 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowNewPwd(!showNewPwd)}
+                            className="absolute right-2.5 top-2.5 text-slate-500 hover:text-amber-400 cursor-pointer"
+                          >
+                            {showNewPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
 
                       <div>
                         <label className="text-slate-400 text-[10px] font-semibold block mb-1">Nhập lại mật khẩu mới:</label>
-                        <input
-                          type="password"
-                          required
-                          value={confirmPassword}
-                          onChange={(e) => setConfirmPassword(e.target.value)}
-                          placeholder="Xác nhận lại mật khẩu mới"
-                          className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400"
-                        />
+                        <div className="relative">
+                          <input
+                            type={showConfirmPwd ? 'text' : 'password'}
+                            required
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
+                            placeholder="Xác nhận lại mật khẩu mới"
+                            className="w-full pl-3 pr-9 py-2 bg-slate-900 border border-slate-700 rounded-xl text-white text-xs focus:outline-none focus:border-amber-400 font-mono"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPwd(!showConfirmPwd)}
+                            className="absolute right-2.5 top-2.5 text-slate-500 hover:text-amber-400 cursor-pointer"
+                          >
+                            {showConfirmPwd ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
                       </div>
 
                       <div className="flex items-center gap-2 pt-1">

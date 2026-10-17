@@ -1508,18 +1508,18 @@ export function App() {
                 <button
                   type="button"
                   onClick={() => setShowProfileModal(true)}
-                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-3 py-1.5 rounded-xl flex items-center gap-2 cursor-pointer transition-all text-left group"
+                  className="bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 px-2 sm:px-3 py-1.5 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all text-left group"
                   title="Bấm để xem hồ sơ cá nhân và đổi mật khẩu"
                 >
-                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform">
+                  <div className="w-6 h-6 rounded-full bg-amber-500/20 text-amber-400 font-bold text-xs flex items-center justify-center border border-amber-500/30 group-hover:scale-105 transition-transform flex-shrink-0">
                     {currentUser.fullName.charAt(0)}
                   </div>
-                  <div className="text-left hidden md:block">
+                  <div className="text-left">
                     <div className="text-xs font-bold text-slate-200 group-hover:text-amber-400 transition-colors flex items-center gap-1">
-                      <span>{currentUser.fullName}</span>
-                      <KeyRound className="w-3 h-3 text-amber-400/70" />
+                      <span className="truncate max-w-[75px] sm:max-w-none">{currentUser.fullName}</span>
+                      <KeyRound className="w-3 h-3 text-amber-400 flex-shrink-0" />
                     </div>
-                    <div className="text-[10px] text-slate-400 uppercase font-mono">{currentUser.role}</div>
+                    <div className="text-[9px] text-amber-400/80 font-medium hidden sm:block">Đổi MK / Hồ sơ</div>
                   </div>
                 </button>
 
@@ -1708,6 +1708,7 @@ export function App() {
                   attendanceHistory={attendanceHistory}
                   onOpenMyShiftsModal={() => setShowPersonalShiftsModal(true)}
                   onOpenLeaveModal={handleOpenAIHRModal}
+                  onOpenProfileModal={() => setShowProfileModal(true)}
                 />
               </div>
             )}
@@ -1781,6 +1782,7 @@ export function App() {
       {showProfileModal && currentUser && (
         <StaffDetailModal
           staff={currentUser}
+          currentUser={currentUser}
           branch={branches.find(b => b.id === currentUser.branchId) || selectedBranch}
           branches={branches}
           attendanceLogs={attendanceHistory}

@@ -28,7 +28,8 @@ import {
   Loader2,
   Compass,
   Coffee,
-  UtensilsCrossed
+  UtensilsCrossed,
+  KeyRound
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
@@ -41,6 +42,7 @@ interface AttendanceCardProps {
   onDisputeSubmit?: (record: AttendanceRecord) => Promise<void> | void;
   onOpenMyShiftsModal?: () => void;
   onOpenLeaveModal?: () => void;
+  onOpenProfileModal?: () => void;
 }
 
 export const AttendanceCard: React.FC<AttendanceCardProps> = ({
@@ -51,6 +53,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   onDisputeSubmit,
   onOpenMyShiftsModal,
   onOpenLeaveModal,
+  onOpenProfileModal,
 }) => {
   const isOffice = 
     currentBranch.code === 'PK88_VANPHONG' || 
@@ -924,13 +927,26 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           </div>
         </div>
 
-        <div className="text-right">
-          <div className="text-[10px] text-slate-400 uppercase font-semibold">Bán kính an toàn</div>
-          <div className="text-xs font-mono font-bold text-emerald-400">{ALLOWED_RADIUS} mét</div>
+        <div className="flex items-center gap-2">
+          {onOpenProfileModal && (
+            <button
+              type="button"
+              onClick={onOpenProfileModal}
+              className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
+              title="Xem hồ sơ và đổi mật khẩu"
+            >
+              <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+              <span>Đổi Mật Khẩu</span>
+            </button>
+          )}
+          <div className="text-right hidden sm:block">
+            <div className="text-[10px] text-slate-400 uppercase font-semibold">Bán kính</div>
+            <div className="text-xs font-mono font-bold text-emerald-400">{ALLOWED_RADIUS}m</div>
+          </div>
         </div>
       </div>
 
-      {/* Quick Action Buttons for Shift Schedule & Leave Request */}
+      {/* Quick Action Buttons for Shift Schedule, Leave Request & Password */}
       <div className="grid grid-cols-2 gap-2">
         <button
           type="button"
