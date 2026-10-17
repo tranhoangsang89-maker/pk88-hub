@@ -77,11 +77,14 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   onRefreshAttendance
 }) => {
   // RBAC Permissions
-  // 1. Quản trị cấp cao (Toàn quyền xếp lịch tất cả chi nhánh)
-  const isHQAdmin = currentUser?.role === 'founder' || currentUser?.role === 'admin' || currentUser?.role === 'hr' || currentUser?.role === 'sales_head';
+  // 1. Quản trị cấp cao (Toàn quyền xem và xếp lịch tất cả chi nhánh: Chỉ Founder, HR, Admin)
+  const isHQAdmin = currentUser?.role === 'founder' || currentUser?.role === 'admin' || currentUser?.role === 'hr';
 
-  // State for Cycle & Branch (Mặc định chọn chi nhánh của người đang đăng nhập hoặc defaultBranchId)
-  const initialBranchId = defaultBranchId || (currentUser && currentUser.branchId) ? (defaultBranchId || currentUser?.branchId) : (branches[0]?.id || 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e');
+  // State for Cycle & Branch: Nếu không phải Founder, HR, Admin thì khóa cứng vào chi nhánh của nhân sự
+  const userHomeBranchId = currentUser?.branchId;
+  const initialBranchId = (!isHQAdmin && userHomeBranchId)
+    ? userHomeBranchId
+    : (defaultBranchId || userHomeBranchId || branches[0]?.id || 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e');
   const [selectedBranchId, setSelectedBranchId] = useState<string>(initialBranchId || branches[0]?.id || 'b1');
 
   // 2. Cửa hàng trưởng của chi nhánh đang chọn (Chỉ có quyền trên chi nhánh mình quản lý)
@@ -1469,22 +1472,39 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         {/* Filter Bar: Branch & Bi-Weekly Cycle Switcher */}
         <div className="mt-5 pt-4 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto">
-            {/* Branch Selector */}
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
-              <Building2 className="w-4 h-4 text-cyan-400" />
-              <span className="text-xs text-slate-400 font-medium">Chi nhánh:</span>
-              <select
-                value={selectedBranchId}
-                onChange={(e) => setSelectedBranchId(e.target.value)}
-                className="bg-transparent text-xs font-bold text-slate-100 focus:outline-none cursor-pointer"
+            {/* Branch Selector: Chỉ Founder, HR, Admin mới được chọn chi nhánh khác */}
+            {isHQAdmin ? (
+              <div className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800">
+                <Building2 className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs text-slate-400 font-medium">Chi nhánh:</span>
+                <select
+                  value={selectedBranchId}
+                  onChange={(e) => setSelectedBranchId(e.target.value)}
+                  className="bg-transparent text-xs font-bold text-slate-100 focus:outline-none cursor-pointer"
+                >
+                  {branches.filter(b => b.isActive).map(b => (
+                    <option key={b.id} value={b.id} className="bg-slate-900 text-slate-100">
+                      {b.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              /* Cửa hàng trưởng (Manager) & Nhân viên: Khóa cứng hiển thị chi nhánh của mình */
+              <div 
+                className="flex items-center gap-2 bg-slate-950 px-3 py-2 rounded-xl border border-slate-800 shadow-sm"
+                title={`Bạn là ${formatRoleVN(currentUser?.role)} của ${currentBranch.name}. Chi nhánh được khóa cố định theo phân quyền.`}
               >
-                {branches.filter(b => b.isActive).map(b => (
-                  <option key={b.id} value={b.id} className="bg-slate-900 text-slate-100">
-                    {b.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+                <Building2 className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs text-slate-400 font-medium">Chi nhánh:</span>
+                <div className="flex items-center gap-1.5 text-xs font-extrabold text-cyan-300">
+                  <span>{currentBranch.name}</span>
+                  <span className="text-[9.5px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded border border-slate-700/60 font-mono font-medium flex items-center gap-1">
+                    <span>🔒</span> Cố định
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Bộ Chọn & Điều Hướng Tháng / Năm */}
             <div className="flex items-center bg-slate-950 p-1 rounded-xl border border-slate-800 gap-0.5">
@@ -3206,17 +3226,24 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
               <div>
                 <label className="text-xs font-bold text-slate-300 block mb-1">Chi nhánh đến làm việc:</label>
-                <select
-                  value={dispatchToBranchId}
-                  onChange={(e) => setDispatchToBranchId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500/50"
-                >
-                  {branches.filter(b => b.isActive).map(b => (
-                    <option key={b.id} value={b.id}>
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
+                {isHQAdmin ? (
+                  <select
+                    value={dispatchToBranchId}
+                    onChange={(e) => setDispatchToBranchId(e.target.value)}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-slate-100 focus:outline-none focus:border-amber-500/50"
+                  >
+                    {branches.filter(b => b.isActive).map(b => (
+                      <option key={b.id} value={b.id}>
+                        {b.name}
+                      </option>
+                    ))}
+                  </select>
+                ) : (
+                  <div className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs text-amber-300 font-bold flex items-center justify-between">
+                    <span>{currentBranch.name}</span>
+                    <span className="text-[10px] text-slate-400 font-normal">🔒 Chi nhánh của bạn</span>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-3">

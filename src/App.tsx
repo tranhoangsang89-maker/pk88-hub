@@ -122,6 +122,19 @@ export function App() {
   const [staffList, setStaffList] = useState<Staff[]>(MOCK_STAFF);
 
   const activeBranches = branches.filter(b => b.isActive);
+
+  // Khóa cứng chi nhánh nếu không phải Founder, HR, Admin
+  useEffect(() => {
+    if (currentUser?.branchId) {
+      const canSwitch = currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'hr';
+      if (!canSwitch) {
+        const homeBranch = branches.find(b => b.id === currentUser.branchId);
+        if (homeBranch && selectedBranch.id !== homeBranch.id) {
+          setSelectedBranch(homeBranch);
+        }
+      }
+    }
+  }, [currentUser?.id, currentUser?.branchId, currentUser?.role, branches, selectedBranch.id]);
   
   // Marketing Posts State (Real database sync)
   const [marketingPosts, setMarketingPosts] = useState<MarketingPost[]>(() => {
@@ -1481,26 +1494,45 @@ export function App() {
               </button>
             )}
 
-            {/* Branch Selector */}
-            {!isCustomerMode && currentUser && (
-              <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
-                <Building2 className="w-4 h-4 text-amber-500" />
-                <select
-                  value={selectedBranch.id}
-                  onChange={(e) => {
-                    const b = activeBranches.find((x) => x.id === e.target.value);
-                    if (b) setSelectedBranch(b);
-                  }}
-                  className="bg-transparent text-xs font-bold text-slate-200 pr-2 py-0.5 focus:outline-none cursor-pointer"
+            {/* Branch Selector: Chỉ Founder, HR, Admin mới được chuyển chi nhánh */}
+            {!isCustomerMode && currentUser && (() => {
+              const canSwitchBranch = currentUser.role === 'founder' || currentUser.role === 'admin' || currentUser.role === 'hr';
+
+              if (canSwitchBranch) {
+                return (
+                  <div className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800">
+                    <Building2 className="w-4 h-4 text-amber-500" />
+                    <select
+                      value={selectedBranch.id}
+                      onChange={(e) => {
+                        const b = activeBranches.find((x) => x.id === e.target.value);
+                        if (b) setSelectedBranch(b);
+                      }}
+                      className="bg-transparent text-xs font-bold text-slate-200 pr-2 py-0.5 focus:outline-none cursor-pointer"
+                    >
+                      {activeBranches.map((b) => (
+                        <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
+                          {b.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                );
+              }
+
+              return (
+                <div 
+                  className="flex items-center gap-1.5 bg-slate-950 px-2.5 py-1.5 rounded-xl border border-slate-800 shadow-sm"
+                  title={`Chi nhánh cố định: ${selectedBranch.name}`}
                 >
-                  {activeBranches.map((b) => (
-                    <option key={b.id} value={b.id} className="bg-slate-900 text-slate-200">
-                      {b.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
+                  <Building2 className="w-4 h-4 text-amber-500" />
+                  <span className="text-xs font-bold text-slate-200 truncate max-w-[130px] sm:max-w-none">
+                    {selectedBranch.name}
+                  </span>
+                  <span className="text-[10px] text-slate-500 font-mono select-none" title="Chi nhánh cố định theo tài khoản">🔒</span>
+                </div>
+              );
+            })()}
 
             {/* Authenticated User Status */}
             {currentUser && !isCustomerMode ? (

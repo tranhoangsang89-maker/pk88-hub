@@ -228,6 +228,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Minh bạch dữ liệu (Audit Trail):** Mọi lượt chấm bù đều tự động lưu trữ lên Supabase `attendance` kèm đầy đủ vết lịch sử: Người phê duyệt, Chức vụ, Thời điểm duyệt chính xác, Giờ công thực tế và Lý do.
    - **Hiển thị trực quan tức thời (Optimistic UI):** Ô ngày ngay lập tức chuyển từ `⚠️ Chưa CC` sang huy hiệu `⚡ 07:30 (Bù)` màu hổ phách sang trọng, kèm tooltip và bảng thông tin Audit Trail minh bạch khi click vào xem chi tiết.
 
+11. **Khóa Cứng Phân Quyền Chi Nhánh (Chỉ Founder, HR, Admin Được Xem Toàn Bộ) (NEW - 17/10):**
+   - **Quyền toàn chuỗi:** Chỉ duy nhất 3 vai trò cấp cao (**Founder, HR, Admin**) mới có quyền chuyển đổi qua lại giữa tất cả các chi nhánh trên hệ thống (cả Header Navbar và Ma Trận Lịch Làm Việc).
+   - **Cửa Hàng Trưởng (Manager) & Nhân viên:** Khóa cứng 100% vào đúng chi nhánh của mình (`currentUser.branchId`), ẩn hoàn toàn menu chọn chi nhánh khác và thay bằng huy hiệu `🔒 Cố định`. Cửa hàng trưởng chỉ quản lý và xem nội bộ lịch làm việc của chi nhánh mình phụ trách, triệt tiêu việc xem lẫn lộn giữa các shop.
+
 ### C. Phân Hệ Tuyển Dụng & Trợ Lý Tuyển Dụng AI Bé 8 (NEW - 15/10)
 1. **Cơ Sở Dữ Liệu Supabase `job_applications` (`supabase_job_applications.sql`):**
    - Lưu trữ hồ sơ ứng viên: `id`, `branch_id`, `full_name`, `phone`, `role_applied`, `experience_note`, `status` (`pending` | `interview` | `hired` | `rejected`), `interview_date`, `notes`, `created_at`.
