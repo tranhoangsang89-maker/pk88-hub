@@ -33,6 +33,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      + Gỡ bỏ hoàn toàn các đoạn code ép cứng (hardcode) đè lại họ tên/role/chi nhánh của Admin & Founder trong `App.tsx`.
      + Tạo module [`staffAuthService.ts`](file:///d:/PK88%20AI%20AUTOMATION/src/lib/staffAuthService.ts) lưu trữ đồng bộ 2 chiều bản đồ mật khẩu cá nhân và thông tin hồ sơ mở rộng (ngày sinh, ngày vào làm, email) lên Supabase Cloud (`job_applications` system metadata record `00000000-0000-0000-0000-000000000002`).
      + Bất kỳ ai đổi mật khẩu hay cập nhật hồ sơ cá nhân đều được lưu vĩnh viễn trên Supabase Cloud, đăng nhập lại từ bất kỳ máy nào, điện thoại hay tab ẩn danh đều nhận diện chính xác 100%.
+6. **Popup Cảnh Báo Chống Chạm Nhầm Nút Tan Ca ([`AttendanceCard.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx)):**
+   - **Vấn đề giải quyết:** Nút tan ca trên màn hình cảm ứng di động rất to, nhân viên để trong túi quần hoặc vô tình chạm tay có thể làm chốt ca sớm ngoài ý muốn, làm mất ca làm đang chạy.
+   - **Cơ chế xác nhận 2 lớp:** Bấm nút *"BẤM CHẤM CÔNG TAN CA"* sẽ mở Modal cảnh báo trực quan trước khi ghi nhận vào cơ sở dữ liệu.
+   - **Cảnh báo về sớm thông minh:** Tự động tính toán giờ vào, giờ dự kiến kết thúc ca làm, số giờ đã làm thực tế và số giờ/phút còn thiếu. Nếu về sớm trước giờ tan ca, modal chuyển sang màu cam hổ phách (`Amber-500`) cảnh báo nhân viên về việc vi phạm rời ca sớm.
+   - **Nút hành động an toàn làm mặc định:** Nút ưu tiên số 1 màu xanh lá `[🟢 TÔI BẤM NHẦM — TIẾP TỤC LÀM VIỆC]` nằm trên cùng để nếu nhân viên chạm vội sẽ đóng popup ngay; nút xác nhận chốt tan ca nằm ở dưới để nhân sự chỉ bấm khi thực sự muốn kết thúc ca.
 
 ### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (16/10)
 1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**

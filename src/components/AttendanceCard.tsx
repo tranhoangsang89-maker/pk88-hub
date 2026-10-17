@@ -139,6 +139,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [showSuccessMsg, setShowSuccessMsg] = useState<boolean>(false);
   const [actionMessage, setActionMessage] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [showCheckOutConfirmModal, setShowCheckOutConfirmModal] = useState<boolean>(false);
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -513,6 +514,131 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     return { isLate: false, lateMinutes: 0 };
   };
 
+  // Tính toán thông tin ca & cảnh báo về sớm phục vụ Popup xác nhận
+  const checkOutInfo = React.useMemo(() => {
+    if (!activeRecord) return null;
+    const now = new Date();
+    const checkInTime = new Date(activeRecord.checkIn);
+    const diffWorkedMs = Math.max(0, now.getTime() - checkInTime.getTime());
+    const workedMinutes = Math.floor(diffWorkedMs / 60000);
+    const workedHours = Math.floor(workedMinutes / 60);
+    const workedMinPart = workedMinutes % 60;
+    const workHoursDecimal = parseFloat((diffWorkedMs / (1000 * 60 * 60)).toFixed(2));
+
+    // Xác định giờ kết thúc ca dự kiến
+    let endHour = 15;
+    let endMinute = 30;
+    let shiftLabel = 'Ca Sáng (07:00 - 15:30)';
+
+    const sType = activeRecord.shiftType || selectedShift;
+    const notes = activeRecord.notes || '';
+
+    // Kiểm tra nếu notes có chứa định dạng (HH:mm - HH:mm)
+    const timeMatch = notes.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (timeMatch) {
+      endHour = parseInt(timeMatch[3], 10);
+      endMinute = parseInt(timeMatch[4], 10);
+      shiftLabel = `Ca Làm (${timeMatch[1]}:${timeMatch[2]} - ${timeMatch[3]}:${timeMatch[4]})`;
+    } else if (sType === 'HANH_CHINH') {
+      endHour = 17;
+      endMinute = 30;
+      shiftLabel = 'Ca Hành Chính Văn Phòng (07:30 - 17:30)';
+    } else if (sType === 'CA_CHIEU') {
+      endHour = 22;
+      endMinute = 0;
+      shiftLabel = 'Ca Chiều (13:30 - 22:00)';
+    } else if (sType === 'CA_GAY') {
+      const inHour = checkInTime.getHours();
+      if (inHour < 14) {
+        endHour = 12;
+        endMinute = 0;
+        shiftLabel = 'Ca Gãy - Phiên Sáng (07:00 - 12:00)';
+      } else {
+        endHour = 22;
+        endMinute = 0;
+        shiftLabel = 'Ca Gãy - Phiên Tối (17:00 - 22:00)';
+      }
+    } else if (sType === 'TUY_CHINH' && customEndTime) {
+      const parts = customEndTime.split(':');
+      if (parts.length === 2) {
+        endHour = parseInt(parts[0], 10);
+        endMinute = parseInt(parts[1], 10);
+      }
+      shiftLabel = `Ca Tùy Chỉnh (${customStartTime || '--:--'} - ${customEndTime})`;
+    }
+
+    const shiftEndDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), endHour, endMinute, 0);
+    const diffRemainingMs = shiftEndDate.getTime() - now.getTime();
+    
+    // Nếu còn hơn 10 phút mới tới giờ kết thúc thì tính là về sớm
+    const isEarly = diffRemainingMs > 10 * 60 * 1000;
+    const remainingMinutes = Math.max(0, Math.floor(diffRemainingMs / 60000));
+    const remainingHours = Math.floor(remainingMinutes / 60);
+    const remainingMinPart = remainingMinutes % 60;
+    const formattedEndTime = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+
+    return {
+      workedHours,
+      workedMinPart,
+      workHoursDecimal,
+      isEarly,
+      formattedEndTime,
+      remainingHours,
+      remainingMinPart,
+      shiftLabel
+    };
+  }, [activeRecord, selectedShift, customStartTime, customEndTime]);
+
+  // Thực thi Chốt Tan Ca sau khi người dùng đã xác nhận trên Popup
+  const executeCheckOut = async () => {
+    if (!activeRecord) return;
+    setShowCheckOutConfirmModal(false);
+
+    const now = new Date();
+    const nowIso = now.toISOString();
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+    if (isOnBreak) {
+      setIsOnBreak(false);
+      setBreakStartTime(null);
+      try {
+        localStorage.removeItem(`pk88_break_state_${activeRecord.id}`);
+      } catch (e) {}
+    }
+
+    const checkInTime = new Date(activeRecord.checkIn);
+    const diffMs = now.getTime() - checkInTime.getTime();
+    const workHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
+    
+    const isEarlyNotice = checkOutInfo?.isEarly ? ' [VỀ SỚM]' : '';
+    const noteText = `${currentStaff.fullName} - Tan Ca lúc ${timeStr} (${workHours}h)${isEarlyNotice}`;
+    
+    setShowSuccessMsg(true);
+    setActionMessage(`Đã Tan Ca thành công! Số giờ làm: ${workHours}h`);
+    showToast(`✅ Đã chốt ca làm việc thành công! Tổng giờ: ${workHours}h`);
+    
+    try {
+      const { error } = await supabase.from('attendance')
+        .update({
+          check_out: nowIso,
+          work_hours: workHours,
+          notes: (activeRecord.notes || '') + ` | ${noteText}`
+        })
+        .eq('id', activeRecord.id);
+        
+      if (error) console.error('Supabase Update Error:', error);
+    } catch (err) {
+      console.error('Supabase error:', err);
+    }
+    
+    onCheckInSuccess({
+      ...activeRecord,
+      checkOut: nowIso,
+      workHours,
+      notes: (activeRecord.notes || '') + ` | ${noteText}`
+    });
+  };
+
   const handleCheckAction = async () => {
     if (!isValidGeofence) {
       showToast('⚠️ Bạn đang ở ngoài bán kính cho phép (100m). Vui lòng đến gần cửa hàng!');
@@ -524,46 +650,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
 
     if (isCurrentlyCheckedIn && activeRecord) {
-      // TAN CA (Check-out)
-      if (isOnBreak) {
-        setIsOnBreak(false);
-        setBreakStartTime(null);
-        try {
-          localStorage.removeItem(`pk88_break_state_${activeRecord.id}`);
-        } catch (e) {}
-      }
-
-      const checkInTime = new Date(activeRecord.checkIn);
-      const diffMs = now.getTime() - checkInTime.getTime();
-      const workHours = parseFloat((diffMs / (1000 * 60 * 60)).toFixed(2));
-      
-      const noteText = `${currentStaff.fullName} - Tan Ca lúc ${timeStr} (${workHours}h)`;
-      
-      setShowSuccessMsg(true);
-      setActionMessage(`Đã Tan Ca thành công! Số giờ làm: ${workHours}h`);
-      showToast(`✅ Đã chốt ca làm việc thành công! Tổng giờ: ${workHours}h`);
-      
-      try {
-        const { error } = await supabase.from('attendance')
-          .update({
-            check_out: nowIso,
-            work_hours: workHours,
-            notes: (activeRecord.notes || '') + ` | ${noteText}`
-          })
-          .eq('id', activeRecord.id);
-          
-        if (error) console.error('Supabase Update Error:', error);
-      } catch (err) {
-        console.error('Supabase error:', err);
-      }
-      
-      onCheckInSuccess({
-        ...activeRecord,
-        checkOut: nowIso,
-        workHours,
-        notes: (activeRecord.notes || '') + ` | ${noteText}`
-      });
-      
+      // BẬT POPUP XÁC NHẬN CHỐNG CHẠM NHẦM KHI BẤM TAN CA
+      setShowCheckOutConfirmModal(true);
+      return;
     } else {
       // Validate Custom Shift mandatory start and end times
       if (selectedShift === 'TUY_CHINH') {
@@ -1560,6 +1649,122 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         existingRecord={disputeExistingRecord}
         onSubmitDispute={handleDisputeSubmit}
       />
+
+      {/* MODAL XÁC NHẬN CHỐNG CHẠM NHẦM KHI BẤM TAN CA */}
+      {showCheckOutConfirmModal && activeRecord && checkOutInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-fade-in">
+          <div 
+            className={`w-full max-w-md rounded-3xl p-6 border shadow-2xl transition-all relative overflow-hidden bg-slate-900 ${
+              checkOutInfo.isEarly 
+                ? 'border-amber-500/50 shadow-amber-950/50' 
+                : 'border-emerald-500/40 shadow-emerald-950/50'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Top decorative glow */}
+            <div className={`absolute top-0 left-0 right-0 h-1.5 ${
+              checkOutInfo.isEarly 
+                ? 'bg-gradient-to-r from-amber-500 via-rose-500 to-amber-500' 
+                : 'bg-gradient-to-r from-emerald-500 via-teal-500 to-emerald-500'
+            }`} />
+
+            {/* Header Icon & Title */}
+            <div className="text-center pt-2 pb-4">
+              <div className={`w-16 h-16 rounded-2xl mx-auto flex items-center justify-center mb-3 shadow-lg ${
+                checkOutInfo.isEarly 
+                  ? 'bg-amber-500/15 border border-amber-500/30 text-amber-400 animate-bounce' 
+                  : 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+              }`}>
+                {checkOutInfo.isEarly ? (
+                  <AlertTriangle className="w-8 h-8 text-amber-400" />
+                ) : (
+                  <CheckCircle2 className="w-8 h-8 text-emerald-400" />
+                )}
+              </div>
+
+              <h3 className={`text-base font-extrabold tracking-tight ${
+                checkOutInfo.isEarly ? 'text-amber-300' : 'text-emerald-300'
+              }`}>
+                {checkOutInfo.isEarly ? 'CẢNH BÁO: BẠN CHƯA ĐẾN GIỜ TAN CA!' : 'XÁC NHẬN CHỐT GIỜ TAN CA'}
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                {checkOutInfo.isEarly 
+                  ? 'Vui lòng xác nhận để tránh việc vô tình bấm nhầm làm gián đoạn ca trực.'
+                  : 'Kiểm tra lại quân số và két tiền trước khi bàn giao ca.'}
+              </p>
+            </div>
+
+            {/* Info Summary Box */}
+            <div className="bg-slate-950/80 rounded-2xl p-4 border border-slate-800 space-y-2.5 text-xs">
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800/80">
+                <span className="text-slate-400">Nhân sự:</span>
+                <span className="font-bold text-slate-100">{currentStaff.fullName}</span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800/80">
+                <span className="text-slate-400">Ca đăng ký:</span>
+                <span className="font-semibold text-slate-200">{checkOutInfo.shiftLabel}</span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800/80">
+                <span className="text-slate-400">Giờ tan ca chuẩn:</span>
+                <span className="font-mono font-bold text-amber-400">{checkOutInfo.formattedEndTime}</span>
+              </div>
+              <div className="flex justify-between items-center pb-2 border-b border-slate-800/80">
+                <span className="text-slate-400">Thời gian đã làm:</span>
+                <span className="font-mono font-bold text-emerald-400">
+                  {checkOutInfo.workedHours} giờ {checkOutInfo.workedMinPart} phút
+                </span>
+              </div>
+
+              {checkOutInfo.isEarly && (
+                <div className="p-3 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 space-y-1">
+                  <div className="font-bold flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-rose-400" />
+                    <span>Còn thiếu: {checkOutInfo.remainingHours} giờ {checkOutInfo.remainingMinPart} phút</span>
+                  </div>
+                  <p className="text-[11px] text-rose-400/90 leading-relaxed">
+                    ⚠️ Nếu chốt ca bây giờ, hệ thống sẽ ghi nhận cờ <strong>VỀ SỚM</strong> và tính công theo số giờ thực tế.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Action Buttons */}
+            <div className="mt-5 space-y-2.5">
+              {/* Nút to an toàn mặc định: Hủy bỏ / Tiếp tục làm việc */}
+              <button
+                type="button"
+                onClick={() => setShowCheckOutConfirmModal(false)}
+                className="w-full py-3.5 px-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-sm shadow-lg shadow-emerald-950/40 cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-2"
+              >
+                <span>🟢 TÔI BẤM NHẦM — TIẾP TỤC LÀM VIỆC</span>
+              </button>
+
+              {/* Nút xác nhận tan ca */}
+              <button
+                type="button"
+                onClick={executeCheckOut}
+                className={`w-full py-2.5 px-4 rounded-xl border font-bold text-xs cursor-pointer active:scale-95 transition-all flex items-center justify-center gap-1.5 ${
+                  checkOutInfo.isEarly
+                    ? 'border-rose-500/40 text-rose-400 hover:bg-rose-500/10'
+                    : 'border-slate-700 text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                {checkOutInfo.isEarly ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-rose-400" />
+                    <span>Tôi có việc gấp — Xác nhận Tan Ca Sớm</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                    <span>Xác nhận Chốt Tan Ca Đúng Giờ</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
