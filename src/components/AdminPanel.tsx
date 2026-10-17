@@ -705,6 +705,8 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
               <ShiftSchedulingMatrix
                 branches={branches}
                 staffList={localStaff}
+                attendanceLogs={attendanceLogs}
+                leaveRequests={leaveRequests}
                 currentUser={currentUser}
                 onRefreshStaff={onRefreshStaff}
               />

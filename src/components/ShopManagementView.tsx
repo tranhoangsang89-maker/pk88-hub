@@ -113,6 +113,8 @@ export const ShopManagementView: React.FC<ShopManagementViewProps> = ({
         <ShiftSchedulingMatrix
           branches={branches}
           staffList={staffList}
+          attendanceLogs={attendanceLogs}
+          leaveRequests={leaveRequests}
           currentUser={currentUser}
           onRefreshStaff={onRefreshStaff}
           defaultBranchId={currentBranch.id}

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Staff, Branch, ShiftDefinition, ShiftAssignment, ShiftAssignmentStatus } from '../types';
+import { Staff, Branch, ShiftDefinition, ShiftAssignment, ShiftAssignmentStatus, AttendanceRecord, LeaveRequest } from '../types';
 import { 
   getShiftDefinitions, 
   getAllAssignments, 
@@ -12,7 +12,7 @@ import {
   deleteShiftDefinition,
   resetDefaultShiftDefinitions,
   calculateShiftHours, 
-  getBiWeeklyDates,
+  getBiWeeklyDates, 
   clearBranchAssignments,
   clearAllAssignments,
   deleteAssignment,
@@ -46,13 +46,18 @@ import {
   Flame, 
   Award,
   Trash2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Activity,
+  CheckCircle,
+  Coffee
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 
 interface ShiftSchedulingMatrixProps {
   branches: Branch[];
   staffList: Staff[];
+  attendanceLogs?: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
   currentUser?: Staff;
   onRefreshStaff?: () => void;
   defaultBranchId?: string;
@@ -61,6 +66,8 @@ interface ShiftSchedulingMatrixProps {
 export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   branches,
   staffList,
+  attendanceLogs = [],
+  leaveRequests = [],
   currentUser,
   onRefreshStaff,
   defaultBranchId
@@ -84,6 +91,9 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const currentRealYear = today.getFullYear();
   const currentRealMonth = today.getMonth() + 1; // 1 - 12
   const currentRealDay = today.getDate();
+  const todayStr = useMemo(() => {
+    return `${currentRealYear}-${String(currentRealMonth).padStart(2, '0')}-${String(currentRealDay).padStart(2, '0')}`;
+  }, [currentRealYear, currentRealMonth, currentRealDay]);
   const defaultInitialCycle: 'cycle1' | 'cycle2' = currentRealDay <= 15 ? 'cycle1' : 'cycle2';
 
   const [cycle, setCycle] = useState<'cycle1' | 'cycle2'>(defaultInitialCycle);
@@ -346,11 +356,222 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     const dayNames = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
     const dayOfWeek = dayNames[d.getDay()];
     const dayNum = String(d.getDate()).padStart(2, '0');
-    const now = new Date();
-    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     const isToday = dateStr === todayStr;
     return { dayOfWeek, dayNum, isToday };
   };
+
+  // Helper to extract attendance records for a staff on a specific date
+  const getStaffRecordsForDate = (staff: Staff, dateStr: string): AttendanceRecord[] => {
+    if (!attendanceLogs || attendanceLogs.length === 0) return [];
+    return attendanceLogs.filter(log => {
+      if (!log.checkIn) return false;
+      const logDate = log.checkIn.slice(0, 10);
+      if (logDate !== dateStr) return false;
+      const isMatch = log.staffId === staff.id ||
+        (log.notes && staff.phone && log.notes.includes(staff.phone)) ||
+        (log.notes && staff.fullName && log.notes.toLowerCase().includes(staff.fullName.toLowerCase()));
+      return isMatch;
+    });
+  };
+
+  // Helper to compute live attendance status for today
+  const getTodayAttendanceStatus = (
+    staff: Staff, 
+    dayAsgs: ShiftAssignment[]
+  ) => {
+    const records = getStaffRecordsForDate(staff, todayStr);
+    const latestRecord = records.length > 0
+      ? [...records].sort((a, b) => new Date(b.checkIn).getTime() - new Date(a.checkIn).getTime())[0]
+      : null;
+
+    const formatTime = (iso?: string) => {
+      if (!iso) return '';
+      const d = new Date(iso);
+      return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+    };
+
+    const activeShifts = dayAsgs.filter(a => a.status !== 'OFF');
+    const isOffToday = dayAsgs.length > 0 && dayAsgs.every(a => a.status === 'OFF');
+    const hasScheduledShift = activeShifts.length > 0;
+    const earliestStartTime = hasScheduledShift 
+      ? activeShifts.reduce((min, a) => (a.startTime < min ? a.startTime : min), activeShifts[0].startTime)
+      : null;
+
+    const now = new Date();
+    const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+    // 1. Nếu có đơn nghỉ phép đã duyệt hôm nay
+    const hasApprovedLeave = leaveRequests && leaveRequests.some(req => {
+      if (req.status !== 'APPROVED') return false;
+      const isMatch = req.staffId === staff.id || (staff.phone && req.phone === staff.phone);
+      if (!isMatch) return false;
+      return todayStr >= req.startDate && todayStr <= req.endDate;
+    });
+
+    if (hasApprovedLeave) {
+      return {
+        type: 'ON_LEAVE' as const,
+        label: '🏖️ Nghỉ phép',
+        shortLabel: 'Nghỉ phép',
+        badgeClass: 'bg-pink-500/20 text-pink-300 border-pink-500/50 shadow-sm shadow-pink-500/20',
+        dotClass: 'bg-pink-400',
+        tooltip: `${staff.fullName} đang trong kỳ nghỉ phép đã duyệt (${todayStr})`
+      };
+    }
+
+    // 2. Đã chấm công và ĐANG LÀM VIỆC (chưa checkout)
+    if (latestRecord && !latestRecord.checkOut) {
+      const checkInTime = formatTime(latestRecord.checkIn);
+      const isBreak = latestRecord.isOnBreak || 
+        (latestRecord.notes && 
+          (latestRecord.notes.includes('[ĐANG NGHỈ TRƯA]') || latestRecord.notes.includes('[ĐANG NGHỈ ĂN TỐI]') || latestRecord.notes.includes('[ĐANG NGHỈ GIỮA CA]')) && 
+          !latestRecord.notes.includes('[KẾT THÚC NGHỈ TRƯA]') && !latestRecord.notes.includes('[KẾT THÚC NGHỈ ĂN TỐI]') && !latestRecord.notes.includes('[KẾT THÚC NGHỈ GIỮA CA]'));
+
+      if (isBreak) {
+        const currentHour = now.getHours();
+        const isEveningBreak = latestRecord.shiftType === 'CA_CHIEU' || (latestRecord.notes && latestRecord.notes.includes('ĂN TỐI')) || currentHour >= 16;
+        const breakLabel = isEveningBreak ? '🍱 Đang ăn tối' : '☕ Đang nghỉ trưa';
+        return {
+          type: 'ON_BREAK' as const,
+          label: breakLabel,
+          shortLabel: isEveningBreak ? 'Ăn tối' : 'Nghỉ trưa',
+          time: checkInTime,
+          badgeClass: 'bg-amber-500/25 text-amber-200 border-amber-500/60 shadow-sm shadow-amber-500/20',
+          dotClass: 'bg-amber-400',
+          tooltip: `${staff.fullName} đang tạm nghỉ ${isEveningBreak ? 'ăn tối' : 'ăn trưa'} (Vào ca lúc ${checkInTime})`
+        };
+      }
+
+      return {
+        type: 'WORKING' as const,
+        label: `${checkInTime} Đang làm`,
+        shortLabel: `${checkInTime} Đang làm`,
+        time: checkInTime,
+        badgeClass: 'bg-emerald-500/25 text-emerald-200 border-emerald-400 shadow-sm shadow-emerald-500/20 animate-pulse',
+        dotClass: 'bg-emerald-400 animate-ping',
+        tooltip: `${staff.fullName} đã check-in lúc ${checkInTime} và đang trực ca làm việc tại cửa hàng.`
+      };
+    }
+
+    // 3. Đã hoàn thành ca làm và ĐÃ CHECK-OUT
+    if (latestRecord && latestRecord.checkOut) {
+      const checkInTime = formatTime(latestRecord.checkIn);
+      const checkOutTime = formatTime(latestRecord.checkOut);
+      return {
+        type: 'SHIFT_ENDED' as const,
+        label: `🏁 Ra ca ${checkOutTime}`,
+        shortLabel: `Ra: ${checkOutTime}`,
+        time: checkOutTime,
+        checkInTime,
+        badgeClass: 'bg-blue-500/20 text-blue-200 border-blue-400/40',
+        dotClass: 'bg-blue-400',
+        tooltip: `${staff.fullName} đã hoàn thành ca làm hôm nay (Vào: ${checkInTime} → Ra: ${checkOutTime})`
+      };
+    }
+
+    // 4. CHƯA CHẤM CÔNG HÔM NAY
+    if (hasScheduledShift && earliestStartTime) {
+      if (currentHHMM >= earliestStartTime) {
+        return {
+          type: 'NOT_CHECKED_IN_LATE' as const,
+          label: '⚠️ Chưa check-in',
+          shortLabel: 'Chưa vào',
+          badgeClass: 'bg-rose-500/25 text-rose-200 border-rose-500/60 shadow-sm shadow-rose-500/20 animate-pulse',
+          dotClass: 'bg-rose-500 animate-ping',
+          tooltip: `Đã quá giờ bắt đầu ca (${earliestStartTime}) nhưng chưa ghi nhận dữ liệu chấm công GPS!`
+        };
+      } else {
+        return {
+          type: 'WAITING_SHIFT' as const,
+          label: '⏳ Chờ vào ca',
+          shortLabel: 'Chờ ca',
+          badgeClass: 'bg-slate-800/80 text-slate-400 border-slate-700/60',
+          dotClass: 'bg-slate-500',
+          tooltip: `Ca làm việc bắt đầu lúc ${earliestStartTime}. Chưa tới giờ vào ca.`
+        };
+      }
+    }
+
+    // 5. Nếu được xếp OFF
+    if (isOffToday) {
+      return {
+        type: 'OFF' as const,
+        label: 'OFF (Nghỉ)',
+        shortLabel: 'OFF',
+        badgeClass: 'bg-slate-900/50 text-slate-500 border-slate-800',
+        dotClass: 'bg-slate-600',
+        tooltip: 'Nhân viên nghỉ theo lịch phân ca'
+      };
+    }
+
+    return null;
+  };
+
+  // Helper render badge for today's live presence
+  const renderLiveAttendanceBadge = (staff: Staff, dayAsgs: ShiftAssignment[]) => {
+    const attStatus = getTodayAttendanceStatus(staff, dayAsgs);
+    if (!attStatus || attStatus.type === 'OFF') return null;
+
+    return (
+      <div
+        className={`mt-1 flex items-center justify-center gap-1 py-0.5 px-1 rounded-md border text-[8px] font-black leading-none truncate transition-all shadow-sm ${attStatus.badgeClass}`}
+        title={attStatus.tooltip}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${attStatus.dotClass}`} />
+        <span className="truncate">{attStatus.label}</span>
+      </div>
+    );
+  };
+
+  // Helper render audit badge for past days
+  const renderPastAuditBadge = (staff: Staff, dateStr: string, dayAsgs: ShiftAssignment[]) => {
+    if (dayAsgs.every(a => a.status === 'OFF')) return null;
+    const pastRecords = getStaffRecordsForDate(staff, dateStr);
+    if (pastRecords.length > 0) {
+      const firstCheckIn = pastRecords[0].checkIn ? new Date(pastRecords[0].checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+      return (
+        <div 
+          className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[7px] font-mono font-bold leading-none"
+          title={`Đã chấm công ngày ${dateStr} lúc ${firstCheckIn}`}
+        >
+          <span>✓</span> <span>{firstCheckIn}</span>
+        </div>
+      );
+    } else {
+      return (
+        <div 
+          className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[7px] font-bold leading-none"
+          title={`Có lịch phân ca nhưng không tìm thấy dữ liệu chấm công GPS ngày ${dateStr}`}
+        >
+          <span>⚠️ Chưa CC</span>
+        </div>
+      );
+    }
+  };
+
+  // Thống kê trạng thái chấm công trực tiếp hôm nay của các nhân sự tại shop
+  const todayLivePresence = useMemo(() => {
+    let workingCount = 0;
+    let breakCount = 0;
+    let endedCount = 0;
+    let missingCount = 0;
+    let waitingCount = 0;
+
+    activeStaffForMatrix.forEach(staff => {
+      const dayAsgs = assignments.filter(
+        a => isAssignmentForStaff(a, staff) && a.date === todayStr && a.workingBranchId === selectedBranchId
+      );
+      const status = getTodayAttendanceStatus(staff, dayAsgs);
+      if (!status) return;
+      if (status.type === 'WORKING') workingCount++;
+      else if (status.type === 'ON_BREAK') breakCount++;
+      else if (status.type === 'SHIFT_ENDED') endedCount++;
+      else if (status.type === 'NOT_CHECKED_IN_LATE') missingCount++;
+      else if (status.type === 'WAITING_SHIFT') waitingCount++;
+    });
+
+    return { workingCount, breakCount, endedCount, missingCount, waitingCount };
+  }, [activeStaffForMatrix, assignments, todayStr, selectedBranchId, attendanceLogs, leaveRequests]);
 
   // Helper to get Shift Card Color & Icon
   const getShiftBadgeStyle = (assignment: ShiftAssignment) => {
@@ -1313,6 +1534,44 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         </div>
       </div>
 
+      {/* Real-time Attendance Presence Banner for Today */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 bg-gradient-to-r from-slate-900 via-slate-900/90 to-cyan-950/40 border border-slate-800 rounded-2xl shadow-lg">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping inline-block" />
+          <span className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+            <span>Trực Tiếp Hôm Nay</span>
+            <span className="text-slate-400 font-mono text-[11px]">({todayStr})</span>:
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-xs">
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 font-bold" title="Nhân viên đã bấm chấm công vào ca và đang làm việc">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+            <span>Đang làm việc:</span>
+            <span className="font-mono font-black">{todayLivePresence.workingCount}</span>
+          </div>
+          {todayLivePresence.breakCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold" title="Nhân viên đang tạm nghỉ trưa / ăn tối luân phiên">
+              <span>☕ Nghỉ giữa ca:</span>
+              <span className="font-mono font-black">{todayLivePresence.breakCount}</span>
+            </div>
+          )}
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold" title="Đã quá giờ bắt đầu ca nhưng chưa có dữ liệu chấm công GPS">
+            <span>⚠️ Chưa check-in:</span>
+            <span className="font-mono font-black">{todayLivePresence.missingCount}</span>
+          </div>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-blue-500/15 border border-blue-400/30 text-blue-300 font-bold" title="Đã hoàn thành ca và check-out ra về">
+            <span>🏁 Đã tan ca:</span>
+            <span className="font-mono font-black">{todayLivePresence.endedCount}</span>
+          </div>
+          {todayLivePresence.waitingCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-slate-800/80 border border-slate-700/60 text-slate-400 font-medium" title="Chưa tới giờ vào ca theo lịch">
+              <span>⏳ Chờ vào ca:</span>
+              <span className="font-mono font-bold">{todayLivePresence.waitingCount}</span>
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Main Bi-weekly Matrix Table */}
       <div className="glass-card rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-2xl">
         <div className="overflow-x-auto">
@@ -1337,14 +1596,17 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                   return (
                     <th
                       key={dateStr}
-                      className={`py-2 px-1 text-center min-w-[64px] border-r border-slate-800/60 transition-colors relative ${
+                      className={`py-2 px-1 text-center min-w-[68px] border-r border-slate-800/60 transition-colors relative ${
                         hasOpenShiftOnDay ? 'bg-rose-950/50 border-rose-500/60' :
                         hasCrossBranchOnDay ? 'bg-amber-950/40 border-amber-500/50' :
-                        isToday ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300' : ''
+                        isToday ? 'bg-cyan-500/20 border-cyan-400/80 text-cyan-300 ring-1 ring-cyan-500/40' : ''
                       }`}
                     >
                       <div className="flex items-center justify-center gap-1 text-[10px] uppercase font-mono">
                         <span>{dayOfWeek}</span>
+                        {isToday && (
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping inline-block" title="Ngày hiện tại (Live Presence)" />
+                        )}
                         {hasOpenShiftOnDay && (
                           <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" title="Có ca trống cần gánh!" />
                         )}
@@ -1355,10 +1617,15 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                       <div className={`text-sm font-extrabold ${
                         hasOpenShiftOnDay ? 'text-rose-400 animate-pulse font-black' :
                         hasCrossBranchOnDay ? 'text-amber-400 font-black' :
-                        isToday ? 'text-cyan-400' : 'text-slate-200'
+                        isToday ? 'text-cyan-300 font-black' : 'text-slate-200'
                       }`}>
                         {dayNum}
                       </div>
+                      {isToday && (
+                        <div className="text-[7.5px] font-black uppercase text-cyan-400 tracking-wider font-mono">
+                          HÔM NAY
+                        </div>
+                      )}
                     </th>
                   );
                 })}
@@ -1444,6 +1711,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
                     {/* 15 Days Assignment Cells */}
                     {cycleDates.map(dateStr => {
+                      const { isToday } = formatDateHeader(dateStr);
                       const dayAsgs = assignments.filter(
                         a => isAssignmentForStaff(a, staff) &&
                              a.date === dateStr &&
@@ -1482,6 +1750,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                                 </div>
                                 <div className="text-[7.5px] font-mono text-indigo-300 mt-0.5 font-bold">17:00-22:00</div>
                               </div>
+                              {/* Trạng thái chấm công trực tiếp hôm nay */}
+                              {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
+                              {/* Đối soát chấm công ngày quá khứ */}
+                              {!isToday && dateStr < todayStr && renderPastAuditBadge(staff, dateStr, dayAsgs)}
                             </div>
                           ) : isMultipleShifts ? (
                             /* TRƯỜNG HỢP 2: 2 CA ĐỘC LẬP TRONG NGÀY (Hiển thị 2 thẻ lồng nhau) */
@@ -1504,6 +1776,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                                   </div>
                                 );
                               })}
+                              {/* Trạng thái chấm công trực tiếp hôm nay */}
+                              {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
+                              {/* Đối soát chấm công ngày quá khứ */}
+                              {!isToday && dateStr < todayStr && renderPastAuditBadge(staff, dateStr, dayAsgs)}
                             </div>
                           ) : dayAsgs.length === 1 ? (
                             /* TRƯỜNG HỢP 3: 1 CA ĐƠN BÌNH THƯỜNG */
@@ -1513,11 +1789,15 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                               return (
                                 <div className={`p-1.5 rounded-xl border text-[10px] font-medium leading-tight select-none shadow-sm ${badgeStyle}`}>
                                   {asg.status === 'OFF' ? (
-                                    <span className="text-[10px] font-bold text-slate-500">OFF</span>
+                                    <div>
+                                      <span className="text-[10px] font-bold text-slate-500">OFF</span>
+                                      {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
+                                    </div>
                                   ) : asg.status === 'OPEN_SHIFT' ? (
                                     <div>
                                       <div className="text-[9px] font-black text-rose-300">CẦN GÁNH</div>
                                       <div className="text-[8px] font-bold text-rose-400/90">+50k</div>
+                                      {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
                                     </div>
                                   ) : (
                                     <div>
@@ -1527,6 +1807,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                                       <div className="text-[8px] opacity-75 font-mono">
                                         {asg.startTime}-{asg.endTime}
                                       </div>
+                                      {/* Trạng thái chấm công trực tiếp hôm nay */}
+                                      {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
+                                      {/* Đối soát chấm công ngày quá khứ */}
+                                      {!isToday && dateStr < todayStr && renderPastAuditBadge(staff, dateStr, dayAsgs)}
                                     </div>
                                   )}
                                 </div>
@@ -1534,9 +1818,33 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                             })()
                           ) : (
                             /* TRƯỜNG HỢP 4: Ô TRỐNG */
-                            <div className="w-full h-10 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 text-slate-500 hover:text-cyan-400">
-                              <Plus className="w-3.5 h-3.5" />
-                            </div>
+                            isToday ? (
+                              (() => {
+                                const attStatus = getTodayAttendanceStatus(staff, []);
+                                if (attStatus && attStatus.type !== 'OFF') {
+                                  return (
+                                    <div className={`p-1.5 rounded-xl border text-[9px] font-bold text-center shadow-md ${attStatus.badgeClass}`} title={attStatus.tooltip}>
+                                      <div className="flex items-center justify-center gap-1">
+                                        <span className={`w-1.5 h-1.5 rounded-full ${attStatus.dotClass}`} />
+                                        <span>{attStatus.label}</span>
+                                      </div>
+                                      <div className="text-[7px] text-amber-300/90 font-mono mt-0.5">
+                                        (Ngoài lịch phân ca)
+                                      </div>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div className="w-full h-10 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 text-slate-500 hover:text-cyan-400">
+                                    <Plus className="w-3.5 h-3.5" />
+                                  </div>
+                                );
+                              })()
+                            ) : (
+                              <div className="w-full h-10 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 text-slate-500 hover:text-cyan-400">
+                                <Plus className="w-3.5 h-3.5" />
+                              </div>
+                            )
                           )}
                         </td>
                       );
@@ -1593,7 +1901,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       </div>
 
       {/* Legend & Instructions */}
-      <div className="flex flex-wrap items-center justify-between gap-3 text-xs text-slate-400 bg-slate-950/50 p-3.5 rounded-2xl border border-slate-800">
+      <div className="flex flex-col gap-3 text-xs text-slate-400 bg-slate-950/50 p-3.5 rounded-2xl border border-slate-800">
         <div className="flex flex-wrap items-center gap-4">
           <span className="font-bold text-slate-300">Chú thích ca:</span>
           <div className="flex items-center gap-1.5">
@@ -1618,13 +1926,41 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           </div>
           <div className="flex items-center gap-1.5">
             <span className="w-3 h-3 rounded bg-rose-500/20 border border-rose-500 text-rose-300 font-black animate-pulse"></span>
-            <span className="text-rose-300 font-bold">Ca Trống (Nghỉ Ốm - Cần Gánh)</span>
+            <span className="text-rose-300 font-bold">Ca Trống (Cần Gánh)</span>
           </div>
         </div>
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 text-slate-500 text-[11px]">
-          <div>💡 Click vào ô bất kỳ để đổi ca, thêm ca 2 hoặc chấm ngày OFF</div>
-          <div className="hidden sm:inline text-slate-700">•</div>
-          <div className="text-cyan-400/90 font-medium">📋 Giờ thực tế được đối soát tại tab 1.2 Nhật Ký Chấm Công GPS</div>
+
+        {/* Live Attendance Legend */}
+        <div className="flex flex-wrap items-center gap-3 pt-2.5 border-t border-slate-800/80">
+          <span className="font-bold text-cyan-300 flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+            <span>Ký hiệu Chấm Công Hôm Nay:</span>
+          </span>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-[10px]">
+            <span>🟢 07:18 Đang làm</span>
+            <span className="text-slate-400 font-normal">(Đã check-in GPS)</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-amber-500/20 border border-amber-500/40 text-amber-300 font-bold text-[10px]">
+            <span>☕ Nghỉ trưa / 🍱 Ăn tối</span>
+            <span className="text-slate-400 font-normal">(Nghỉ luân phiên)</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-[10px]">
+            <span>⚠️ Chưa check-in</span>
+            <span className="text-slate-400 font-normal">(Đã quá giờ vào ca)</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-500/20 border border-blue-400/40 text-blue-300 font-bold text-[10px]">
+            <span>🏁 Ra ca 15:35</span>
+            <span className="text-slate-400 font-normal">(Đã check-out)</span>
+          </div>
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-800 border border-slate-700 text-slate-400 font-medium text-[10px]">
+            <span>⏳ Chờ vào ca</span>
+            <span className="text-slate-500 font-normal">(Chưa tới giờ)</span>
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-slate-500 text-[11px] pt-1 border-t border-slate-800/40">
+          <div>💡 Click vào ô bất kỳ để xem chi tiết chấm công GPS, đổi ca, thêm ca 2 hoặc chấm ngày OFF</div>
+          <div className="text-cyan-400/90 font-medium">📋 Dữ liệu chấm công GPS đồng bộ tức thời theo thời gian thực</div>
         </div>
       </div>
 
@@ -1649,6 +1985,53 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {/* THÔNG TIN CHẤM CÔNG GPS THỰC TẾ (HÔM NAY / QUÁ KHỨ) */}
+            {selectedCellStaff && (() => {
+              const staffRecords = getStaffRecordsForDate(selectedCellStaff, selectedCellAssignment.date);
+              const isTodayCell = selectedCellAssignment.date === todayStr;
+              
+              if (staffRecords.length > 0) {
+                const latest = staffRecords[0];
+                const inTime = latest.checkIn ? new Date(latest.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---';
+                const outTime = latest.checkOut ? new Date(latest.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (isTodayCell ? 'Đang trong ca' : 'Chưa check-out');
+                
+                return (
+                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-emerald-500/40 space-y-2 shadow-lg">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                        <span>DỮ LIỆU CHẤM CÔNG GPS THỰC TẾ</span>
+                      </span>
+                      <span className="text-[10px] font-mono text-slate-400">{selectedCellAssignment.date}</span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                        <div className="text-[10px] text-slate-400">Giờ vào (Check-in):</div>
+                        <div className="text-emerald-300 font-extrabold font-mono mt-0.5">{inTime}</div>
+                      </div>
+                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
+                        <div className="text-[10px] text-slate-400">Giờ ra (Check-out):</div>
+                        <div className="text-cyan-300 font-extrabold font-mono mt-0.5">{outTime}</div>
+                      </div>
+                    </div>
+                    {latest.notes && (
+                      <div className="text-[10px] text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800/60 font-mono truncate">
+                        📝 {latest.notes}
+                      </div>
+                    )}
+                  </div>
+                );
+              } else if (isTodayCell && selectedCellAssignment.status !== 'OFF') {
+                return (
+                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
+                    <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                    <span>Chưa ghi nhận lượt chấm công GPS vào ca hôm nay!</span>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             {/* NẾU LÀ NGÀY NGHỈ LUÂN PHIÊN (OFF) */}
             {selectedCellAssignment.status === 'OFF' ? (

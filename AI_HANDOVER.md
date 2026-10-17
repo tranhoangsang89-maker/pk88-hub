@@ -41,6 +41,19 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Đổi dòng chân bảng:** Dòng tổng chuyển thành `TỔNG GIỜ KẾ HOẠCH SHOP / NGÀY`.
    - **Chỉ dẫn phân biệt rõ ràng:** Bổ sung ghi chú hướng dẫn: Ma trận 1.1 dùng để lập kế hoạch & phân ca tương lai; Giờ công làm việc thực tế được ghi nhận độc lập qua Chấm công GPS (tab 1.2 & 1.3) để đối soát lương cuối kỳ.
 
+5. **Tích Hợp Dữ Liệu Chấm Công Thực Tế Lên Bảng Ma Trận (Real-Time Attendance Matrix Presence):**
+   - **Thanh Banner Trực Tiếp Hôm Nay (Live Presence Banner):** Đặt ngay phía trên bảng ma trận, đếm số lượng nhân sự trực tiếp: `🟢 Đang làm việc: X`, `☕ Nghỉ giữa ca: Y`, `⚠️ Chưa check-in: Z`, `🏁 Đã tan ca: W`, `⏳ Chờ vào ca: V`.
+   - **Cột Hôm Nay Nổi Bật (Header Highlight):** Cột ngày hiện tại có nhãn neon `HÔM NAY` kèm đèn nhấp nháy `🟢 LIVE`, nổi bật giữa kỳ 15 ngày.
+   - **Hiển thị trực quan trạng thái chấm công của từng nhân viên:**
+     + **Đang làm việc tại shop:** Huy hiệu xanh lá phát sáng `🟢 07:18 Đang làm` (hiển thị chính xác giờ bấm check-in GPS).
+     + **Tạm nghỉ luân phiên:** Huy hiệu màu hổ phách `☕ Nghỉ trưa` hoặc `🍱 Đang ăn tối`.
+     + **Đã hoàn thành ca:** Huy hiệu xanh dương `🏁 Ra ca 15:35` (hiển thị giờ check-out).
+     + **Chưa chấm công (Cảnh báo trễ/quên):** Nếu đã quá giờ bắt đầu ca nhưng chưa có log GPS -> Hiển thị cảnh báo đỏ nhấp nháy `⚠️ Chưa check-in`.
+     + **Chưa tới giờ vào ca:** Hiển thị `⏳ Chờ vào ca`.
+     + **Đi làm tăng ca ngày nghỉ (OFF):** Nếu nhân viên check-in vào ngày không có ca hoặc ngày OFF, ma trận tự động hiển thị `🟢 07:18 Đang làm (Ngoài lịch phân ca)`.
+   - **Đối soát ngày quá khứ:** Các ngày trước đó trong kỳ tự động hiển thị `✓ 07:18` (đã chấm công) hoặc `⚠️ Chưa CC` (vắng/chưa có log GPS).
+   - **Cửa sổ chi tiết (Cell Modal):** Khi bấm vào ô bất kỳ, bảng ma trận hiển thị hộp thông tin GPS thực tế: Giờ vào ca, Giờ ra ca, Trạng thái trễ/đúng giờ, Ghi chú vị trí.
+
 ### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).
