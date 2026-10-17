@@ -28,6 +28,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Xóa bỏ hoàn toàn thanh `RoleSwitcher`:** Triệt tiêu hoàn toàn dải nút test vai trò chiếm 30% diện tích màn hình trên mobile.
    - **Nút Trợ Lý AI Chị 8 & Bé 8 tinh tế:** Chuyển từ nút viên thuốc dài sang **icon tròn nhỏ gọn tinh tế** (`Bot` + `Sparkles` + Online dot), nâng vị trí lên `bottom-28 right-3.5` trên mobile để nằm hoàn toàn bên trên thanh menu đáy, tuyệt đối không bao giờ đè lên bất kỳ tab nào của bất kỳ vai trò nào.
    - **Bảo toàn chuẩn Menu đáy theo vai trò:** Nhân viên, Cửa hàng trưởng, Marketing, Kế toán (3 - 4 tabs) hiển thị 1 hàng ngang chuẩn, to rõ, dễ bấm; Admin & Founder giữ nguyên cấu trúc đa tab.
+5. **Đồng Bộ Hai Chiều Mật Khẩu & Thông Tin Nhân Sự Lên Supabase Cloud (`staffAuthService.ts`):**
+   - **Khắc phục triệt để lỗi mất dữ liệu khi đăng nhập lại:**
+     + Gỡ bỏ hoàn toàn các đoạn code ép cứng (hardcode) đè lại họ tên/role/chi nhánh của Admin & Founder trong `App.tsx`.
+     + Tạo module [`staffAuthService.ts`](file:///d:/PK88%20AI%20AUTOMATION/src/lib/staffAuthService.ts) lưu trữ đồng bộ 2 chiều bản đồ mật khẩu cá nhân và thông tin hồ sơ mở rộng (ngày sinh, ngày vào làm, email) lên Supabase Cloud (`job_applications` system metadata record `00000000-0000-0000-0000-000000000002`).
+     + Bất kỳ ai đổi mật khẩu hay cập nhật hồ sơ cá nhân đều được lưu vĩnh viễn trên Supabase Cloud, đăng nhập lại từ bất kỳ máy nào, điện thoại hay tab ẩn danh đều nhận diện chính xác 100%.
 
 ### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (16/10)
 1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**

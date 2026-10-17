@@ -3,6 +3,8 @@ import { Staff, UserRole } from '../types';
 import { MOCK_STAFF } from '../lib/mockData';
 import { Phone, KeyRound, ShieldCheck, ArrowRight, UserCheck, AlertCircle, HelpCircle, MessageSquare, RotateCcw, CheckCircle2 } from 'lucide-react';
 
+import { getStaffPasswordSync, fetchStaffAuthMetadataFromCloud } from '../lib/staffAuthService';
+
 interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
   onGuestLookup?: () => void;
@@ -17,20 +19,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
   const [showForgotModal, setShowForgotModal] = useState<boolean>(false);
   const [resetSuccessMsg, setResetSuccessMsg] = useState<string | null>(null);
 
-  // Helper lấy mật khẩu của nhân viên (ưu tiên mật khẩu cá nhân đã đổi, nếu chưa đổi thì mặc định 123456)
+  // Tự động tải mật khẩu và thông tin hồ sơ mới nhất từ Supabase Cloud
+  React.useEffect(() => {
+    fetchStaffAuthMetadataFromCloud().catch(() => {});
+  }, []);
+
   const getStaffPassword = (staffPhone: string): string => {
-    try {
-      const stored = localStorage.getItem('pk88_passwords');
-      if (stored) {
-        const passMap = JSON.parse(stored);
-        if (passMap && passMap[staffPhone.trim()]) {
-          return passMap[staffPhone.trim()];
-        }
-      }
-    } catch (e) {
-      console.warn('Lỗi đọc mật khẩu:', e);
-    }
-    return '123456';
+    return getStaffPasswordSync(staffPhone);
   };
 
   const handleLogin = (e: React.FormEvent) => {

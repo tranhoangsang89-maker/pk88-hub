@@ -21,6 +21,7 @@ import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
 import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
+import { fetchStaffAuthMetadataFromCloud } from './lib/staffAuthService';
 import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
 import { MarketingPost, MarketingPlatform } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
@@ -31,20 +32,7 @@ export function App() {
     try {
       const saved = localStorage.getItem('pk88_current_user');
       if (saved) {
-        const u = JSON.parse(saved);
-        if (u.phone === '0888003205' || u.code === 'PK88-ADMIN' || u.fullName?.includes('Trần Hoàng Sang')) {
-          u.fullName = 'Trần Hoàng Sang';
-          u.role = 'admin';
-          u.branchId = '11111111-2222-3333-4444-555555555555';
-          localStorage.setItem('pk88_current_user', JSON.stringify(u));
-        } else if (u.phone === '0777888688' || u.role === 'founder' || u.fullName?.includes('Ngô Hồng Thao')) {
-          u.branchId = '11111111-2222-3333-4444-555555555555';
-          localStorage.setItem('pk88_current_user', JSON.stringify(u));
-        } else if (u.phone === '0394336726' || u.role === 'hr' || u.fullName?.includes('Phan Hoàng Khánh')) {
-          u.branchId = '11111111-2222-3333-4444-555555555555';
-          localStorage.setItem('pk88_current_user', JSON.stringify(u));
-        }
-        return u;
+        return JSON.parse(saved);
       }
     } catch (e) {
       console.warn('Lỗi đọc user từ localStorage:', e);
@@ -397,6 +385,10 @@ export function App() {
 
   const fetchStaff = async () => {
     try {
+      // 1. Tải metadata mở rộng (ngày sinh, email, mật khẩu) từ Cloud về trước
+      const meta = await fetchStaffAuthMetadataFromCloud();
+      const cloudProfiles = meta.profiles || {};
+
       const { data, error } = await supabase
         .from('staff')
         .select('*')
@@ -410,14 +402,10 @@ export function App() {
 
         const formatted: Staff[] = data.map((item: any) => {
           const match = MOCK_STAFF.find(m => m.phone.trim() === item.phone.trim()) || MOCK_STAFF.find(m => m.id === item.id);
-          const override = localOverrides[item.id] || localOverrides[item.phone];
+          const override = cloudProfiles[item.phone] || cloudProfiles[item.id] || localOverrides[item.id] || localOverrides[item.phone];
 
           let fName = item.full_name || override?.fullName || match?.fullName;
           let role: UserRole = (item.role || override?.role || match?.role || 'sales') as UserRole;
-          if (item.phone === '0888003205' || item.code === 'PK88-ADMIN' || fName?.includes('Trần Hoàng Sang')) {
-            fName = 'Trần Hoàng Sang';
-            role = 'admin';
-          }
 
           return {
             id: item.id,
@@ -441,21 +429,17 @@ export function App() {
   };
 
   const handleUpdateStaff = (updatedStaff: Staff) => {
-    const cleanStaff: Staff = (updatedStaff.phone === '0888003205' || updatedStaff.code === 'PK88-ADMIN' || updatedStaff.fullName?.includes('Trần Hoàng Sang'))
-      ? { ...updatedStaff, fullName: 'Trần Hoàng Sang', role: 'admin' }
-      : updatedStaff;
-    setStaffList(prev => prev.map(s => s.id === cleanStaff.id || s.phone === cleanStaff.phone ? cleanStaff : s));
-  };
-
-  useEffect(() => {
-    if (currentUser && (currentUser.phone === '0888003205' || currentUser.code === 'PK88-ADMIN' || currentUser.fullName?.includes('Trần Hoàng Sang'))) {
-      if (currentUser.fullName !== 'Trần Hoàng Sang' || currentUser.role !== 'admin') {
-        const updated: Staff = { ...currentUser, fullName: 'Trần Hoàng Sang', role: 'admin' };
-        setCurrentUser(updated);
-        localStorage.setItem('pk88_current_user', JSON.stringify(updated));
+    setStaffList(prev => prev.map(s => s.id === updatedStaff.id || s.phone === updatedStaff.phone ? updatedStaff : s));
+    // Nếu đang chỉnh sửa chính user hiện tại thì cập nhật luôn currentUser
+    setCurrentUser(prev => {
+      if (prev && (prev.id === updatedStaff.id || prev.phone === updatedStaff.phone)) {
+        const merged = { ...prev, ...updatedStaff };
+        localStorage.setItem('pk88_current_user', JSON.stringify(merged));
+        return merged;
       }
-    }
-  }, [currentUser]);
+      return prev;
+    });
+  };
 
   useEffect(() => {
     fetchBranches();

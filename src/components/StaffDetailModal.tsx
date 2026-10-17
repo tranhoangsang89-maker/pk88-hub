@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { compressAvatarImage, CompressedImageResult } from '../lib/imageCompression';
+import { saveStaffPasswordToCloud, saveStaffProfileToCloud } from '../lib/staffAuthService';
 
 interface StaffDetailModalProps {
   staff: Staff | null;
@@ -275,7 +276,7 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [passwordNotice, setPasswordNotice] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Helper đổi mật khẩu cá nhân cho nhân sự
-  const handleChangePassword = (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordNotice(null);
 
@@ -290,11 +291,10 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
     }
 
     try {
-      const stored = localStorage.getItem('pk88_passwords');
-      const passMap = stored ? JSON.parse(stored) : {};
-      passMap[staff.phone.trim()] = newPassword.trim();
-      localStorage.setItem('pk88_passwords', JSON.stringify(passMap));
-      setPasswordNotice({ type: 'success', text: `Đã đổi mật khẩu thành công cho ${staff.fullName}!` });
+      // Lưu đồng bộ lên Supabase Cloud và LocalStorage
+      await saveStaffPasswordToCloud(staff.phone.trim(), newPassword.trim());
+
+      setPasswordNotice({ type: 'success', text: `Đã đổi mật khẩu thành công cho ${staff.fullName} (Đã đồng bộ Cloud)!` });
       setNewPassword('');
       setConfirmPassword('');
       setTimeout(() => {
@@ -571,15 +571,16 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
         avatarUrl: avatarPreview || staff.avatarUrl
       };
 
-      // 3. Save to localStorage overrides so birthDate, joinDate, email persist across reloads
-      const overridesStr = localStorage.getItem('pk88_staff_overrides');
-      const overrides = overridesStr ? JSON.parse(overridesStr) : {};
-      overrides[staff.id] = updatedStaff;
-      overrides[updatedStaff.phone] = updatedStaff;
-      if (staff.phone !== updatedStaff.phone) {
-        delete overrides[staff.phone];
-      }
-      localStorage.setItem('pk88_staff_overrides', JSON.stringify(overrides));
+      // 3. Save to Supabase Cloud & localStorage overrides so birthDate, joinDate, email persist across devices & reloads
+      await saveStaffProfileToCloud(updatedStaff.phone, {
+        birthDate: updatedStaff.birthDate,
+        joinDate: updatedStaff.joinDate,
+        email: updatedStaff.email,
+        fullName: updatedStaff.fullName,
+        branchId: updatedStaff.branchId,
+        role: updatedStaff.role,
+        id: updatedStaff.id
+      });
 
       // 4. Update parent states
       if (onUpdateStaff) {
