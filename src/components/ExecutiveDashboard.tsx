@@ -289,93 +289,93 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* 4 Overview KPI Cards (100% Real-time Data) */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* 4 Overview KPI Cards (100% Real-time Data): 2 columns on mobile, 4 columns on desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
         
         {/* Card 1: Doanh Thu Dịch Vụ */}
-        <div className="glass-card rounded-2xl p-4 border border-slate-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Doanh Thu Dịch Vụ & Sửa Chữa</span>
-            <span className="w-8 h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-              <DollarSign className="w-4 h-4" />
+        <div className="glass-card rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate">Doanh Thu Dịch Vụ</span>
+            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-emerald-500/10 text-emerald-400 flex items-center justify-center flex-shrink-0">
+              <DollarSign className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
+          <div className="text-base sm:text-xl font-extrabold text-slate-100 mt-1.5 font-mono truncate">
             {realRevenue.toLocaleString('vi-VN')} đ
           </div>
-          <div className="text-xs text-slate-400 mt-2 flex items-center gap-1">
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-1 truncate">
             {realRevenue > 0 ? (
               <span className="text-emerald-400 font-medium">✓ Đã đối soát {completedTickets.length} đơn</span>
             ) : (
-              <span className="text-slate-500">Chưa có doanh thu phát sinh (Chờ POS bán lẻ)</span>
+              <span className="text-slate-500">Chờ POS bán lẻ</span>
             )}
           </div>
         </div>
 
         {/* Card 2: Nhân Sự Điểm Danh Hôm Nay */}
-        <div className="glass-card rounded-2xl p-4 border border-slate-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Nhân Sự Đang Trực (GPS)</span>
-            <span className="w-8 h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center">
-              <Users className="w-4 h-4" />
+        <div className="glass-card rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate">Nhân Sự Trực (GPS)</span>
+            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-sky-500/10 text-sky-400 flex items-center justify-center flex-shrink-0">
+              <Users className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
-            {activeOnShift.length} <span className="text-sm font-normal text-slate-400">/ {todayLogs.length} ca</span>
+          <div className="text-base sm:text-xl font-extrabold text-slate-100 mt-1.5 font-mono truncate">
+            {activeOnShift.length} <span className="text-xs sm:text-sm font-normal text-slate-400">/ {todayLogs.length} ca</span>
           </div>
-          <div className="text-xs text-slate-400 mt-2">
+          <div className="text-[10px] sm:text-xs text-slate-400 mt-1 truncate">
             {latesCount > 0 ? (
-              <span className="text-amber-400">⚠️ {latesCount} ca trễ giờ</span>
+              <span className="text-amber-400">⚠️ {latesCount} ca trễ</span>
             ) : (
-              <span className="text-emerald-400">✓ 100% đúng giờ hôm nay</span>
+              <span className="text-emerald-400">✓ 100% đúng giờ</span>
             )}
             {outsideGeofenceCount > 0 && (
-              <span className="text-rose-400 ml-1.5">• {outsideGeofenceCount} lệch GPS</span>
+              <span className="text-rose-400 ml-1">• {outsideGeofenceCount} lệch GPS</span>
             )}
           </div>
         </div>
 
         {/* Card 3: Chi Nhánh Mở Cửa */}
-        <div className="glass-card rounded-2xl p-4 border border-slate-800">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-slate-400">Chi Nhánh Hoạt Động</span>
-            <span className="w-8 h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center">
-              <CheckCircle className="w-4 h-4" />
+        <div className="glass-card rounded-2xl p-3 sm:p-4 border border-slate-800 flex flex-col justify-between">
+          <div className="flex items-center justify-between gap-1">
+            <span className="text-[11px] sm:text-xs font-semibold text-slate-400 truncate">Chi Nhánh Mở Cửa</span>
+            <span className="w-7 h-7 sm:w-8 sm:h-8 rounded-xl bg-purple-500/10 text-purple-400 flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
             </span>
           </div>
-          <div className="text-xl font-extrabold text-slate-100 mt-2 font-mono">
-            {activeBranches.length} / {branches.length} shop
+          <div className="text-base sm:text-xl font-extrabold text-slate-100 mt-1.5 font-mono truncate">
+            {activeBranches.length} / {branches.length} <span className="text-xs sm:text-sm font-normal text-slate-400">shop</span>
           </div>
-          {inactiveBranches.length > 0 ? (
-            <div className="text-xs text-amber-400 font-bold mt-2 flex items-center gap-1">
-              <span>⚠️ {inactiveBranches.length} shop tạm đóng ({closedBranchNames})</span>
-            </div>
-          ) : (
-            <div className="text-xs text-emerald-400 mt-2">🟢 100% Chi nhánh mở cửa & Geofenced</div>
-          )}
+          <div className="text-[10px] sm:text-xs mt-1 truncate">
+            {inactiveBranches.length > 0 ? (
+              <span className="text-amber-400 font-medium">⚠️ {inactiveBranches.length} đóng ({closedBranchNames})</span>
+            ) : (
+              <span className="text-emerald-400">🟢 100% Mở cửa</span>
+            )}
+          </div>
         </div>
 
         {/* Card 4: Cảnh Báo Đỏ (Real-time Red Flags) */}
-        <div className={`glass-card rounded-2xl p-4 border transition-all ${
+        <div className={`glass-card rounded-2xl p-3 sm:p-4 border transition-all flex flex-col justify-between ${
           realAlerts.length > 0 
             ? 'border-rose-500/40 bg-rose-950/20 shadow-lg shadow-rose-950/30' 
             : 'border-slate-800 bg-slate-900/40'
         }`}>
-          <div className="flex items-center justify-between">
-            <span className={`text-xs font-semibold ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
-              Cảnh Báo Đỏ (Red Flags)
+          <div className="flex items-center justify-between gap-1">
+            <span className={`text-[11px] sm:text-xs font-semibold truncate ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
+              Cảnh Báo Đỏ
             </span>
-            <span className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+            <span className={`w-7 h-7 sm:w-8 sm:h-8 rounded-xl flex items-center justify-center flex-shrink-0 ${
               realAlerts.length > 0 ? 'bg-rose-500/20 text-rose-400 animate-pulse' : 'bg-emerald-500/10 text-emerald-400'
             }`}>
-              {realAlerts.length > 0 ? <AlertTriangle className="w-4 h-4" /> : <ShieldCheck className="w-4 h-4" />}
+              {realAlerts.length > 0 ? <AlertTriangle className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <ShieldCheck className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
             </span>
           </div>
-          <div className={`text-xl font-extrabold mt-2 font-mono ${realAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+          <div className={`text-base sm:text-xl font-extrabold mt-1.5 font-mono truncate ${realAlerts.length > 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
             {realAlerts.length > 0 ? `${realAlerts.length} Cảnh Báo` : '0 Cảnh Báo'}
           </div>
-          <div className={`text-xs mt-2 ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
-            {realAlerts.length > 0 ? 'Tự động gửi Telegram Founder' : 'Toàn chuỗi vận hành an toàn'}
+          <div className={`text-[10px] sm:text-xs mt-1 truncate ${realAlerts.length > 0 ? 'text-rose-300' : 'text-slate-400'}`}>
+            {realAlerts.length > 0 ? 'Gửi Telegram Founder' : 'Toàn chuỗi an toàn'}
           </div>
         </div>
       </div>
