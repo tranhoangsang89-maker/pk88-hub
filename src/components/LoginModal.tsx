@@ -61,15 +61,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     const enteredPwd = password.trim();
     const expectedPassword = getStaffPassword(foundStaff.phone);
 
-    // Kiểm tra mật khẩu (hỗ trợ cả mật khẩu mới đã đổi VÀ mật khẩu mặc định admin88 / 888888 cho tài khoản quản trị)
-    const isMasterAdmin = foundStaff.phone === '0888003205' || foundStaff.role === 'admin';
-    const isMasterFounder = foundStaff.phone === '0777888688' || foundStaff.role === 'founder';
-
-    const isMatch = enteredPwd === expectedPassword || 
-      (isMasterAdmin && (enteredPwd === 'admin88' || enteredPwd === '123456')) ||
-      (isMasterFounder && (enteredPwd === '888888' || enteredPwd === '123456'));
-
-    if (!isMatch) {
+    // Xác thực nghiêm ngặt: Chỉ chấp nhận mật khẩu hiện hành (mật khẩu mới nếu đã đổi, hoặc mặc định ban đầu nếu chưa đổi)
+    if (enteredPwd !== expectedPassword) {
       setErrorMsg('Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       return;
     }
