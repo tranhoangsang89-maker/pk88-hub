@@ -197,6 +197,7 @@ export function saveShiftDefinition(def: ShiftDefinition): ShiftDefinition[] {
     updated = [def, ...current];
   }
   localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(updated));
+  syncShiftDefinitionsToCloud(updated);
   return updated;
 }
 
@@ -216,6 +217,7 @@ export function deleteShiftDefinition(defId: string): ShiftDefinition[] {
     }
   } catch (e) {}
 
+  syncShiftDefinitionsToCloud(updated);
   return updated;
 }
 
@@ -225,6 +227,7 @@ export function resetDefaultShiftDefinitions(): ShiftDefinition[] {
     localStorage.removeItem('pk88_deleted_shift_def_ids');
   } catch (e) {}
   localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(DEFAULT_COMPANY_SHIFTS));
+  syncShiftDefinitionsToCloud(DEFAULT_COMPANY_SHIFTS);
   return DEFAULT_COMPANY_SHIFTS;
 }
 
@@ -302,6 +305,69 @@ export async function fetchShiftAssignmentsFromCloud(): Promise<ShiftAssignment[
     return null;
   } catch (err) {
     console.warn('Lỗi đọc lịch làm việc từ Supabase Cloud:', err);
+    return null;
+  }
+}
+
+// Sync shift definitions to Supabase Cloud DB
+export async function syncShiftDefinitionsToCloud(defs: ShiftDefinition[]): Promise<boolean> {
+  try {
+    const rawDeleted = localStorage.getItem('pk88_deleted_shift_def_ids') || '[]';
+    const payload = {
+      defs,
+      deletedIds: JSON.parse(rawDeleted)
+    };
+    const { error } = await supabase.from('job_applications').upsert({
+      id: SHIFT_DEFS_CLOUD_RECORD_ID,
+      branch_id: 'SYSTEM_CONFIG',
+      full_name: 'PK88_SHIFT_DEFINITIONS_CLOUD',
+      phone: '0988888888',
+      role_applied: 'CONFIG',
+      status: 'pending',
+      notes: JSON.stringify(payload)
+    });
+    if (error) {
+      console.warn('Lỗi lưu danh sách khung ca lên Supabase Cloud:', error);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Exception đồng bộ khung ca lên Supabase:', err);
+    return false;
+  }
+}
+
+// Fetch shift definitions from Supabase Cloud DB
+export async function fetchShiftDefinitionsFromCloud(): Promise<ShiftDefinition[] | null> {
+  try {
+    const { data, error } = await supabase
+      .from('job_applications')
+      .select('notes')
+      .eq('id', SHIFT_DEFS_CLOUD_RECORD_ID)
+      .maybeSingle();
+
+    if (error || !data || !data.notes) {
+      return null;
+    }
+
+    const parsed = JSON.parse(data.notes);
+    let cloudDefs: ShiftDefinition[] = [];
+    if (Array.isArray(parsed)) {
+      cloudDefs = parsed;
+    } else if (parsed && Array.isArray(parsed.defs)) {
+      cloudDefs = parsed.defs;
+      if (Array.isArray(parsed.deletedIds)) {
+        localStorage.setItem('pk88_deleted_shift_def_ids', JSON.stringify(parsed.deletedIds));
+      }
+    }
+
+    if (cloudDefs.length > 0) {
+      localStorage.setItem(SHIFT_DEFS_STORAGE_KEY, JSON.stringify(cloudDefs));
+      return cloudDefs;
+    }
+    return null;
+  } catch (err) {
+    console.warn('Lỗi đọc danh sách ca từ Supabase Cloud:', err);
     return null;
   }
 }

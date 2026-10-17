@@ -18,7 +18,9 @@ import {
   deleteAssignment,
   clearStaffAssignmentsAtBranch,
   fetchShiftAssignmentsFromCloud,
-  syncShiftAssignmentsToCloud
+  syncShiftAssignmentsToCloud,
+  fetchShiftDefinitionsFromCloud,
+  syncShiftDefinitionsToCloud
 } from '../lib/shiftService';
 import { 
   Calendar, 
@@ -164,7 +166,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   useEffect(() => {
     let active = true;
     setIsCloudSyncing(true);
-    fetchShiftAssignmentsFromCloud().then(cloudList => {
+    Promise.all([
+      fetchShiftAssignmentsFromCloud(),
+      fetchShiftDefinitionsFromCloud()
+    ]).then(([cloudList, cloudDefs]) => {
       if (!active) return;
       if (cloudList && cloudList.length > 0) {
         setAssignments(cloudList);
@@ -173,6 +178,12 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         if (local.length > 0) {
           syncShiftAssignmentsToCloud(local);
         }
+      }
+      if (cloudDefs && cloudDefs.length > 0) {
+        setShiftDefs(cloudDefs);
+      } else {
+        const localDefs = getShiftDefinitions();
+        syncShiftDefinitionsToCloud(localDefs);
       }
       setIsCloudSyncing(false);
     }).catch(() => {
@@ -1004,16 +1015,32 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                   onClick={async () => {
                     setIsCloudSyncing(true);
                     showToast('☁️ Đang đồng bộ dữ liệu với máy chủ Supabase Cloud...');
-                    const cloud = await fetchShiftAssignmentsFromCloud();
-                    if (cloud && cloud.length > 0) {
-                      setAssignments(cloud);
-                      showToast(`☁️ Đã nạp thành công ${cloud.length} ca làm việc từ Supabase Cloud!`);
-                    } else {
-                      const local = getAllAssignments(staffList, branches);
-                      await syncShiftAssignmentsToCloud(local);
-                      showToast(`☁️ Đã tải ${local.length} ca làm việc lên Supabase Cloud thành công!`);
+                    try {
+                      const [cloudAsgs, cloudDefs] = await Promise.all([
+                        fetchShiftAssignmentsFromCloud(),
+                        fetchShiftDefinitionsFromCloud()
+                      ]);
+
+                      if (cloudAsgs && cloudAsgs.length > 0) {
+                        setAssignments(cloudAsgs);
+                      } else {
+                        const local = getAllAssignments(staffList, branches);
+                        await syncShiftAssignmentsToCloud(local);
+                      }
+
+                      if (cloudDefs && cloudDefs.length > 0) {
+                        setShiftDefs(cloudDefs);
+                      } else {
+                        const localDefs = getShiftDefinitions();
+                        await syncShiftDefinitionsToCloud(localDefs);
+                      }
+
+                      showToast('☁️ Đã đồng bộ Lịch Ca & Khung Giờ lên Supabase Cloud thành công 100%!');
+                    } catch (e) {
+                      showToast('⚠️ Không thể kết nối với máy chủ Supabase Cloud.');
+                    } finally {
+                      setIsCloudSyncing(false);
                     }
-                    setIsCloudSyncing(false);
                   }}
                   disabled={isCloudSyncing}
                   className="px-3.5 py-2 bg-slate-900 hover:bg-cyan-500/20 border border-cyan-500/40 hover:border-cyan-400 text-cyan-200 hover:text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm active:scale-95"
