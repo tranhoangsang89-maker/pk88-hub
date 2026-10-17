@@ -224,6 +224,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   const [selectedCellStaff, setSelectedCellStaff] = useState<Staff | null>(null);
   const [selectedCellDate, setSelectedCellDate] = useState<string | null>(null);
   const [isAddingSecondShift, setIsAddingSecondShift] = useState<boolean>(false);
+  const [cellModalTab, setCellModalTab] = useState<'compensate' | 'shifts' | 'leave'>('shifts');
   const [quickFilter, setQuickFilter] = useState<'ALL' | 'CROSS_BRANCH' | 'OPEN_SHIFT'>('ALL');
 
   // Local Attendance State for optimistic & instant updates
@@ -739,6 +740,13 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     setSelectedCellStaff(staff);
     setSelectedCellDate(dateStr);
     setIsAddingSecondShift(false);
+
+    const isPastOrToday = dateStr <= todayStr;
+    if (canManageSchedule && isPastOrToday) {
+      setCellModalTab('compensate');
+    } else {
+      setCellModalTab('shifts');
+    }
 
     const existing = assignments.filter(
       a => isAssignmentForStaff(a, staff) &&
@@ -2443,287 +2451,551 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
       {/* MODAL 1: CELL QUICK EDIT & SICK LEAVE */}
       {selectedCellAssignment && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 space-y-5 shadow-2xl animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <div>
-                <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-cyan-400" />
-                  <span>XỬ LÝ CA LÀM VIỆC</span>
+        <div 
+          className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4"
+          onClick={(e) => { if (e.target === e.currentTarget) closeCellModal(); }}
+        >
+          <div className="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full shadow-2xl flex flex-col max-h-[85vh] sm:max-h-[88vh] overflow-hidden animate-in fade-in zoom-in-95">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-800 bg-slate-900/90 flex-shrink-0">
+              <div className="min-w-0 pr-2">
+                <h3 className="text-sm font-extrabold text-slate-100 flex items-center gap-2 truncate">
+                  <Clock className="w-4 h-4 text-cyan-400 flex-shrink-0" />
+                  <span className="truncate">XỬ LÝ CA LÀM VIỆC</span>
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {selectedCellAssignment.staffName} • Ngày {selectedCellAssignment.date}
+                <p className="text-xs text-slate-400 mt-0.5 truncate">
+                  <span className="font-semibold text-slate-200">{selectedCellAssignment.staffName}</span> • Ngày {selectedCellAssignment.date}
                 </p>
               </div>
               <button 
                 onClick={closeCellModal}
-                className="p-1 text-slate-400 hover:text-white rounded-lg cursor-pointer"
+                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-xl cursor-pointer transition-colors flex-shrink-0"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            {/* THÔNG TIN CHẤM CÔNG GPS THỰC TẾ & LỊCH SỬ AUDIT TRAIL */}
-            {selectedCellStaff && (() => {
-              const staffRecords = getStaffRecordsForDate(selectedCellStaff, selectedCellAssignment.date);
-              const isTodayCell = selectedCellAssignment.date === todayStr;
-              const isPastCell = selectedCellAssignment.date < todayStr;
-              
-              if (staffRecords.length > 0) {
-                const latest = staffRecords[0];
-                const isCompensated = latest.notes?.includes('[CHẤM BÙ') || latest.disputeStatus === 'APPROVED' || !!latest.disputeHandledBy;
-                const inTime = latest.checkIn ? new Date(latest.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---';
-                const outTime = latest.checkOut ? new Date(latest.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (isTodayCell ? 'Đang trong ca' : 'Chưa check-out');
-                
-                if (isCompensated) {
-                  return (
-                    <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2 shadow-lg">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
-                          <ShieldCheck className="w-4 h-4 text-amber-400" />
-                          <span>LỊCH SỬ CHẤM BÙ CÔNG (AUDIT TRAIL)</span>
-                        </span>
-                        <span className="text-[10px] font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full font-bold">
-                          ĐÃ DUYỆT
-                        </span>
-                      </div>
-                      <div className="text-[11px] text-slate-200">
-                        🛡️ Người phê duyệt: <strong className="text-amber-300">{latest.disputeHandledBy || 'Quản lý cấp cao'}</strong>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                          <div className="text-[10px] text-slate-400">Giờ vào (Check-in):</div>
-                          <div className="text-amber-300 font-extrabold font-mono mt-0.5">{inTime}</div>
-                        </div>
-                        <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                          <div className="text-[10px] text-slate-400">Giờ ra (Check-out):</div>
-                          <div className="text-amber-300 font-extrabold font-mono mt-0.5">{outTime}</div>
-                        </div>
-                      </div>
-                      {latest.notes && (
-                        <div className="text-[10px] text-slate-300 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 font-mono leading-relaxed">
-                          📝 {latest.notes}
-                        </div>
-                      )}
-                    </div>
-                  );
-                }
-
-                return (
-                  <div className="p-3.5 rounded-2xl bg-slate-950/80 border border-emerald-500/40 space-y-2 shadow-lg">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
-                        <span>DỮ LIỆU CHẤM CÔNG GPS THỰC TẾ</span>
-                      </span>
-                      <span className="text-[10px] font-mono text-slate-400">{selectedCellAssignment.date}</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-xs">
-                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-[10px] text-slate-400">Giờ vào (Check-in):</div>
-                        <div className="text-emerald-300 font-extrabold font-mono mt-0.5">{inTime}</div>
-                      </div>
-                      <div className="p-2 rounded-xl bg-slate-900 border border-slate-800">
-                        <div className="text-[10px] text-slate-400">Giờ ra (Check-out):</div>
-                        <div className="text-cyan-300 font-extrabold font-mono mt-0.5">{outTime}</div>
-                      </div>
-                    </div>
-                    {latest.notes && (
-                      <div className="text-[10px] text-slate-400 bg-slate-900/60 p-2 rounded-xl border border-slate-800/60 font-mono truncate">
-                        📝 {latest.notes}
-                      </div>
-                    )}
-                  </div>
-                );
-              } else if (isPastCell && selectedCellAssignment.status !== 'OFF') {
-                return (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                    <span>Không tìm thấy dữ liệu chấm công GPS ngày {selectedCellAssignment.date}. Nhân viên có thể đã quên chấm công.</span>
-                  </div>
-                );
-              } else if (isTodayCell && selectedCellAssignment.status !== 'OFF') {
-                return (
-                  <div className="p-3 rounded-2xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-xs flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
-                    <span>Chưa ghi nhận lượt chấm công GPS vào ca hôm nay!</span>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-            {/* CHẤM BÙ CÔNG NHANH 1 CHẠM (DÀNH CHO FOUNDER, ADMIN, HR, CỬA HÀNG TRƯỞNG) */}
-            {canManageSchedule && selectedCellAssignment.date <= todayStr && (
-              <div className="p-4 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-950 to-amber-950/20 border border-amber-500/40 space-y-3 shadow-xl">
-                <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-xl bg-amber-500/20 text-amber-300 flex items-center justify-center font-bold text-xs shadow-md">
-                      ⚡
-                    </div>
-                    <div>
-                      <h4 className="text-xs font-black text-amber-300 tracking-wide flex items-center gap-1.5">
-                        <span>CHẤM BÙ CÔNG NHANH 1 CHẠM</span>
-                      </h4>
-                      <p className="text-[10px] text-slate-400">
-                        Xác nhận giờ công thực tế & lưu vết lịch sử hệ thống
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
-                    AUDIT TRAIL
-                  </span>
-                </div>
-
-                {/* Form giờ vào / giờ ra */}
-                <div className="grid grid-cols-2 gap-2 text-xs">
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-300 block mb-1">
-                      Giờ vào ca (Check-in):
-                    </label>
-                    <input
-                      type="time"
-                      value={compensateCheckIn}
-                      onChange={(e) => setCompensateCheckIn(e.target.value)}
-                      className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                  <div>
-                    <label className="text-[10px] font-bold text-slate-300 block mb-1">
-                      Giờ ra ca (Check-out):
-                    </label>
-                    <input
-                      type="time"
-                      value={compensateCheckOut}
-                      onChange={(e) => setCompensateCheckOut(e.target.value)}
-                      className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
-                    />
-                  </div>
-                </div>
-
-                {/* Quick reason chips */}
-                <div className="space-y-1.5">
-                  <label className="text-[10px] font-bold text-slate-300 block">
-                    Lý do chấm bù (Lưu vết minh bạch):
-                  </label>
-                  <div className="flex flex-wrap gap-1.5">
-                    {[
-                      'Quên bấm máy chấm công',
-                      'Lỗi mạng / Hết pin điện thoại',
-                      'Cửa hàng trưởng xác nhận có mặt',
-                      'Tăng cường đột xuất'
-                    ].map(reason => (
-                      <button
-                        key={reason}
-                        type="button"
-                        onClick={() => setCompensateReason(reason)}
-                        className={`text-[9.5px] px-2 py-1 rounded-lg border transition-all cursor-pointer ${
-                          compensateReason === reason
-                            ? 'bg-amber-500/30 border-amber-400 text-amber-200 font-bold'
-                            : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {reason}
-                      </button>
-                    ))}
-                  </div>
-                  <input
-                    type="text"
-                    value={compensateReason}
-                    onChange={(e) => setCompensateReason(e.target.value)}
-                    placeholder="Ghi chú chi tiết lý do..."
-                    className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50 mt-1"
-                  />
-                </div>
-
-                {/* Audit summary */}
-                <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
-                  <span>🛡️ Người duyệt: <strong className="text-slate-200">{currentUser?.fullName || 'Quản lý'}</strong></span>
-                  <span className="text-amber-400 font-mono font-bold">Lưu Supabase Cloud</span>
-                </div>
-
-                {/* Confirm Button */}
-                <button
-                  type="button"
-                  onClick={handleConfirmAttendanceCompensation}
-                  disabled={isSubmittingCompensation}
-                  className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
-                >
-                  {isSubmittingCompensation ? (
-                    <span>⏳ Đang ghi nhận Audit Trail...</span>
-                  ) : (
-                    <>
-                      <span>⚡</span>
-                      <span>Xác Nhận Chấm Bù 1 Chạm & Ghi Nhận Audit Trail</span>
-                    </>
+            {/* TAB SELECTOR (CHO QUẢN LÝ / HR / FOUNDER) */}
+            {canManageSchedule && (
+              <div className="px-5 pt-3 flex-shrink-0">
+                <div className="flex bg-slate-950 p-1 rounded-2xl border border-slate-800 text-xs">
+                  {selectedCellAssignment.date <= todayStr && (
+                    <button
+                      type="button"
+                      onClick={() => setCellModalTab('compensate')}
+                      className={`flex-1 py-1.5 px-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                        cellModalTab === 'compensate'
+                          ? 'bg-amber-500/25 text-amber-300 border border-amber-500/40 shadow-sm'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      <Zap className="w-3.5 h-3.5 text-amber-400" />
+                      <span>Chấm Bù</span>
+                    </button>
                   )}
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellModalTab('shifts')}
+                    className={`flex-1 py-1.5 px-2 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      cellModalTab === 'shifts'
+                        ? 'bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+                    <span>Đổi Ca</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCellModalTab('leave')}
+                    className={`py-1.5 px-2.5 rounded-xl font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                      cellModalTab === 'leave'
+                        ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40 shadow-sm'
+                        : 'text-slate-400 hover:text-slate-200'
+                    }`}
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+                    <span>Nghỉ / Xóa</span>
+                  </button>
+                </div>
               </div>
             )}
 
-            {/* NẾU LÀ NGÀY NGHỈ LUÂN PHIÊN (OFF) */}
-            {selectedCellAssignment.status === 'OFF' ? (
-              <div className="space-y-4">
-                <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-center space-y-2">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-xl">
-                    🌴
-                  </div>
-                  <h4 className="text-sm font-extrabold text-slate-100">HÔM NAY LÀ NGÀY NGHỈ LUÂN PHIÊN (OFF)</h4>
-                  <p className="text-xs text-slate-400 max-w-xs mx-auto leading-relaxed">
-                    {canManageSchedule 
-                      ? 'Nhân sự này đang được xếp nghỉ ngơi theo lịch luân phiên. Bạn có thể chọn ca bên dưới nếu cần huy động nhân sự đi làm lại.'
-                      : 'Bạn không có ca làm việc trong ngày này theo lịch đã duyệt. Hãy tận hưởng ngày nghỉ ngơi phục hồi sức khỏe nhé!'}
-                  </p>
-                </div>
+            {/* Scrollable Body */}
+            <div className="overflow-y-auto px-5 py-4 space-y-3.5 custom-scrollbar flex-1">
+              {/* TAB 1: CHẤM BÙ CÔNG NHANH & AUDIT TRAIL */}
+              {canManageSchedule && selectedCellAssignment.date <= todayStr && cellModalTab === 'compensate' && (
+                <div className="space-y-3.5">
+                  {/* GPS Reality Info Box */}
+                  {selectedCellStaff && (() => {
+                    const staffRecords = getStaffRecordsForDate(selectedCellStaff, selectedCellAssignment.date);
+                    const isTodayCell = selectedCellAssignment.date === todayStr;
+                    const isPastCell = selectedCellAssignment.date < todayStr;
 
-                {/* Nếu là Quản lý / HR: Có quyền chọn ca để xếp đi làm lại */}
-                {canManageSchedule && (
-                  <div className="space-y-2 pt-2 border-t border-slate-800">
-                    <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold text-slate-300">Xếp lịch đi làm lại cho nhân sự:</label>
-                      {canManageSchedule && (
-                        <button
-                          type="button"
-                          onClick={handleResetDefaultShiftDefinitions}
-                          className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
-                          title="Khôi phục lại các khung ca mặc định của công ty"
-                        >
-                          🔄 Khôi phục mặc định
-                        </button>
-                      )}
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {shiftDefs.map(def => (
-                        <div
-                          key={def.id}
-                          className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => handleQuickShiftChange(def)}
-                            className="flex-1 text-left cursor-pointer min-w-0"
-                          >
-                            <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              {def.startTime} - {def.endTime} ({def.hours}h)
+                    if (staffRecords.length > 0) {
+                      const latest = staffRecords[0];
+                      const isCompensated = latest.notes?.includes('[CHẤM BÙ') || latest.disputeStatus === 'APPROVED' || !!latest.disputeHandledBy;
+                      const inTime = latest.checkIn ? new Date(latest.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '---';
+                      const outTime = latest.checkOut ? new Date(latest.checkOut).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : (isTodayCell ? 'Đang trong ca' : 'Chưa check-out');
+
+                      if (isCompensated) {
+                        return (
+                          <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-1.5 shadow-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-black text-amber-300 flex items-center gap-1.5">
+                                <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+                                <span>LỊCH SỬ CHẤM BÙ CÔNG (AUDIT TRAIL)</span>
+                              </span>
+                              <span className="text-[9px] font-mono text-amber-400 bg-amber-500/20 px-2 py-0.5 rounded-full font-bold">
+                                ĐÃ DUYỆT
+                              </span>
                             </div>
+                            <div className="text-[10px] text-slate-300">
+                              🛡️ Phê duyệt: <strong className="text-amber-300">{latest.disputeHandledBy || 'Quản lý'}</strong>
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 text-xs">
+                              <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <div className="text-[9.5px] text-slate-400">Giờ vào:</div>
+                                <div className="text-amber-300 font-bold font-mono">{inTime}</div>
+                              </div>
+                              <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                                <div className="text-[9.5px] text-slate-400">Giờ ra:</div>
+                                <div className="text-amber-300 font-bold font-mono">{outTime}</div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="p-3 rounded-2xl bg-slate-950/80 border border-emerald-500/40 space-y-1.5 shadow-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                              <span>DỮ LIỆU GPS THỰC TẾ</span>
+                            </span>
+                            <span className="text-[10px] font-mono text-slate-400">{selectedCellAssignment.date}</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                              <div className="text-[9.5px] text-slate-400">Giờ vào:</div>
+                              <div className="text-emerald-300 font-bold font-mono">{inTime}</div>
+                            </div>
+                            <div className="p-1.5 rounded-xl bg-slate-900 border border-slate-800">
+                              <div className="text-[9.5px] text-slate-400">Giờ ra:</div>
+                              <div className="text-cyan-300 font-bold font-mono">{outTime}</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    } else if (isPastCell && selectedCellAssignment.status !== 'OFF') {
+                      return (
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                          <span>Không có GPS ngày này. Nhân viên có thể đã quên bấm công.</span>
+                        </div>
+                      );
+                    } else if (isTodayCell && selectedCellAssignment.status !== 'OFF') {
+                      return (
+                        <div className="p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-300 text-[11px] flex items-center gap-2">
+                          <AlertTriangle className="w-4 h-4 text-rose-400 flex-shrink-0" />
+                          <span>Chưa ghi nhận lượt chấm công GPS vào ca hôm nay!</span>
+                        </div>
+                      );
+                    }
+                    return null;
+                  })()}
+
+                  {/* Form Chấm Bù Gọn Gàng */}
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/10 via-slate-950 to-amber-950/20 border border-amber-500/40 space-y-3 shadow-md">
+                    <div className="flex items-center justify-between border-b border-amber-500/20 pb-2">
+                      <div className="flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-amber-400" />
+                        <span className="text-xs font-black text-amber-300">XÁC NHẬN GIỜ CÔNG BÙ</span>
+                      </div>
+                      <span className="text-[9px] font-mono px-2 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-200 border border-amber-500/30">
+                        AUDIT TRAIL
+                      </span>
+                    </div>
+
+                    {/* Inputs giờ vào / ra */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ vào (Check-in):</label>
+                        <input
+                          type="time"
+                          value={compensateCheckIn}
+                          onChange={(e) => setCompensateCheckIn(e.target.value)}
+                          className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ ra (Check-out):</label>
+                        <input
+                          type="time"
+                          value={compensateCheckOut}
+                          onChange={(e) => setCompensateCheckOut(e.target.value)}
+                          className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    </div>
+
+                    {/* Lý do chấm bù */}
+                    <div className="space-y-1.5">
+                      <label className="text-[10px] font-bold text-slate-300 block">Lý do chấm bù:</label>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          'Quên bấm máy chấm công',
+                          'Lỗi mạng / Hết pin',
+                          'CHT xác nhận có mặt',
+                          'Tăng cường đột xuất'
+                        ].map(reason => (
+                          <button
+                            key={reason}
+                            type="button"
+                            onClick={() => setCompensateReason(reason)}
+                            className={`text-[9.5px] px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                              compensateReason === reason
+                                ? 'bg-amber-500/30 border-amber-400 text-amber-200 font-bold'
+                                : 'bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {reason}
                           </button>
-                          {canManageSchedule && (
+                        ))}
+                      </div>
+                      <input
+                        type="text"
+                        value={compensateReason}
+                        onChange={(e) => setCompensateReason(e.target.value)}
+                        placeholder="Ghi chú chi tiết lý do..."
+                        className="w-full bg-slate-900 border border-slate-800 rounded-xl px-3 py-1.5 text-xs text-slate-200 focus:outline-none focus:border-amber-500/50"
+                      />
+                    </div>
+
+                    {/* Phê duyệt & Cloud */}
+                    <div className="p-2 rounded-xl bg-slate-900/90 border border-slate-800 text-[10px] text-slate-400 flex items-center justify-between">
+                      <span>🛡️ Người duyệt: <strong className="text-slate-200">{currentUser?.fullName || 'Quản lý'}</strong></span>
+                      <span className="text-amber-400 font-mono font-bold">Lưu Supabase Cloud</span>
+                    </div>
+
+                    {/* Confirm Button */}
+                    <button
+                      type="button"
+                      onClick={handleConfirmAttendanceCompensation}
+                      disabled={isSubmittingCompensation}
+                      className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    >
+                      {isSubmittingCompensation ? (
+                        <span>⏳ Đang ghi nhận Audit Trail...</span>
+                      ) : (
+                        <>
+                          <Zap className="w-4 h-4 fill-current" />
+                          <span>Xác Nhận Chấm Bù 1 Chạm</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* TAB 2: ĐỔI CA / XẾP LỊCH LÀM VIỆC */}
+              {(cellModalTab === 'shifts' || !canManageSchedule) && (
+                <div className="space-y-3.5">
+                  {/* NẾU LÀ NGÀY NGHỈ LUÂN PHIÊN (OFF) */}
+                  {selectedCellAssignment.status === 'OFF' ? (
+                    <div className="space-y-3">
+                      <div className="p-4 rounded-2xl bg-slate-950/70 border border-slate-800 text-center space-y-1.5">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center mx-auto text-lg">
+                          🌴
+                        </div>
+                        <h4 className="text-xs font-extrabold text-slate-100">NGÀY NGHỈ LUÂN PHIÊN (OFF)</h4>
+                        <p className="text-[11px] text-slate-400 max-w-xs mx-auto leading-relaxed">
+                          {canManageSchedule 
+                            ? 'Nhân sự đang được xếp nghỉ ngơi. Chọn ca bên dưới nếu cần huy động đi làm lại.'
+                            : 'Bạn không có ca làm việc trong ngày này theo lịch đã duyệt.'}
+                        </p>
+                      </div>
+
+                      {canManageSchedule && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-300">Xếp lịch đi làm lại:</label>
                             <button
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteShiftDefinition(def);
-                              }}
-                              className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
-                              title={`Xóa khung giờ "${def.name}"`}
+                              onClick={handleResetDefaultShiftDefinitions}
+                              className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
+                              title="Khôi phục lại các khung ca mặc định của công ty"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              🔄 Khôi phục mặc định
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                            {shiftDefs.map(def => (
+                              <div
+                                key={def.id}
+                                className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickShiftChange(def)}
+                                  className="flex-1 text-left cursor-pointer min-w-0"
+                                >
+                                  <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                    {def.startTime} - {def.endTime} ({def.hours}h)
+                                  </div>
+                                </button>
+                                {canManageSchedule && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteShiftDefinition(def);
+                                    }}
+                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
+                                    title={`Xóa khung giờ "${def.name}"`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {!canManageSchedule && (
+                        <div className="space-y-2 pt-1">
+                          <button
+                            onClick={() => {
+                              const def = shiftDefs.find(d => d.code === 'CA_SANG') || shiftDefs[0];
+                              if (def) {
+                                const updated: ShiftAssignment = {
+                                  ...selectedCellAssignment,
+                                  shiftDefinitionId: def.id,
+                                  shiftCode: def.code,
+                                  shiftName: `${def.name} (Tăng Ca Ngày OFF)`,
+                                  startTime: def.startTime,
+                                  endTime: def.endTime,
+                                  hours: def.hours,
+                                  status: 'SCHEDULED',
+                                  notes: '🙋 Nhân viên tự nguyện đăng ký tăng ca ngày nghỉ'
+                                };
+                                const nextList = saveAssignment(updated);
+                                setAssignments(nextList);
+                                closeCellModal();
+                                showToast('✅ Bạn đã đăng ký đi làm tăng ca ngày OFF thành công!');
+                              }
+                            }}
+                            className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                          >
+                            <span>🙋 Đăng Ký Đi Làm Ngày OFF (Tăng Ca)</span>
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    /* NẾU LÀ NGÀY CÓ LỊCH LÀM VIỆC */
+                    <div className="space-y-3">
+                      {/* Hiển thị 2 ca hoặc ca gãy nếu có */}
+                      {dayAssignmentsForModal.length >= 2 ? (
+                        <div className="p-3 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 space-y-2">
+                          <div className="flex items-center justify-between text-xs font-extrabold text-cyan-300">
+                            <span className="flex items-center gap-1.5">
+                              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                              <span>2 Ca Trong Ngày (Tổng {dayAssignmentsForModal.reduce((s, a) => s + (a.hours || 0), 0).toFixed(1)}h)</span>
+                            </span>
+                          </div>
+                          <div className="space-y-1.5">
+                            {dayAssignmentsForModal.map((asg, idx) => (
+                              <div key={asg.id || idx} className="p-2 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 shadow-sm">
+                                <div>
+                                  <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400"></span>
+                                    <span>{asg.shiftName}</span>
+                                  </div>
+                                  <div className="text-[10px] text-slate-400 font-mono">
+                                    {asg.startTime} - {asg.endTime} ({asg.hours}h)
+                                  </div>
+                                </div>
+                                {canManageSchedule && (
+                                  <button
+                                    onClick={() => handleDeleteAssignmentFromDay(asg.id)}
+                                    className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-all"
+                                    title="Xóa ca này"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      ) : dayAssignmentsForModal.length === 1 && (dayAssignmentsForModal[0].shiftCode === 'CA_GAY' || dayAssignmentsForModal[0].shiftName?.toLowerCase().includes('gãy')) ? (
+                        <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-1.5">
+                          <div className="font-extrabold flex items-center gap-1.5 text-amber-300 text-xs">
+                            <span>☀️🌙 Ca Gãy Đang Xếp (Tổng 10.0h)</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
+                            <div className="p-1.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-center">
+                              <div className="font-bold text-amber-200">☀️ Phiên Sáng</div>
+                              <div className="text-amber-300">07:00 - 12:00 (5h)</div>
+                            </div>
+                            <div className="p-1.5 rounded-xl bg-indigo-500/25 border border-indigo-500/40 text-center">
+                              <div className="font-bold text-indigo-200">🌙 Phiên Tối</div>
+                              <div className="text-indigo-300">17:00 - 22:00 (5h)</div>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
+
+                      {/* Chọn loại ca */}
+                      {canManageSchedule ? (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-xs font-bold text-slate-300">
+                              {dayAssignmentsForModal.length >= 2 ? 'Đổi ca chính:' : 'Chọn loại ca:'}
+                            </label>
+                            <button
+                              type="button"
+                              onClick={handleResetDefaultShiftDefinitions}
+                              className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
+                              title="Khôi phục lại các khung ca mặc định của công ty"
+                            >
+                              🔄 Khôi phục mặc định
+                            </button>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1 custom-scrollbar">
+                            {shiftDefs.map(def => (
+                              <div
+                                key={def.id}
+                                className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
+                              >
+                                <button
+                                  type="button"
+                                  onClick={() => handleQuickShiftChange(def)}
+                                  className="flex-1 text-left cursor-pointer min-w-0"
+                                >
+                                  <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                                  <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                    {def.startTime} - {def.endTime} ({def.hours}h)
+                                  </div>
+                                </button>
+                                {canManageSchedule && (
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteShiftDefinition(def);
+                                    }}
+                                    className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
+                                    title={`Xóa khung giờ "${def.name}"`}
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Nút thêm ca thứ 2 trong ngày */}
+                          {dayAssignmentsForModal.length === 1 && !isAddingSecondShift && (
+                            <button
+                              onClick={() => setIsAddingSecondShift(true)}
+                              className="w-full py-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
+                            >
+                              <Plus className="w-4 h-4 text-amber-400" />
+                              <span>+ Thêm Ca Thứ 2 Trong Ngày (Ca Tối / Tăng Cường)</span>
                             </button>
                           )}
+
+                          {isAddingSecondShift && (
+                            <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2 animate-in fade-in">
+                              <div className="flex items-center justify-between">
+                                <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
+                                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                                  <span>Chọn ca thứ 2:</span>
+                                </span>
+                                <button
+                                  onClick={() => setIsAddingSecondShift(false)}
+                                  className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 cursor-pointer"
+                                >
+                                  Đóng
+                                </button>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto pr-1 custom-scrollbar">
+                                {shiftDefs.map(def => (
+                                  <div
+                                    key={`sec_${def.id}`}
+                                    className="relative group/shift p-2 rounded-xl border border-amber-500/30 bg-slate-950 hover:border-amber-400 transition-all flex items-center justify-between gap-1 shadow-sm"
+                                  >
+                                    <button
+                                      type="button"
+                                      onClick={() => handleAddSecondShift(def)}
+                                      className="flex-1 text-left cursor-pointer min-w-0"
+                                    >
+                                      <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
+                                      <div className="text-[10px] text-slate-400 font-mono mt-0.5">
+                                        {def.startTime} - {def.endTime} ({def.hours}h)
+                                      </div>
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Nút Chấm Ngày Nghỉ Luân Phiên (OFF) */}
+                          <button
+                            onClick={handleMarkAsOff}
+                            className="w-full py-2 bg-slate-800/80 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                          >
+                            🌴 Chuyển Thành Ngày Nghỉ Luân Phiên (OFF)
+                          </button>
                         </div>
-                      ))}
+                      ) : (
+                        <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs space-y-1">
+                          <div className="font-extrabold flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-cyan-400" />
+                            <span>Ca làm việc của bạn: {selectedCellAssignment.shiftName}</span>
+                          </div>
+                          <div className="text-[11px] text-slate-400">
+                            Khung giờ: {selectedCellAssignment.startTime} - {selectedCellAssignment.endTime} ({selectedCellAssignment.hours} tiếng).
+                          </div>
+                        </div>
+                      )}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 3: BÁO NGHỈ ỐM & XÓA CA */}
+              {(cellModalTab === 'leave' || !canManageSchedule) && (
+                <div className="space-y-3">
+                  {/* Báo Nghỉ Ốm Đột Xuất */}
+                  <div className="bg-rose-500/10 border border-rose-500/30 p-3.5 rounded-2xl space-y-2.5">
+                    <div className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
+                      <HeartPulse className="w-4 h-4 text-rose-400" />
+                      <span>Báo Nghỉ Ốm Đột Xuất (Biến thành Ca Trống)</span>
+                    </div>
+                    <input
+                      type="text"
+                      value={sickLeaveReason}
+                      onChange={(e) => setSickLeaveReason(e.target.value)}
+                      placeholder="Lý do nghỉ (sốt, việc khẩn...)"
+                      className="w-full bg-slate-950 border border-rose-500/30 text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none"
+                    />
+                    <button
+                      onClick={handleConfirmSickLeave}
+                      className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl text-xs shadow-md shadow-rose-500/20 transition-all cursor-pointer"
+                    >
+                      Xác Nhận Nghỉ Ốm & Tìm Người Gánh (+50k)
+                    </button>
+                  </div>
+
+                  {/* Nút Xóa (Dành cho Quản lý) */}
+                  {canManageSchedule && (
                     <div className="pt-2 border-t border-slate-800 grid grid-cols-2 gap-2">
                       <button
                         onClick={() => {
@@ -2759,300 +3031,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                         <span>Xóa cả kỳ bạn này</span>
                       </button>
                     </div>
-                  </div>
-                )}
-
-                {/* Nếu là Nhân viên: Tùy chọn đăng ký tăng ca ngày nghỉ */}
-                {!canManageSchedule && (
-                  <div className="space-y-2 pt-1">
-                    <button
-                      onClick={() => {
-                        const def = shiftDefs.find(d => d.code === 'CA_SANG') || shiftDefs[0];
-                        if (def) {
-                          const updated: ShiftAssignment = {
-                            ...selectedCellAssignment,
-                            shiftDefinitionId: def.id,
-                            shiftCode: def.code,
-                            shiftName: `${def.name} (Tăng Ca Ngày OFF)`,
-                            startTime: def.startTime,
-                            endTime: def.endTime,
-                            hours: def.hours,
-                            status: 'SCHEDULED',
-                            notes: '🙋 Nhân viên tự nguyện đăng ký tăng ca ngày nghỉ'
-                          };
-                          const nextList = saveAssignment(updated);
-                          setAssignments(nextList);
-                          closeCellModal();
-                          showToast('✅ Bạn đã đăng ký đi làm tăng ca ngày OFF thành công!');
-                        }
-                      }}
-                      className="w-full py-2.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-extrabold rounded-xl text-xs shadow-lg shadow-emerald-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                    >
-                      <span>🙋 Đăng Ký Đi Làm Ngày OFF (Tăng Ca)</span>
-                    </button>
-                    <button
-                      onClick={closeCellModal}
-                      className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                    >
-                      Đóng
-                    </button>
-                  </div>
-                )}
-              </div>
-            ) : (
-              /* NẾU LÀ NGÀY CÓ LỊCH LÀM VIỆC (SCHEDULED / OPEN_SHIFT) */
-              <>
-                {/* HIỂN THỊ DANH SÁCH CÁC CA TRONG NGÀY (NẾU CÓ 2 CA HOẶC CA GÃY) */}
-                {dayAssignmentsForModal.length >= 2 ? (
-                  <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 space-y-2.5">
-                    <div className="flex items-center justify-between text-xs font-extrabold text-cyan-300">
-                      <span className="flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-cyan-400" />
-                        <span>Ngày có 2 ca làm việc (Tổng {dayAssignmentsForModal.reduce((s, a) => s + (a.hours || 0), 0).toFixed(1)}h)</span>
-                      </span>
-                    </div>
-                    <div className="space-y-1.5">
-                      {dayAssignmentsForModal.map((asg, idx) => (
-                        <div key={asg.id || idx} className="p-2.5 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-2 shadow-sm">
-                          <div>
-                            <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-cyan-400"></span>
-                              <span>{asg.shiftName}</span>
-                            </div>
-                            <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                              {asg.startTime} - {asg.endTime} ({asg.hours}h)
-                            </div>
-                          </div>
-                          {canManageSchedule && (
-                            <button
-                              onClick={() => handleDeleteAssignmentFromDay(asg.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 rounded-lg cursor-pointer transition-all"
-                              title="Xóa ca này"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : dayAssignmentsForModal.length === 1 && (dayAssignmentsForModal[0].shiftCode === 'CA_GAY' || dayAssignmentsForModal[0].shiftName?.toLowerCase().includes('gãy')) ? (
-                  <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-200 text-xs space-y-2">
-                    <div className="font-extrabold flex items-center gap-1.5 text-amber-300">
-                      <span>☀️🌙 Ca Gãy Đang Xếp (Tổng 10.0h)</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2 text-[11px] font-mono">
-                      <div className="p-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-center">
-                        <div className="font-bold text-amber-200">☀️ Phiên Sáng</div>
-                        <div className="text-amber-300">07:00 - 12:00 (5h)</div>
-                      </div>
-                      <div className="p-2 rounded-xl bg-indigo-500/25 border border-indigo-500/40 text-center">
-                        <div className="font-bold text-indigo-200">🌙 Phiên Tối</div>
-                        <div className="text-indigo-300">17:00 - 22:00 (5h)</div>
-                      </div>
-                    </div>
-                    <div className="text-[10.5px] text-slate-400">
-                      💡 Hiển thị 2 thẻ nhỏ lồng nhau trên ma trận và tự động ghi nhận 10 giờ công.
-                    </div>
-                  </div>
-                ) : null}
-
-                {/* Quick Shift Selection - Chỉ hiện nếu có quyền quản lý */}
-                {canManageSchedule ? (
-                  <>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <label className="text-xs font-bold text-slate-300">
-                          {dayAssignmentsForModal.length >= 2 ? 'Đổi ca chính:' : 'Chọn loại ca:'}
-                        </label>
-                        {canManageSchedule && (
-                          <button
-                            type="button"
-                            onClick={handleResetDefaultShiftDefinitions}
-                            className="text-[10px] text-slate-500 hover:text-cyan-400 cursor-pointer transition-colors"
-                            title="Khôi phục lại các khung ca mặc định của công ty"
-                          >
-                            🔄 Khôi phục mặc định
-                          </button>
-                        )}
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        {shiftDefs.map(def => (
-                          <div
-                            key={def.id}
-                            className="relative group/shift p-2 rounded-xl border border-slate-800 bg-slate-950 hover:border-cyan-500/50 transition-all flex items-center justify-between gap-1 shadow-sm"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => handleQuickShiftChange(def)}
-                              className="flex-1 text-left cursor-pointer min-w-0"
-                            >
-                              <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
-                              <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                {def.startTime} - {def.endTime} ({def.hours}h)
-                              </div>
-                            </button>
-                            {canManageSchedule && (
-                              <button
-                                type="button"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDeleteShiftDefinition(def);
-                                }}
-                                className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
-                                title={`Xóa khung giờ "${def.name}"`}
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </button>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* NÚT THÊM CA THỨ 2 TRONG NGÀY (NẾU MỚI CÓ 1 CA) */}
-                    {dayAssignmentsForModal.length === 1 && !isAddingSecondShift && (
-                      <button
-                        onClick={() => setIsAddingSecondShift(true)}
-                        className="w-full py-2.5 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500/30 hover:to-orange-500/30 border border-amber-500/40 text-amber-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
-                      >
-                        <Plus className="w-4 h-4 text-amber-400" />
-                        <span>+ Thêm Ca Thứ 2 Trong Ngày (Ca Tối / Tăng Cường)</span>
-                      </button>
-                    )}
-
-                    {/* BẢNG CHỌN CA THỨ 2 KHI BẤM NÚT */}
-                    {isAddingSecondShift && (
-                      <div className="p-3.5 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2.5 animate-in fade-in">
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-extrabold text-amber-300 flex items-center gap-1.5">
-                            <Plus className="w-3.5 h-3.5 text-amber-400" />
-                            <span>Chọn ca thứ 2 muốn thêm:</span>
-                          </span>
-                          <button
-                            onClick={() => setIsAddingSecondShift(false)}
-                            className="text-[10px] text-slate-400 hover:text-white px-2 py-0.5 rounded bg-slate-800 cursor-pointer"
-                          >
-                            Đóng
-                          </button>
-                        </div>
-                        <div className="grid grid-cols-2 gap-2">
-                          {shiftDefs.map(def => (
-                            <div
-                              key={`sec_${def.id}`}
-                              className="relative group/shift p-2 rounded-xl border border-amber-500/30 bg-slate-950 hover:border-amber-400 transition-all flex items-center justify-between gap-1 shadow-sm"
-                            >
-                              <button
-                                type="button"
-                                onClick={() => handleAddSecondShift(def)}
-                                className="flex-1 text-left cursor-pointer min-w-0"
-                              >
-                                <div className="font-bold text-xs text-slate-200 truncate">{def.name}</div>
-                                <div className="text-[10px] text-slate-400 font-mono mt-0.5">
-                                  {def.startTime} - {def.endTime} ({def.hours}h)
-                                </div>
-                              </button>
-                              {canManageSchedule && (
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDeleteShiftDefinition(def);
-                                  }}
-                                  className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/15 rounded-lg transition-all opacity-40 group-hover/shift:opacity-100 flex-shrink-0 cursor-pointer"
-                                  title={`Xóa khung giờ "${def.name}"`}
-                                >
-                                  <Trash2 className="w-3.5 h-3.5" />
-                                </button>
-                              )}
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Mark OFF & Xóa ca */}
-                    <div className="pt-2 border-t border-slate-800 space-y-2">
-                      <button
-                        onClick={handleMarkAsOff}
-                        className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold transition-all cursor-pointer"
-                      >
-                        Chấm Ngày Nghỉ Luân Phiên (OFF)
-                      </button>
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => {
-                            if (window.confirm(`Xóa ô ca ngày ${selectedCellAssignment.date} của ${selectedCellAssignment.staffName}?`)) {
-                              const next = deleteAssignment(selectedCellAssignment.id);
-                              setAssignments(next);
-                              closeCellModal();
-                              showToast(`🗑️ Đã xóa ô ca ngày ${selectedCellAssignment.date}`);
-                            }
-                          }}
-                          className="py-2 bg-slate-800/80 hover:bg-rose-500/20 border border-slate-700 hover:border-rose-500/40 text-slate-300 hover:text-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span>Xóa ca này</span>
-                        </button>
-                        <button
-                          onClick={() => {
-                            const targetStaff = staffList.find(s => s.id === selectedCellAssignment.staffId) || {
-                              id: selectedCellAssignment.staffId,
-                              phone: selectedCellAssignment.staffPhone,
-                              fullName: selectedCellAssignment.staffName
-                            };
-                            if (window.confirm(`Xóa toàn bộ lịch phân ca kỳ này của ${selectedCellAssignment.staffName} tại ${currentBranch.name}?`)) {
-                              const next = clearStaffAssignmentsAtBranch(targetStaff, selectedBranchId, cycleDates);
-                              setAssignments(next);
-                              closeCellModal();
-                              showToast(`🗑️ Đã xóa toàn bộ ca kỳ này của ${selectedCellAssignment.staffName}`);
-                            }
-                          }}
-                          className="py-2 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center justify-center gap-1.5"
-                        >
-                          <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                          <span>Xóa cả kỳ bạn này</span>
-                        </button>
-                      </div>
-                    </div>
-                  </>
-                ) : (
-                  <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/30 text-cyan-300 text-xs space-y-1">
-                    <div className="font-extrabold flex items-center gap-1.5">
-                      <Users className="w-4 h-4 text-cyan-400" />
-                      <span>Ca làm việc của bạn: {selectedCellAssignment.shiftName}</span>
-                    </div>
-                    <div className="text-[11px] text-slate-400">
-                      Khung giờ: {selectedCellAssignment.startTime} - {selectedCellAssignment.endTime} ({selectedCellAssignment.hours} tiếng).
-                      Nếu bạn bị ốm hoặc gặp việc đột xuất, vui lòng xác nhận bên dưới để hệ thống tìm đồng nghiệp làm thay.
-                    </div>
-                  </div>
-                )}
-
-                {/* Action Buttons: Sick Leave (Chỉ khi ca đang có lịch làm) */}
-                <div className="pt-2 border-t border-slate-800 space-y-2">
-                  <div className="bg-rose-500/10 border border-rose-500/30 p-3 rounded-2xl space-y-2">
-                    <div className="text-xs font-bold text-rose-300 flex items-center gap-1.5">
-                      <HeartPulse className="w-4 h-4 text-rose-400" />
-                      <span>Báo Nghỉ Ốm Đột Xuất (Biến thành Ca Trống)</span>
-                    </div>
-                    <input
-                      type="text"
-                      value={sickLeaveReason}
-                      onChange={(e) => setSickLeaveReason(e.target.value)}
-                      placeholder="Lý do nghỉ (sốt, gia đình có việc...)"
-                      className="w-full bg-slate-950 border border-rose-500/30 text-slate-200 text-xs rounded-xl px-3 py-1.5 focus:outline-none"
-                    />
-                    <button
-                      onClick={handleConfirmSickLeave}
-                      className="w-full py-2 bg-rose-500 hover:bg-rose-600 text-white font-extrabold rounded-xl text-xs shadow-md shadow-rose-500/20 transition-all cursor-pointer"
-                    >
-                      Xác Nhận Nghỉ Ốm & Phát Sóng Tìm Người Gánh (+50k)
-                    </button>
-                  </div>
+                  )}
                 </div>
-              </>
-            )}
+              )}
+            </div>
           </div>
         </div>
       )}

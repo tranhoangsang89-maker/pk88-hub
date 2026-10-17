@@ -77,6 +77,15 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Cửa Hàng Trưởng khi thiếu người:** Sử dụng nút `[🚨 Chợ Ca Khẩn Cấp (+50k)]` để phát sóng ca trống cho nhân viên các shop khác tự nguyện nhận ca hỗ trợ, hoặc gửi yêu cầu lên HR/Admin để được điều động.
    - **Bảo vệ nhân sự văn phòng & ban lãnh đạo:** Danh sách nhân viên trong Modal điều động tự động loại trừ các vai trò Văn phòng & Quản trị cấp cao (`founder`, `admin`, `hr`, `accountant`, `warehouse_accountant`, `marketing`, `media`, `PK88-FOUNDER`), ngăn ngừa việc điều động nhầm nhân sự cốt lõi đi trực shop.
 
+10. **Tối Ưu Modal Xử Lý Ca & Chấm Bù Gọn Gàng (Tabbed Action Modal) ([ShiftSchedulingMatrix.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ShiftSchedulingMatrix.tsx)):**
+    - **Vấn đề giải quyết:** Khắc phục triệt để tình trạng giao diện bị dài dằng dặc trên cả máy tính và điện thoại do xếp chồng tất cả tính năng (GPS, Chấm bù, Chọn loại ca, Thêm ca 2, OFF, Báo ốm, Xóa ca) trong cùng 1 cột.
+    - **Tách 3 Tab chuyên biệt cực kỳ tinh gọn:**
+      + `[⚡ Chấm Bù]`: Chỉ hiển thị Dữ liệu GPS thực tế + Form chấm bù 1 chạm (giờ vào, giờ ra, chip lý do nhanh, người duyệt, nút xác nhận). Vừa khít 1 màn hình điện thoại (~360px), **không cần cuộn**.
+      + `[🗓️ Đổi Ca]`: Chọn khung giờ làm việc, thêm ca 2, chuyển sang OFF. Khung danh sách ca được cuộn gọn trong `max-h-56`.
+      + `[🚨 Nghỉ / Xóa]`: Báo nghỉ ốm đột xuất (chợ ca +50k), xóa ca hoặc xóa cả kỳ.
+    - **Điều hướng thông minh:** Click ô quá khứ / hôm nay -> Tự động mở ngay Tab `[⚡ Chấm Bù]`; click ô tương lai -> Tự động mở Tab `[🗓️ Đổi Ca]`.
+    - **Giới hạn chiều cao an toàn:** Modal được khóa trần `max-h-[85vh]`, thanh cuộn nội bộ mượt mà, bảo đảm nút đóng `[X]` và nút xác nhận luôn nằm trong tầm mắt người dùng.
+
 ### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).
