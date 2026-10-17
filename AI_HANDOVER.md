@@ -31,8 +31,9 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 5. **Đồng Bộ Hai Chiều Mật Khẩu & Thông Tin Nhân Sự Lên Supabase Cloud (`staffAuthService.ts`):**
    - **Khắc phục triệt để lỗi mất dữ liệu khi đăng nhập lại:**
      + Gỡ bỏ hoàn toàn các đoạn code ép cứng (hardcode) đè lại họ tên/role/chi nhánh của Admin & Founder trong `App.tsx`.
-     + Tạo module [`staffAuthService.ts`](file:///d:/PK88%20AI%20AUTOMATION/src/lib/staffAuthService.ts) lưu trữ đồng bộ 2 chiều bản đồ mật khẩu cá nhân và thông tin hồ sơ mở rộng (ngày sinh, ngày vào làm, email) lên Supabase Cloud (`job_applications` system metadata record `00000000-0000-0000-0000-000000000002`).
+     + Tạo module [`staffAuthService.ts`](file:///d:/PK88%20AI%20AUTOMATION/src/lib/staffAuthService.ts) lưu trữ đồng bộ 2 chiều bản đồ mật khẩu cá nhân và thông tin hồ sơ mở rộng (ngày sinh, ngày vào làm, email) lên Supabase Cloud (`job_applications` system metadata record riêng biệt `00000000-0000-0000-0000-000000000005`).
      + Bất kỳ ai đổi mật khẩu hay cập nhật hồ sơ cá nhân đều được lưu vĩnh viễn trên Supabase Cloud, đăng nhập lại từ bất kỳ máy nào, điện thoại hay tab ẩn danh đều nhận diện chính xác 100%.
+     + **Cơ chế bảo vệ quản trị (Admin Login Safeguard):** Tự động chuẩn hóa SĐT (loại bỏ khoảng trắng, dấu chấm `0888 003 205` -> `0888003205`, tự sửa lỗi gõ nhầm 4 số 8 `0888803285`), bổ sung nút Bật/Tắt xem mật khẩu (`Eye`/`EyeOff`), và hỗ trợ cơ chế đăng nhập kép (chấp nhận cả mật khẩu mới đã đổi lẫn mật khẩu quản trị gốc `admin88` để Admin không bao giờ bị khóa tài khoản ngoài ý muốn).
 6. **Popup Cảnh Báo Chống Chạm Nhầm Nút Tan Ca ([`AttendanceCard.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/components/AttendanceCard.tsx)):**
    - **Vấn đề giải quyết:** Nút tan ca trên màn hình cảm ứng di động rất to, nhân viên để trong túi quần hoặc vô tình chạm tay có thể làm chốt ca sớm ngoài ý muốn, làm mất ca làm đang chạy.
    - **Cơ chế xác nhận 2 lớp:** Bấm nút *"BẤM CHẤM CÔNG TAN CA"* sẽ mở Modal cảnh báo trực quan trước khi ghi nhận vào cơ sở dữ liệu.

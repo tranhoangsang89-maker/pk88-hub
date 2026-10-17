@@ -1,7 +1,7 @@
 import { supabase } from './supabase';
 import { Staff } from '../types';
 
-export const STAFF_METADATA_RECORD_ID = '00000000-0000-0000-0000-000000000002';
+export const STAFF_METADATA_RECORD_ID = '00000000-0000-0000-0000-000000000005';
 export const PASSWORDS_STORAGE_KEY = 'pk88_passwords';
 export const STAFF_OVERRIDES_STORAGE_KEY = 'pk88_staff_overrides';
 
@@ -29,7 +29,7 @@ export function getStaffPasswordSync(phone: string): string {
   // Mật khẩu mặc định hệ thống
   const p = phone.trim();
   if (p === '0777888688') return '888888'; // Founder
-  if (p === '0888003205') return 'admin88'; // Admin
+  if (p === '0888003205' || p === '0888803285') return 'admin88'; // Admin
   if (p === '0394336726') return 'hr88'; // HR
   return '123456'; // Nhân viên chuỗi
 }
