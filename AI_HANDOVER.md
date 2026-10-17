@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 16/10/2026 (Chuyển Đổi Chấm Công Thực Tế: Ẩn Hoàn Toàn Demo Test GPS, Nâng Cấp Nút 'Lấy GPS Thật' To Rõ Ràng, Tự Động Quét GPS Khi Vào Ca)*
+*Ngày cập nhật mới nhất: 17/10/2026 (Cấu hình PWA: Thêm manifest.json, Service Worker, hỗ trợ Thêm vào màn hình chính Standalone cho iOS & Android)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -8,15 +8,24 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
 - **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, và Ma trận Phân chia ca & Điều động nhân sự 15 ngày.
-- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`).
+- **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`), Progressive Web App (PWA).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 16/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 17/10/2026) - QUAN TRỌNG
 
-### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (NEW - 16/10)
+### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (NEW - 17/10)
+1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
+   - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).
+   - Tận dụng nhận diện logo thương hiệu có sẵn `logo-pk88.jpg` làm app icon chuẩn đa kích thước.
+2. **Tối Ưu Trải Nghiệm iOS / Apple Safari:**
+   - Bổ sung trọn bộ thẻ Apple Meta Tags trong [`index.html`](file:///d:/PK88%20AI%20AUTOMATION/index.html): `apple-touch-icon`, `apple-mobile-web-app-capable: yes`, thanh trạng thái `black-translucent`, tên app `PK88 Portal`, `viewport-fit=cover`.
+3. **Tích Hợp Service Worker Offline-First:**
+   - Tạo [`public/sw.js`](file:///d:/PK88%20AI%20AUTOMATION/public/sw.js) và tự động đăng ký trong [`src/main.tsx`](file:///d:/PK88%20AI%20AUTOMATION/src/main.tsx) khi chạy production, kích hoạt tính năng cài đặt ứng dụng trên Chrome/Android.
+
+### H. Chuyển Đổi Vận Hành Chấm Công Thực Tế (16/10)
 1. **Ẩn Mặc Định Hoàn Toàn Chế Độ Kiểm Thử (Test/Demo GPS):**
    - Xóa bỏ hiển thị công khai của các nút giả lập *"Tại Shop"* và *"Ngoài Shop"* trên giao diện chấm công của nhân viên để ngăn ngừa gian lận vị trí.
    - Chế độ giả lập chỉ có thể mở lại khi tài khoản Admin/Founder bấm nút toggle ẩn `[🧪 Mở chế độ test GPS giả lập (Chỉ Admin)]`. Nhân viên thông thường tuyệt đối không thấy bất kỳ công cụ test nào.

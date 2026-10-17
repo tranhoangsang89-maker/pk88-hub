@@ -1,0 +1,19 @@
+{
+  "name": "PK88 Automation Portal - Phụ Kiện 88",
+  "short_name": "PK88 Portal",
+  "description": "Hệ thống Quản trị Vận hành Tự động hóa AI, Chấm công GPS Geofencing Chuỗi Phụ Kiện 88",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#020617",
+  "theme_color": "#0f172a",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/logo-pk88.jpg",
+      "sizes": "192x192 512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}
