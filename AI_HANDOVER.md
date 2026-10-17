@@ -63,6 +63,20 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      + Nhờ vậy, ngay trên điện thoại, bảng ma trận hiển thị đồng thời được **4 đến 5 ngày** thay vì chỉ 1 ngày duy nhất bị cụt như trước đó.
      + Avatar, tên, chức vụ và ô ngày đều co giãn mượt mà theo chuẩn mobile-first.
 
+7. **Chấm Bù Nhanh 1 Chạm Ngày Quá Khứ & Nhật Ký Kiểm Toán (Audit Trail) ([ShiftSchedulingMatrix.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/ShiftSchedulingMatrix.tsx)):**
+   - **Phân quyền cấp cao:** Founder, Admin, HR và Cửa Hàng Trưởng được quyền click vào bất kỳ ô ngày quá khứ nào để "Chấm Bù Nhanh 1 Chạm" khi nhân viên đi làm đầy đủ nhưng quên check-in GPS.
+   - **Tự động áp dụng khung giờ:** Điền chính xác giờ bắt đầu & giờ kết thúc ca theo định mức, tính đủ 1.0 công hoặc theo giờ quy định.
+   - **Audit Trail Minh Bạch:** Ghi rõ huy hiệu `✏️ Đã bù công` cùng tooltip hiển thị người duyệt (VD: "Bù bởi CHT Nguyễn Văn A lúc 10:15 17/10"), đồng bộ trực tiếp lên Supabase Cloud.
+
+8. **Khóa Cứng Quyền Xem Chi Nhánh Cho Cửa Hàng Trưởng (Branch Data Isolation):**
+   - Cửa Hàng Trưởng (Manager) và nhân viên chỉ được xem và thao tác trên đúng chi nhánh mình phụ trách.
+   - Menu dropdown chọn chi nhánh bị ẩn/khóa đối với Manager; chỉ Founder, Admin và HR mới có quyền chuyển đổi để xem toàn bộ các chi nhánh của chuỗi.
+
+9. **Phân Quyền Nút "Điều Động Nhân Sự" Chuẩn Vận Hành Chuỗi (Phương Án 1):**
+   - **Thẩm quyền tập trung:** Chỉ duy nhất **Founder, Admin và HR** mới có nút và quyền sử dụng `[✈️ Điều Động Nhân Sự]` chéo chi nhánh (vì chỉ Ban Điều Hành mới có góc nhìn tổng thể toàn chuỗi để quyết định nơi thừa/nơi thiếu).
+   - **Cửa Hàng Trưởng khi thiếu người:** Sử dụng nút `[🚨 Chợ Ca Khẩn Cấp (+50k)]` để phát sóng ca trống cho nhân viên các shop khác tự nguyện nhận ca hỗ trợ, hoặc gửi yêu cầu lên HR/Admin để được điều động.
+   - **Bảo vệ nhân sự văn phòng & ban lãnh đạo:** Danh sách nhân viên trong Modal điều động tự động loại trừ các vai trò Văn phòng & Quản trị cấp cao (`founder`, `admin`, `hr`, `accountant`, `warehouse_accountant`, `marketing`, `media`, `PK88-FOUNDER`), ngăn ngừa việc điều động nhầm nhân sự cốt lõi đi trực shop.
+
 ### I. Cấu Hình PWA Chuẩn Hóa Mobile-First (17/10)
 1. **Hỗ Trợ Toàn Diện "Thêm Vào Màn Hình Chính" (Add to Home Screen):**
    - Đã tạo tệp cấu hình chuẩn PWA [`public/manifest.json`](file:///d:/PK88%20AI%20AUTOMATION/public/manifest.json) với định danh `PK88 Portal`, hiển thị `standalone` (toàn màn hình, triệt tiêu hoàn toàn thanh URL trình duyệt).

@@ -1072,8 +1072,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   // Submit Cross-Branch Dispatch
   const handleDispatchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!canManageSchedule) {
-      showToast('⛔ Bạn không có quyền điều động nhân sự chéo chi nhánh!');
+    if (!isHQAdmin) {
+      showToast('⛔ Chỉ Founder, Admin, HR mới có thẩm quyền điều động nhân sự chéo chi nhánh!');
       return;
     }
     const staff = staffList.find(s => s.id === dispatchStaffId);
@@ -1354,17 +1354,20 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
             {/* CHỈ CỬA HÀNG TRƯỞNG & HR/ADMIN MỚI ĐƯỢC XẾP LỊCH */}
             {canManageSchedule ? (
               <>
-                {/* Điều Động Chéo Chi Nhánh */}
-                <button
-                  onClick={() => {
-                    setDispatchToBranchId(selectedBranchId);
-                    setShowDispatchModal(true);
-                  }}
-                  className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  <Plane className="w-4 h-4 text-amber-400" />
-                  <span>✈️ Điều Động Nhân Sự</span>
-                </button>
+                {/* Điều Động Chéo Chi Nhánh: CHỈ DÀNH CHO FOUNDER, ADMIN, HR */}
+                {isHQAdmin && (
+                  <button
+                    onClick={() => {
+                      setDispatchToBranchId(selectedBranchId);
+                      setShowDispatchModal(true);
+                    }}
+                    className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-sm"
+                    title="Quyền hạn cấp cao (Founder, HR, Admin): Điều động nhân sự chéo chi nhánh"
+                  >
+                    <Plane className="w-4 h-4 text-amber-400" />
+                    <span>✈️ Điều Động Nhân Sự</span>
+                  </button>
+                )}
 
                 {/* Đổ Ca Tự Động 1 Chạm */}
                 <button
@@ -3209,11 +3212,12 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                   required
                 >
                   <option value="">-- Chọn nhân viên cần cử đi --</option>
-                  {staffList.filter(s => 
-                    s.role !== 'founder' && 
-                    s.code !== 'PK88-FOUNDER' && 
-                    !s.fullName?.toLowerCase().includes('founder')
-                  ).map(s => {
+                  {staffList.filter(s => {
+                    const r = s.role?.toLowerCase() || '';
+                    const isOfficeOrHQ = ['founder', 'admin', 'hr', 'accountant', 'warehouse_accountant', 'marketing', 'media', 'customer'].includes(r);
+                    const isFounderCode = s.code === 'PK88-FOUNDER' || s.fullName?.toLowerCase().includes('founder');
+                    return !isOfficeOrHQ && !isFounderCode;
+                  }).map(s => {
                     const b = branches.find(item => item.id === s.branchId);
                     return (
                       <option key={s.id} value={s.id}>
