@@ -10,6 +10,7 @@ import { LoginModal } from './components/LoginModal';
 import { TrainingLMS } from './components/TrainingLMS';
 import { MarketingDashboard } from './components/MarketingDashboard';
 import { MarketingModal } from './components/MarketingModal';
+import { PK88MarketingStudio } from './components/PK88MarketingStudio';
 import { AIHRModal } from './components/AIHRModal';
 import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { POSView } from './components/POSView';
@@ -23,7 +24,7 @@ import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { fetchStaffAuthMetadataFromCloud } from './lib/staffAuthService';
 import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
-import { MarketingPost, MarketingPlatform } from './types';
+import { MarketingPost, MarketingPlatform, MarketingPostStatus } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
 
 export function App() {
@@ -86,6 +87,7 @@ export function App() {
   const [showMarketingModal, setShowMarketingModal] = useState<boolean>(false);
   const [showAIHRModal, setShowAIHRModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showMarketingStudio, setShowMarketingStudio] = useState<boolean>(false);
   const [showPersonalShiftsModal, setShowPersonalShiftsModal] = useState<boolean>(false);
 
   // Tự động điều hướng nếu tab hiện tại không thuộc quyền hạn của vai trò hiện tại
@@ -972,22 +974,36 @@ export function App() {
     }
   };
 
-  const handleMarketingSubmit = async (platform: MarketingPlatform, url: string) => {
+  const handleMarketingSubmit = async (
+    platform: MarketingPlatform, 
+    url: string, 
+    status: MarketingPostStatus = 'approved'
+  ) => {
     if (!currentUser) return;
     
-    const newPost = {
+    const newPost: any = {
       branch_id: selectedBranch.id,
       platform,
       post_url: url,
-      author_name: currentUser.fullName
+      author_name: currentUser.fullName,
+      status
     };
 
     try {
-      const { data, error } = await supabase.from('marketing_posts').insert([newPost]).select();
+      let insertResult = await supabase.from('marketing_posts').insert([newPost]).select();
+      
+      // Khả năng tương thích ngược: Nếu bảng Supabase chưa chạy ALTER TABLE thêm cột status
+      if (insertResult.error && insertResult.error.message.includes('column') && insertResult.error.message.includes('status')) {
+        const { status: _, ...compatPost } = newPost;
+        insertResult = await supabase.from('marketing_posts').insert([compatPost]).select();
+      }
+
+      const { data, error } = insertResult;
       
       if (!error && data && data.length > 0) {
         setMarketingPosts(prev => {
-          const updated = [data[0] as MarketingPost, ...prev];
+          const inserted = { ...newPost, ...(data[0] as MarketingPost) };
+          const updated = [inserted, ...prev];
           localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
           return updated;
         });
@@ -1077,7 +1093,44 @@ export function App() {
     }
   };
 
+  // Cập nhật trạng thái duyệt bài (pending_review → approved / rejected) cho Bàn Biên Tập
+  const handleUpdatePostStatus = async (
+    postId: string,
+    status: MarketingPostStatus,
+    reviewedBy: string,
+    feedback?: string
+  ) => {
+    try {
+      const updateData: any = {
+        status,
+        reviewed_by: reviewedBy,
+        reviewed_at: new Date().toISOString()
+      };
+      if (feedback) updateData.reviewer_feedback = feedback;
+
+      // 1. Optimistic update State + localStorage
+      setMarketingPosts(prev => {
+        const updated = prev.map(p => p.id === postId ? { ...p, ...updateData } : p);
+        localStorage.setItem('pk88_marketing_posts', JSON.stringify(updated));
+        return updated;
+      });
+
+      // 2. Đồng bộ lên Supabase (an toàn: chỉ cập nhật nếu cột status tồn tại)
+      const { error } = await supabase
+        .from('marketing_posts')
+        .update(updateData)
+        .eq('id', postId);
+
+      if (error) {
+        console.warn('Supabase update post status notice:', error.message);
+      }
+    } catch (err) {
+      console.error('Update post status exception:', err);
+    }
+  };
+
   const handleLeaveRequestSubmit = async (newReq: LeaveRequest) => {
+
     // 1. Optimistic update and persist local cache
     setLeaveRequests(prev => {
       const updated = [newReq, ...prev];
@@ -1738,16 +1791,33 @@ export function App() {
 
             {/* 4. Marketing Hub */}
             {activeTab === 'marketing' && currentUser && (
-              <MarketingDashboard 
-                branches={activeBranches} 
-                posts={marketingPosts} 
-                currentBranch={selectedBranch}
-                currentUser={currentUser}
-                onOpenSubmitModal={handleOpenMarketingModal}
-                onUpdatePost={handleUpdateMarketingPost}
-                onDeletePost={handleDeleteMarketingPost}
-              />
+              <>
+                <MarketingDashboard 
+                  branches={activeBranches} 
+                  posts={marketingPosts} 
+                  currentBranch={selectedBranch}
+                  currentUser={currentUser}
+                  onOpenSubmitModal={handleOpenMarketingModal}
+                  onUpdatePost={handleUpdateMarketingPost}
+                  onDeletePost={handleDeleteMarketingPost}
+                  onOpenStudio={() => setShowMarketingStudio(true)}
+                />
+
+                {/* PK88 Marketing Studio Modal - Hoàn toàn độc lập, không ảnh hưởng gì đến code cũ */}
+                <PK88MarketingStudio
+                  isOpen={showMarketingStudio}
+                  onClose={() => setShowMarketingStudio(false)}
+                  currentBranch={selectedBranch}
+                  currentUser={currentUser}
+                  branches={activeBranches}
+                  posts={marketingPosts}
+                  onUpdatePostStatus={handleUpdatePostStatus}
+                  onSubmitPost={handleMarketingSubmit}
+                />
+              </>
             )}
+
+
 
             {/* 5. Quản Lý Cửa Hàng (Manager) */}
             {(activeTab === 'shop_management' || activeTab === 'staff_directory') && currentUser && (

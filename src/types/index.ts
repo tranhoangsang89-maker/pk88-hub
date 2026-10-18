@@ -186,6 +186,8 @@ export interface StaffProgress {
 
 export type MarketingPlatform = 'facebook' | 'tiktok' | 'zalo' | 'youtube';
 
+export type MarketingPostStatus = 'draft' | 'pending_review' | 'approved' | 'rejected';
+
 export interface MarketingPost {
   id: string;
   branch_id: string; // cn_bt1, cn_mt, etc.
@@ -195,6 +197,16 @@ export interface MarketingPost {
   created_at: string;
   views?: number;
   likes?: number;
+  // --- Các trường mới từ update-mkt.md ---
+  status?: MarketingPostStatus; // Mặc định 'approved' - bài lịch sử không bị ảnh hưởng
+  reviewer_feedback?: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  facebook_caption?: string;
+  tiktok_script?: string;
+  zalo_text?: string;
+  gmaps_text?: string;
+  framed_image_url?: string;
 }
 
 export type LeaveType = 'PAID_LEAVE' | 'UNPAID_LEAVE' | 'SICK_LEAVE';

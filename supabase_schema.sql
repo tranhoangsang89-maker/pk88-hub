@@ -635,3 +635,38 @@ INSERT INTO products (stt, category, name, price, brand) VALUES
 ('508', 'GẬY SELFIE', 'GẬY SELFI MINI WIWU WI-SE011\*', 799000, 'WIWU'),  
 ('509', 'GẬY SELFIE', 'GIMBAL 360 ĐỘ P01', 599000, 'Khác'),  
 ('510', 'GẬY SELFIE', 'GẬY SELFIE SHARP FILM WIWU WI-SE003\*', 499000, 'WIWU');  
+
+-- ============================================================
+-- 6. BẢNG MARKETING POSTS & BỘ TỨ TỰ ĐỘNG HÓA MARKETING
+-- ============================================================
+CREATE TABLE IF NOT EXISTS marketing_posts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    branch_id VARCHAR(50) NOT NULL,
+    platform VARCHAR(30) NOT NULL,
+    post_url TEXT NOT NULL,
+    author_name VARCHAR(100) NOT NULL,
+    views INT DEFAULT 0,
+    likes INT DEFAULT 0,
+    status TEXT DEFAULT 'approved' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected')),
+    reviewer_feedback TEXT,
+    reviewed_by TEXT,
+    reviewed_at TIMESTAMPTZ,
+    facebook_caption TEXT,
+    tiktok_script TEXT,
+    zalo_text TEXT,
+    gmaps_text TEXT,
+    framed_image_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Migration nếu bảng đã tồn tại sẵn từ trước:
+ALTER TABLE marketing_posts 
+ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected')),
+ADD COLUMN IF NOT EXISTS reviewer_feedback TEXT,
+ADD COLUMN IF NOT EXISTS reviewed_by TEXT,
+ADD COLUMN IF NOT EXISTS reviewed_at TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS facebook_caption TEXT,
+ADD COLUMN IF NOT EXISTS tiktok_script TEXT,
+ADD COLUMN IF NOT EXISTS zalo_text TEXT,
+ADD COLUMN IF NOT EXISTS gmaps_text TEXT,
+ADD COLUMN IF NOT EXISTS framed_image_url TEXT;

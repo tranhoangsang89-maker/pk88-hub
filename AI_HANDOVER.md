@@ -540,12 +540,27 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ### G. Hệ Thống Chấm Công GPS Geofencing (Core Feature)
 - Kiểm tra bán kính 35m từ tọa độ 7 cửa hàng, tự động dò tìm nhân viên theo Số Điện Thoại (`phone`).
 
-### H. Quản Lý Nhân Sự & Bảng Lương Đa Vai Trò (Multi-Role Payroll Engine)
-- Hệ số lương đa dạng theo vị trí:
-  - **Bán Hàng & Kỹ Thuật Viên:** `22.700 đ/giờ` (Áp dụng cho 6 chi nhánh: Phú Khương, Đồng Khởi, Mỹ Tho, Vĩnh Long, Cần Thơ, Văn Phòng).
-  - **Riêng Chi Nhánh Thủ Đức:** Bán Hàng & Kỹ Thuật Viên được áp dụng mức `25.500 đ/giờ`.
-  - **Tăng ca (OT):** Tính theo đơn giá giờ chuẩn thông thường (1.0x), hệ thống tự động bóc tách số giờ làm thêm và hiển thị badge `⭐ OT: +X.Xh`.
-  - **Khối Quản Lý & Văn Phòng (Cố định):** Quản lý cửa hàng: 8.5M, HR: 12M, Kế toán: 13.5M, Marketing: 14M, TP. Kinh doanh: 15M, Admin: 19M, Founder: 0đ.
+### L. Phân Hệ Xưởng Marketing 88 & Kho 521 Sản Phẩm (NEW - 18/10/2026)
+1. **Radar Tình Báo Đối Thủ 3km Quanh Chi Nhánh (Competitor Intelligence Radar):**
+   - Tích hợp tọa độ GPS thực tế từ `google-maps.txt` của chuỗi Phụ Kiện 88 và danh sách 6–7 đối thủ thực tế trên địa bàn (Thế Giới Di Động, FPT Shop, Điện Thoại Vui, Viettel Store, CellphoneS, Di Động Việt, Hoàng Hà Mobile, Sang Mobile, Bạch Long Mobile...) trong bán kính 3km.
+   - Phân tích điểm mạnh, điểm yếu và gợi ý đòn phản công marketing theo thời gian thực cho từng chi nhánh.
+
+2. **Chuyển Thể Đa Kênh Content 1 ➔ 4 & AI Vision OCR Bao Bì Sản Phẩm:**
+   - Nhập nội dung thô hoặc chọn sản phẩm, AI tự động tạo 4 phiên bản riêng biệt: Facebook Fanpage, Kịch bản TikTok miền Tây, Tin nhắn Zalo OA, và Review SEO Google Maps.
+   - Hỗ trợ tải lên 1 hoặc nhiều ảnh chụp thực tế hoặc dán ảnh chụp màn hình trực tiếp từ clipboard (`Ctrl+V`).
+   - Tích hợp công nghệ nén ảnh client-side (`processReferenceImageFile`) và AI Vision & OCR bóc tách thông số kỹ thuật, hãng sản xuất trực tiếp từ vỏ hộp bao bì.
+   - Thiết kế giao diện khung nhập liệu toàn màn hình (`100% width`), vùng soạn thảo rộng rãi (`rows={5}`, `min-h-[140px]`), cuộn trang mượt mà và thanh chọn kênh dính (Sticky Platform Bar).
+
+3. **Toàn Diện Kho 521 Sản Phẩm & Bộ Lọc 15 Danh Mục Chuẩn Hóa:**
+   - Nạp đầy đủ 521 sản phẩm từ `PK88_Danh_Sach_521_San_Pham_Cleaned.json` bao gồm 15 danh mục chuẩn: *Kính Cường Lực (244), Dán PPF (73), Lens Camera (41), Bộ Sạc (27), Cáp Sạc (27), Ốp Lưng (23), Sạc Dự Phòng (23), Pin iPhone (19), Củ Sạc (9), Tai Nghe Dây (8), Tai Nghe BT (6), Tẩu Sạc Ô Tô (6), Kệ & Giá Đỡ (6), Gậy Selfie (5), Loa BT (4)*.
+   - Xóa bỏ hoàn toàn giới hạn 50 sản phẩm cũ (`slice(0, 50)`), cho phép cuộn xem mượt mà toàn bộ 521 SKU.
+   - Bổ sung 15 Tab Danh Mục cuộn ngang kèm số lượng sản phẩm trực quan.
+   - Thuật toán tìm kiếm thông minh không phụ thuộc dấu tiếng Việt (`removeVietnameseTones`), hỗ trợ gõ không dấu (`cu sac`, `op lung`, `pin`, `tai nghe`) hoặc tìm theo thương hiệu (`Pisen`, `Wiwu`, `URR`, `Anank`, `Quaker`, `Hoco`, `KingKong`...).
+   - Hiển thị đầy đủ số thứ tự `#STT`, badge danh mục màu sắc riêng biệt, badge thương hiệu và giá niêm yết kép (k và VNĐ).
+
+4. **Khung Ảnh Tự Động 1080×1080 (Canvas Auto-Framing) & Bàn Biên Tập Kanban:**
+   - Tự động gắn khung thương hiệu PK88 Gold/Dark/Accent, dán thông tin sản phẩm và xuất ảnh JPG chuẩn tỷ lệ 1:1 cho bài đăng Fanpage.
+   - Bàn tổng biên tập Kanban hỗ trợ kiểm duyệt bài viết marketing từ các chi nhánh trước khi xuất bản.
 
 ---
 

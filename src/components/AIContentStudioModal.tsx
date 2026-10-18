@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Branch } from '../types';
 import productsData from '../lib/products.json';
+import { removeVietnameseTones, CATEGORY_DISPLAY_NAMES } from './PK88MarketingStudio';
 
 interface AIContentStudioModalProps {
   isOpen: boolean;
@@ -17,7 +18,8 @@ const ALL_PRODUCTS = productsData.map((p: any) => ({
   name: p.name,
   price: p.price,
   label: `${p.name} - ${(p.price / 1000).toLocaleString()}k`,
-  category: p.category
+  category: p.category,
+  brand: p.brand || 'Khác'
 }));
 
 const STYLES = [
@@ -49,10 +51,20 @@ export function AIContentStudioModal({ isOpen, onClose, currentBranch, onOpenSub
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const filteredProducts = ALL_PRODUCTS.filter(p => 
-    p.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-    p.category.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const filteredProducts = ALL_PRODUCTS.filter(p => {
+    if (!searchTerm.trim()) return true;
+    const words = removeVietnameseTones(searchTerm.trim()).split(/\s+/).filter(Boolean);
+    const normName = removeVietnameseTones(p.name);
+    const normCat = removeVietnameseTones(p.category);
+    const normBrand = removeVietnameseTones(p.brand || '');
+    const normDisplayCat = removeVietnameseTones(CATEGORY_DISPLAY_NAMES[p.category] || '');
+    return words.every(w =>
+      normName.includes(w) ||
+      normCat.includes(w) ||
+      normBrand.includes(w) ||
+      normDisplayCat.includes(w)
+    );
+  });
 
   if (!isOpen) return null;
 

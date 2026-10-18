@@ -15,6 +15,7 @@ interface MarketingDashboardProps {
   currentBranch: Branch;
   currentUser: Staff;
   onOpenSubmitModal: () => void;
+  onOpenStudio?: () => void;
   onUpdatePost?: (
     postId: string, 
     views: number, 
@@ -30,9 +31,11 @@ export function MarketingDashboard({
   currentBranch, 
   currentUser, 
   onOpenSubmitModal,
+  onOpenStudio,
   onUpdatePost,
   onDeletePost 
 }: MarketingDashboardProps) {
+
   const [showAIModal, setShowAIModal] = useState(false);
   const [feedBranchFilter, setFeedBranchFilter] = useState<string>('ALL');
   const [feedPlatformFilter, setFeedPlatformFilter] = useState<string>('ALL');
@@ -426,7 +429,16 @@ Chỉ trả về duy nhất chuỗi JSON:
             Giám sát bài đăng, lượt xem và tương tác của toàn chuỗi 7 chi nhánh Phụ Kiện 88
           </p>
         </div>
-        <div className="flex items-center gap-2 w-full md:w-auto">
+        <div className="flex items-center gap-2 w-full md:w-auto flex-wrap">
+          {onOpenStudio && (
+            <button
+              onClick={onOpenStudio}
+              className="flex-1 md:flex-none px-4 py-2.5 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-white font-bold rounded-xl flex items-center justify-center gap-2 shadow-lg shadow-amber-900/30 transition-all border border-amber-400/30 text-xs"
+            >
+              <Sparkles className="w-4 h-4" />
+              🏭 Xưởng Marketing 88
+            </button>
+          )}
           <button
             onClick={() => handleOpenScanner()}
             className="flex-1 md:flex-none px-3.5 py-2.5 bg-cyan-600/20 hover:bg-cyan-600/30 text-cyan-300 font-bold rounded-xl flex items-center justify-center gap-2 border border-cyan-500/40 transition-all text-xs shadow-lg shadow-cyan-900/20"
@@ -836,8 +848,8 @@ Chỉ trả về duy nhất chuỗi JSON:
                     )}
                   </div>
 
-                  {/* HUY HIỆU ĐO LƯỜNG VIEW VÀ LIKE */}
-                  <div className="flex items-center gap-1.5 my-2">
+                  {/* HUY HIỆU ĐO LƯỜNG VIEW VÀ LIKE & TRẠNG THÁI DUYỆT */}
+                  <div className="flex items-center gap-1.5 my-2 flex-wrap">
                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-[11px] font-semibold">
                       <Eye className="w-3 h-3 text-cyan-400" />
                       {(post.views || 0).toLocaleString('vi-VN')} views
@@ -846,7 +858,22 @@ Chỉ trả về duy nhất chuỗi JSON:
                       <Heart className="w-3 h-3 text-rose-400" />
                       {(post.likes || 0).toLocaleString('vi-VN')} thích
                     </span>
+                    {post.status === 'pending_review' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] font-semibold animate-pulse">
+                        ⏳ Chờ duyệt
+                      </span>
+                    )}
+                    {post.status === 'rejected' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-500/15 border border-rose-500/40 text-rose-300 text-[10px] font-semibold" title={post.reviewer_feedback}>
+                        ❌ Trả về
+                      </span>
+                    )}
                   </div>
+                  {post.status === 'rejected' && post.reviewer_feedback && (
+                    <div className="text-[11px] text-rose-300 bg-rose-950/40 border border-rose-900/60 p-2 rounded-xl mb-2">
+                      <span className="font-bold text-rose-400">Góp ý từ {post.reviewed_by || 'Bàn Biên Tập'}:</span> {post.reviewer_feedback}
+                    </div>
+                  )}
 
                   {/* CÁC NÚT THAO TÁC 3 TRONG 1 */}
                   <div className="grid grid-cols-3 gap-1.5 mt-2">

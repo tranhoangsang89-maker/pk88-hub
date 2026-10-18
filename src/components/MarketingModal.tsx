@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, Facebook, Youtube, PlaySquare, MessageCircle, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react';
-import { Branch, Staff, MarketingPlatform, MarketingPost } from '../types';
+import { Branch, Staff, MarketingPlatform, MarketingPost, MarketingPostStatus } from '../types';
 
 interface MarketingModalProps {
   isOpen: boolean;
@@ -8,7 +8,7 @@ interface MarketingModalProps {
   currentUser: Staff;
   currentBranch: Branch;
   existingPosts?: MarketingPost[];
-  onSubmit: (platform: MarketingPlatform, url: string) => void;
+  onSubmit: (platform: MarketingPlatform, url: string, status?: MarketingPostStatus) => void;
 }
 
 export const detectPlatformFromUrl = (url: string): MarketingPlatform | null => {
@@ -33,12 +33,14 @@ export function MarketingModal({ isOpen, onClose, currentUser, currentBranch, ex
   const [url, setUrl] = useState('');
   const [detectedPlatform, setDetectedPlatform] = useState<MarketingPlatform | null>(null);
   const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
+  const [needReview, setNeedReview] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
       setUrl('');
       setDetectedPlatform(null);
       setDuplicateWarning(null);
+      setNeedReview(false);
     }
   }, [isOpen]);
 
@@ -91,8 +93,9 @@ export function MarketingModal({ isOpen, onClose, currentUser, currentBranch, ex
       finalPlatform = detected;
     }
 
-    onSubmit(finalPlatform, cleanUrl);
+    onSubmit(finalPlatform, cleanUrl, needReview ? 'pending_review' : 'approved');
     setUrl('');
+    setNeedReview(false);
   };
 
   return (
@@ -215,6 +218,24 @@ export function MarketingModal({ isOpen, onClose, currentUser, currentBranch, ex
             </div>
           </div>
 
+          {/* Tùy chọn gửi Bàn Biên Tập kiểm duyệt */}
+          <label className="flex items-start gap-2.5 bg-slate-950/80 p-3 rounded-xl border border-slate-800 hover:border-slate-700 cursor-pointer transition-colors">
+            <input
+              type="checkbox"
+              checked={needReview}
+              onChange={(e) => setNeedReview(e.target.checked)}
+              className="mt-0.5 rounded text-amber-500 focus:ring-0 bg-slate-900 border-slate-700 w-4 h-4 cursor-pointer accent-amber-500"
+            />
+            <div className="text-left">
+              <span className="text-xs font-bold text-slate-200 block">
+                📋 Gửi Bàn Biên Tập duyệt bài trước khi công bố
+              </span>
+              <span className="text-[10px] text-slate-500 block leading-tight mt-0.5">
+                Chuyển bài sang hàng đợi Bàn Tổng Biên Tập (Leader Khả Tú / Media Quốc Việt) duyệt 1-click.
+              </span>
+            </div>
+          </label>
+
           {/* Actions */}
           <div className="pt-2">
             <button
@@ -223,7 +244,7 @@ export function MarketingModal({ isOpen, onClose, currentUser, currentBranch, ex
               className="w-full bg-amber-500 hover:bg-amber-400 disabled:bg-slate-800 disabled:text-slate-500 disabled:cursor-not-allowed text-slate-950 font-extrabold py-3 rounded-2xl transition-all shadow-lg shadow-amber-500/20 flex justify-center items-center gap-2 cursor-pointer"
             >
               <Send className="w-4 h-4" />
-              <span>Ghi Nhận Bài Đăng Ngay</span>
+              <span>{needReview ? 'Gửi Duyệt Bài Ngay' : 'Ghi Nhận Bài Đăng Ngay'}</span>
             </button>
           </div>
         </form>

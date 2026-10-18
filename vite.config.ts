@@ -55,7 +55,10 @@ export default defineConfig({
   },
   server: {
     port: 3000,
-    host: true
+    host: true,
+    watch: {
+      ignored: ['**/*.pdf', '**/*.xlsx', '**/*.docx', '**/scratch_*', '**/*.txt']
+    }
   }
 });
 

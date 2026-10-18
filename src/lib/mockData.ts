@@ -35,7 +35,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '11111111-2222-3333-4444-555555555555',
     code: 'PK88_VANPHONG',
     name: 'Phụ Kiện 88 - Văn Phòng',
-    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long',
+    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
     lat: 10.252668,
     lng: 106.370604,
     isActive: true
@@ -44,7 +44,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     code: 'PK88_PHUKHUONG',
     name: 'Phụ Kiện 88 - Phú Khương',
-    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ)',
+    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre (đối diện cây xăng ngã tư Phú Khương)',
     lat: 10.2527211,
     lng: 106.3707262,
     wifiBssid: '00:11:22:33:44:55',
@@ -54,7 +54,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28',
     code: 'PK88_DONGKHOI',
     name: 'Phụ Kiện 88 - Đồng Khởi',
-    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Vòng xoay Tân Thành)',
+    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, TP. Bến Tre (ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
     lat: 10.2584726,
     lng: 106.3616252,
     isActive: true
@@ -63,7 +63,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: 'ce898286-8130-44cb-9f92-25176cec6703',
     code: 'PK88_MYTHO',
     name: 'Phụ Kiện 88 - Mỹ Tho',
-    address: '25 Đinh Bộ Lĩnh, Phường Mỹ Tho, Tỉnh Đồng Tháp',
+    address: '25 Đinh Bộ Lĩnh, Phường 2, TP. Mỹ Tho, Tiền Giang (ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc Cầu Quay)',
     lat: 10.355880,
     lng: 106.369735,
     isActive: true
@@ -72,7 +72,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '7593aa44-bd49-476a-8d13-b9912874c0e0',
     code: 'PK88_CANTHO',
     name: 'Phụ Kiện 88 - Cần Thơ',
-    address: '94 Đường Trần Hưng Đạo, Phường An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ',
+    address: '94 Trần Hưng Đạo, Phường An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh Jollibee)',
     lat: 10.037976,
     lng: 105.7763555,
     isActive: true
@@ -81,7 +81,7 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '98e58c92-edb5-4c5b-8a33-c78e38b3f954',
     code: 'PK88_VINHLONG',
     name: 'Phụ Kiện 88 - Vĩnh Long',
-    address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long',
+    address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long (ngã tư Trưng Nữ Vương & Nguyễn Thị Minh Khai, cạnh Mắt Kính Tâm Đức)',
     lat: 10.2515112,
     lng: 105.9728027,
     isActive: true
