@@ -595,6 +595,7 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 2. **Quản lý Khách hàng & Bảo hành (CRM):** Lưu lịch sử mua bán/sửa chữa qua SĐT, theo dõi thời hạn bảo hành tự động.
 3. **Bot Thông báo Telegram/Zalo:** Tự động bắn tin nhắn thông báo ca trực, phiếu sửa chữa mới, đơn xin nghỉ phép đã duyệt.
 4. **PWA (Progressive Web App):** Hỗ trợ cài đặt thành app độc lập trên màn hình điện thoại (iOS/Android).
+5. **Hệ Thống Cào Dữ Liệu Tự Động Đối Thủ (Live Scraping Website, Fanpage, TikTok):** Kế hoạch chi tiết, kiến trúc Vercel Serverless / Cron Jobs, phương án vượt rào cản Meta và mã SQL Supabase đã được biên soạn đầy đủ tại tệp **`KE_HOACH_CAO_DATA_DOI_THU_MKT.md`**. AI Agent kế tiếp hãy mở và làm theo hướng dẫn trong tệp này.
 
 ---
 
