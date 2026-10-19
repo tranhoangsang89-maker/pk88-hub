@@ -146,21 +146,28 @@ export const fetchCleanlinessReports = async (
         createdAt: item.created_at || new Date().toISOString()
       }));
 
-      // Hợp nhất dữ liệu Cloud với LocalStorage để không bị sót
-      const mergedMap = new Map<string, CleanlinessReport>();
-      formatted.forEach(r => mergedMap.set(r.id, r));
-      localReports.forEach(r => {
-        if (!mergedMap.has(r.id)) {
-          mergedMap.set(r.id, r);
-        }
-      });
+      // Khi kết nối Supabase Cloud thành công:
+      // Supabase Cloud là Chân Lý Thực Tế (Single Source of Truth).
+      // Đối với targetDate đã truy vấn: cập nhật LocalStorage theo Cloud để xóa sạch mọi báo cáo
+      // đã bị xóa trên thiết bị khác (không giữ lại zombie report).
+      let updatedLocalStorage: CleanlinessReport[] = [];
+      if (targetDate && targetBranchId && targetBranchId !== 'ALL') {
+        const nonMatching = localReports.filter(r => r.reportDate !== targetDate || r.branchId !== targetBranchId);
+        updatedLocalStorage = [...formatted, ...nonMatching];
+      } else if (targetDate) {
+        const nonMatching = localReports.filter(r => r.reportDate !== targetDate);
+        updatedLocalStorage = [...formatted, ...nonMatching];
+      } else {
+        updatedLocalStorage = formatted;
+      }
 
-      const mergedList = Array.from(mergedMap.values()).sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedLocalStorage));
+      } catch (err) {
+        console.warn('Sync local storage error:', err);
+      }
 
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(mergedList));
-      return mergedList;
+      return formatted;
     }
   } catch (err) {
     console.warn('Supabase fetchCleanlinessReports fallback to local:', err);
@@ -338,7 +345,7 @@ export const fetchMonthlyCleanlinessStats = async (monthStr?: string): Promise<{
       .gte('date', startDate)
       .lte('date', endDate);
 
-    if (!error && data && data.length > 0) {
+    if (!error && data) {
       const cloudByStaffId: Record<string, StaffCleanlinessStats> = {};
       const cloudByStaffName: Record<string, StaffCleanlinessStats> = {};
 
