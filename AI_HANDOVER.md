@@ -573,6 +573,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Tối Ưu Trải Nghiệm Mobile Đột Phá:**
      - Loại bỏ hoàn toàn thanh cuộn ngang chọn chi nhánh; thay thế bằng cơ chế `flex flex-wrap` tự động dàn rớt xuống dòng thứ 2-3 thẩm mỹ.
      - Thu nhỏ kích thước thẻ nhân viên, chuyển sang lưới 2 cột song song (`grid-cols-2`) trên điện thoại, hiển thị đồng thời 4–6 nhân sự trên một khung nhìn trực quan, không bị tù túng.
+   - **Modal Xem Ảnh Avatar, Hồ Sơ & Nút Gọi Điện / Zalo Nhanh (`ExecutiveStaffQuickModal.tsx`):**
+     - Nhấp vào bất kỳ thẻ nhân viên nào trên bảng giám sát sẽ mở Modal hồ sơ chuyên nghiệp.
+     - Hiển thị ảnh chân dung chất lượng cao, huy hiệu vai trò, ngày sinh, ngày vào làm, chi nhánh gốc, ca làm việc và xác thực vị trí GPS hôm nay.
+     - Tích hợp 2 nút tiện ích hỏa tốc: **Gọi Điện Thoại Ngay** (`tel:`) và **Chat Qua Zalo** (`https://zalo.me/`).
+     - Cơ chế bảo mật 100% **Read-only**, không có bất kỳ nút chỉnh sửa/đổi mật khẩu nào, đảm bảo tính nguyên vẹn cho Ban Điều Hành.
 
 ---
 

@@ -13,12 +13,14 @@ import {
   ShieldCheck, 
   Building2, 
   Search, 
-  Sparkles,
-  Activity,
-  Filter,
-  Check,
-  RefreshCw
+  Sparkles, 
+  Activity, 
+  Filter, 
+  Check, 
+  RefreshCw,
+  Phone
 } from 'lucide-react';
+import { ExecutiveStaffQuickModal, LiveStaffModalItem } from './ExecutiveStaffQuickModal';
 
 interface ExecutiveLivePresenceProps {
   branches: Branch[];
@@ -105,6 +107,9 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
   const [selectedBranchId, setSelectedBranchId] = useState<string>('ALL');
   const [statusFilter, setStatusFilter] = useState<LiveStatusType>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
+
+  // 3.1. Modal xem hồ sơ nhân sự & liên hệ nhanh
+  const [selectedStaffItem, setSelectedStaffItem] = useState<LiveStaffModalItem | null>(null);
 
   // 4. Danh sách ca phân công hôm nay (Đồng bộ Ma Trận 1.1 & Cloud Supabase)
   const assignments = useMemo(() => {
@@ -764,21 +769,34 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
             return (
               <div
                 key={`${staff.id}-${idx}`}
-                className="rounded-xl sm:rounded-2xl p-2 sm:p-3 bg-slate-950/70 border border-slate-800/90 hover:border-slate-700 transition-all flex flex-col justify-between space-y-1.5 sm:space-y-2 shadow-md relative overflow-hidden select-none"
+                onClick={() => setSelectedStaffItem(item as LiveStaffModalItem)}
+                className="rounded-xl sm:rounded-2xl p-2 sm:p-3 bg-slate-950/70 border border-slate-800/90 hover:border-cyan-500/70 hover:bg-slate-900/80 transition-all flex flex-col justify-between space-y-1.5 sm:space-y-2 shadow-md relative overflow-hidden select-none cursor-pointer group active:scale-[0.98]"
+                title={`${staff.fullName} - Bấm để xem ảnh avatar, hồ sơ & gọi điện / Zalo`}
               >
                 {/* Staff Info Top */}
                 <div className="flex items-start gap-1.5 sm:gap-2">
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-[10px] sm:text-xs flex-shrink-0 border ${
+                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-[10px] sm:text-xs flex-shrink-0 border relative ${
                     isCrossBranch
                       ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
                       : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
                   }`}>
-                    {staff.fullName.charAt(0)}
+                    {staff.avatarUrl ? (
+                      <img 
+                        src={staff.avatarUrl} 
+                        alt={staff.fullName} 
+                        className="w-full h-full object-cover object-center" 
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = 'none';
+                        }}
+                      />
+                    ) : (
+                      <span>{staff.fullName.charAt(0)}</span>
+                    )}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-1">
-                      <span className="font-extrabold text-slate-200 text-[11px] sm:text-xs truncate block" title={staff.fullName}>
+                      <span className="font-extrabold text-slate-200 text-[11px] sm:text-xs truncate block group-hover:text-cyan-300 transition-colors" title={staff.fullName}>
                         {staff.fullName}
                       </span>
                       {isCrossBranch && (
@@ -883,6 +901,14 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
           </p>
         </div>
       )}
+
+      {/* Quick Profile & Direct Contact Modal (Read-only) */}
+      <ExecutiveStaffQuickModal
+        isOpen={!!selectedStaffItem}
+        onClose={() => setSelectedStaffItem(null)}
+        staffItem={selectedStaffItem}
+        branches={branches}
+      />
     </div>
   );
 };
