@@ -16,19 +16,44 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 19/10/2026) - QUAN TRỌNG
 
-### L. Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày (Cleanliness Reporting & 14-Day Auto-Retention - NEW 19/10/2026)
+### L. Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày, Xử Lý Ảnh Lỗi & Ghi Nhận Số Ca Đạt Chuẩn (HOÀN THÀNH TOÀN DIỆN 19/10/2026)
 1. **Yêu cầu từ Founder:**
    - Nhân viên tại các chi nhánh cửa hàng bán lẻ phải chụp ảnh báo cáo vệ sinh quầy kệ, kính trưng bày, sàn nhà, bàn kỹ thuật theo từng ca (Ca Sáng - Mở cửa, Ca Chiều, Ca Tối - Chốt ca).
    - Founder và Ban Lãnh Đạo xem toàn bộ ảnh báo cáo theo từng chi nhánh trên `ExecutiveDashboard` (Executive Cleanliness Board).
-   - **Tối ưu chi phí & dung lượng Supabase:** Toàn bộ ảnh được nén trực tiếp trên trình duyệt (Client-side HTML5 Canvas -> WebP 1280px, dung lượng giảm 95-98% còn ~40KB - 60KB/ảnh).
-   - **Cơ chế lưu trữ vòng đời 14 ngày (14-day Auto-retention):** Tự động dọn dẹp các ảnh cũ hơn 14 ngày khi tải dữ liệu hoặc qua nút bấm `[🧹 Dọn ảnh cũ (>14 ngày)]` trên Executive Board, đảm bảo Supabase không bao giờ bị đầy dung lượng.
+   - **Tối ưu chi phí & dung lượng Supabase:** Toàn bộ ảnh được nén trực tiếp trên trình duyệt (Client-side HTML5 Canvas -> WebP 1280px, dung lượng giảm 95-98% còn ~35KB - 60KB/ảnh).
+   - **Cơ chế lưu trữ vòng đời 14 ngày an toàn (14-Day Auto-Retention):** Giải phóng dung lượng ảnh cũ mà không làm mất lịch sử ca trực.
+   - **Xử lý ảnh lỗi & chưa đạt chuẩn:** Cho phép Founder yêu cầu làm lại kèm ghi chú chi tiết và cảnh báo trực tiếp trên máy nhân viên.
+   - **Ghi nhận số ca đạt chuẩn trong tháng:** Tự động thống kê số ca đạt chuẩn của từng nhân viên từ Supabase Cloud.
+
 2. **Cấu trúc & Module triển khai:**
-   - `src/types/index.ts`: Bổ sung `CleanlinessShiftType` (`MORNING`, `AFTERNOON`, `CLOSING`), `CleanlinessStatus` (`PENDING`, `APPROVED`, `REDO_REQUESTED`), và interface `CleanlinessReport`.
-   - `src/lib/cleanlinessService.ts`: Chứa thuật toán nén ảnh `compressCleanlinessImage`, các hàm `fetchCleanlinessReports`, `submitCleanlinessReport`, `reviewCleanlinessReport`, và `purgeOldCleanlinessReports`. Kèm định nghĩa schema SQL `CLEANLINESS_REPORTS_SQL` sẵn sàng cho bảng `cleanliness_reports` trên Supabase (hỗ trợ fallback local cache an toàn).
+   - `src/types/index.ts`: Bổ sung `CleanlinessShiftType` (`MORNING`, `AFTERNOON`, `CLOSING`), `CleanlinessStatus` (`PENDING`, `APPROVED`, `REDO_REQUESTED`, `NEEDS_REDO`), và interface `CleanlinessReport`.
+   - `src/lib/cleanlinessService.ts`: Chứa toàn bộ logic nghiệp vụ:
+     + Thuật toán nén ảnh client-side `compressCleanlinessImage` (WebP 1280px).
+     + Các hàm API Supabase: `fetchCleanlinessReports`, `submitCleanlinessReport`, `reviewCleanlinessReport`, `deleteCleanlinessReport`, `purgeOldCleanlinessReports`, và `fetchMonthlyCleanlinessStats`.
+     + Định nghĩa schema SQL `CLEANLINESS_REPORTS_SQL` đã tạo bảng `cleanliness_reports` trên Supabase.
    - `src/components/CleanlinessReportModal.tsx`: Modal thân thiện trên di động dành cho nhân sự nộp báo cáo ca: chọn ca trực, chụp ảnh camera trực tiếp hoặc chọn từ thư viện, chip ghi chú nhanh ("✨ Đã lau kính tủ phụ kiện", "🧹 Đã quét dọn & lau sàn"...), xem trước ảnh và xóa ảnh sai.
-   - `src/components/ExecutiveCleanlinessBoard.tsx`: Bảng giám sát chuyên dụng trên Executive Dashboard: Bộ lọc ngày (Hôm nay, Hôm qua, Ngày tùy chọn), bộ lọc chi nhánh theo đúng thứ tự ưu tiên chuỗi (`Văn Phòng` ➔ `Phú Khương` ➔ `Đồng Khởi` ➔ `Mỹ Tho` ➔ `Cần Thơ` ➔ `Vĩnh Long` ➔ `Thủ Đức`), thanh tiến độ KPI nộp báo cáo (`x/7 Chi Nhánh`), cảnh báo chi nhánh chưa nộp ảnh, chế độ Lightbox phóng to ảnh độ nét cao và nút duyệt `Đạt Chuẩn` / `Yêu Cầu Làm Lại`.
-   - `src/components/AttendanceCard.tsx`: Tích hợp nút `[📷 Báo Cáo Vệ Sinh Ca]` ngay tại thanh Quick Actions trên màn hình chấm công và gắn thông báo nhắc nhở nhẹ nhàng trong hộp thoại Chốt tan ca.
-   - `src/components/ExecutiveDashboard.tsx`: Tích hợp `ExecutiveCleanlinessBoard` ngay dưới bảng giám sát trực tiếp quân số `ExecutiveLivePresence`.
+   - `src/components/ExecutiveCleanlinessBoard.tsx`: Bảng giám sát chuyên dụng trên Executive Dashboard: Bộ lọc ngày (Hôm nay, Hôm qua, Ngày tùy chọn), bộ lọc chi nhánh theo đúng thứ tự ưu tiên chuỗi (`Văn Phòng` ➔ `Phú Khương` ➔ `Đồng Khởi` ➔ `Mỹ Tho` ➔ `Cần Thơ` ➔ `Vĩnh Long` ➔ `Thủ Đức`), thanh tiến độ KPI nộp báo cáo (`x/7 Chi Nhánh`), cảnh báo chi nhánh chưa nộp ảnh, chế độ Lightbox phóng to ảnh độ nét cao.
+
+3. **Cơ chế xử lý ảnh lỗi & ảnh chưa đạt chuẩn:**
+   - **Hộp thoại Lý Do Làm Lại (`RedoReasonModal`):** Khi Founder bấm nút `[Làm Lại]`, hệ thống mở popup với các chip chọn nhanh lý do (*Ảnh mờ/thiếu sáng, Kính tủ phụ kiện chưa lau, Sàn còn rác, Ốp lưng chưa xếp ngay ngắn, Yêu cầu chụp góc rộng...*) kèm ô nhập ghi chú chi tiết. Cập nhật trạng thái `REDO_REQUESTED` và lưu ghi chú lên Supabase.
+   - **Banner Cảnh Báo Đỏ Trên Điện Thoại Nhân Viên (`AttendanceCard.tsx`):** Khi có ca trực bị yêu cầu làm lại, màn hình chấm công/làm việc của nhân sự chi nhánh đó lập tức nổi banner cảnh báo viền đỏ - chữ vàng, trích dẫn chính xác nhận xét của Founder kèm nút `[📸 Chụp Lại & Nộp Bổ Sung Ngay]`.
+   - **Nút Thùng Rác Xóa Báo Cáo Rác / Gửi Nhầm (`Trash2`):** Ở góc mỗi thẻ báo cáo, có icon thùng rác kèm xác nhận an toàn, cho phép xóa vĩnh viễn báo cáo khỏi cả Supabase Cloud và LocalStorage.
+   - **Fallback Chống Vỡ Ảnh (`onError`):** Nếu ảnh lỗi đường truyền mạng, tự động thay thế bằng placeholder SVG thanh lịch, không làm vỡ layout lưới ảnh.
+
+4. **Ghi nhận số ca đạt chuẩn trong tháng của từng nhân viên:**
+   - Hàm `fetchMonthlyCleanlinessStats(monthStr)`: Truy vấn trực tiếp từ bảng `cleanliness_reports` trên Supabase, tổng hợp số ca đã nộp và số ca được Founder bấm `Đạt Chuẩn` (`APPROVED`) trong tháng theo ID và Tên nhân viên.
+   - **Huy hiệu trên Bảng Giám Sát:** Ngay cạnh tên nhân viên trên từng thẻ báo cáo xuất hiện huy hiệu ngọc bích: `Trần Hoàng Sang • ✨ X ca chuẩn (T10)`. Bấm Đạt Chuẩn là số ca nhảy tăng ngay lập tức.
+   - **Thống kê trong Hồ Sơ Nhân Sự (`StaffDetailModal.tsx`):** Tại khối thông số cuối hồ sơ, bổ sung thẻ thứ 3: `VỆ SINH 5S (THÁNG): X / Y ca • X ca Đạt Chuẩn`.
+   - **Khích lệ trên điện thoại nhân viên (`AttendanceCard.tsx`):** Hiển thị thanh thông tin: `✨ Vệ sinh tháng này: X ca Đạt Chuẩn`.
+   - **Bảo toàn số liệu khi dọn dẹp ảnh cũ:** Khi tự động dọn dẹp báo cáo >14 ngày, hệ thống chỉ **làm rỗng mảng ảnh `images: []`** để giải phóng 100% dung lượng ảnh nặng, nhưng **bảo lưu vĩnh viễn dòng lịch sử ca trực và trạng thái APPROVED** trên Supabase, đảm bảo tổng số ca đạt chuẩn của nhân sự trong cả tháng không bao giờ bị hụt.
+
+5. **Khắc phục triệt để lỗi đồng bộ dữ liệu (Diệt Zombie Report giữa Máy Tính & Điện Thoại):**
+   - **Nguyên nhân:** Logic `mergedMap` cũ trong `fetchCleanlinessReports` tự ý nhét ngược các báo cáo đã bị xóa từ `LocalStorage` của điện thoại trở lại danh sách, khiến điện thoại F5 liên tục vẫn hiện ảnh cũ đã xóa.
+   - **Giải pháp:** Thiết lập **Supabase Cloud là "Chân lý duy nhất" (Single Source of Truth)**. Khi điện thoại tải dữ liệu từ Cloud, hệ thống tự động ghi đè và dọn sạch mọi ảnh đã bị xóa trên máy tính khỏi `LocalStorage` của điện thoại, loại bỏ vĩnh viễn hiện tượng Zombie Report.
+
+### M. Nâng Cấp Bảng Giám Sát Quân Số Trực Tiếp Chuỗi (ExecutiveLivePresence Polish - 19/10/2026)
+1. **Chuẩn hóa thứ tự 7 chi nhánh:** Sắp xếp danh sách điểm danh theo thứ tự chuẩn hóa: `Văn Phòng` ➔ `Phú Khương` ➔ `Đồng Khởi` ➔ `Mỹ Tho` ➔ `Cần Thơ` ➔ `Vĩnh Long` ➔ `Thủ Đức`.
+2. **Popup Hồ Sơ Nhân Sự Tương Tác:** Click vào tên nhân viên bất kỳ trên bảng giám sát trực tiếp sẽ mở ngay Popup Hồ Sơ Nhân Sự (`StaffDetailModal`) hiển thị ảnh avatar, thông tin cơ bản, chỉ số năng lực 5 chiều, và nút gọi điện thoại / Zalo trực tiếp cho nhân viên đó.
 
 ### K. Nâng Cấp Ma Trận Chia Ca & Đồng Bộ 100% Supabase Cloud (17/10/2026)
 1. **Hỗ Trợ Toàn Diện Ca Gãy & 2 Thẻ Ca Nhỏ Lồng Nhau Trong Cùng 1 Ô Ngày:**
