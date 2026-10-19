@@ -311,3 +311,34 @@ export const purgeOldCleanlinessReports = async (retentionDays = 14): Promise<nu
 
   return purgedCount;
 };
+
+/**
+ * Xóa vĩnh viễn 1 báo cáo vệ sinh (Dành cho Founder/Admin khi phát hiện ảnh gửi nhầm/ảnh rác)
+ */
+export const deleteCleanlinessReport = async (id: string): Promise<boolean> => {
+  // 1. Xóa trong LocalStorage
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const list: CleanlinessReport[] = JSON.parse(raw);
+      const remaining = list.filter(r => r.id !== id);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+      window.dispatchEvent(new CustomEvent('pk88_cleanliness_updated'));
+    }
+  } catch (err) {
+    console.warn('Delete local report error:', err);
+  }
+
+  // 2. Xóa trên Supabase Cloud
+  try {
+    const { error } = await supabase.from('cleanliness_reports').delete().eq('id', id);
+    if (error) {
+      console.warn('Delete cloud report error:', error.message);
+      return false;
+    }
+    return true;
+  } catch (err) {
+    console.warn('Delete cloud report exception:', err);
+    return false;
+  }
+};

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Branch, AttendanceRecord, Staff, ShiftType, LeaveRequest } from '../types';
+import { Branch, AttendanceRecord, Staff, ShiftType, LeaveRequest, CleanlinessReport } from '../types';
 import { getDistanceMeters, formatDistance } from '../lib/geoUtils';
 import { supabase } from '../lib/supabase';
 import L from 'leaflet';
@@ -18,6 +18,7 @@ import {
   Play,
   StopCircle,
   AlertTriangle,
+  AlertCircle,
   Sliders,
   ShieldAlert,
   FileText,
@@ -34,6 +35,7 @@ import {
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
 import { CleanlinessReportModal } from './CleanlinessReportModal';
+import { fetchCleanlinessReports } from '../lib/cleanlinessService';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
@@ -79,6 +81,36 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
   // Cleanliness Report Modal State
   const [showCleanlinessModal, setShowCleanlinessModal] = useState<boolean>(false);
+  const [todayRedoReport, setTodayRedoReport] = useState<CleanlinessReport | null>(null);
+
+  // Lắng nghe và kiểm tra xem hôm nay có báo cáo vệ sinh bị yêu cầu Làm Lại hay không
+  useEffect(() => {
+    let isMounted = true;
+    const checkRedo = async () => {
+      try {
+        const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+        const reports = await fetchCleanlinessReports(todayStr);
+        if (!isMounted) return;
+        const redo = reports.find(r => 
+          (r.status === 'NEEDS_REDO' || r.status === 'REDO_REQUESTED') &&
+          (r.staffId === currentStaff.id || (r.staffPhone && currentStaff.phone && r.staffPhone === currentStaff.phone) || r.branchId === currentBranch.id)
+        );
+        setTodayRedoReport(redo || null);
+      } catch (err) {
+        console.warn('Check redo cleanliness report error:', err);
+      }
+    };
+
+    checkRedo();
+
+    const handleUpdate = () => checkRedo();
+    window.addEventListener('pk88_cleanliness_updated', handleUpdate);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
+    };
+  }, [currentStaff.id, currentStaff.phone, currentBranch.id]);
 
   const todayYmd = React.useMemo(() => {
     const now = new Date();
@@ -993,6 +1025,31 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <span>Báo Cáo Vệ Sinh Ca</span>
         </button>
       </div>
+
+      {/* CẢNH BÁO YÊU CẦU LÀM LẠI VỆ SINH CA TRỰC */}
+      {todayRedoReport && (
+        <div className="bg-gradient-to-r from-rose-950/90 via-slate-900 to-rose-950/90 border-2 border-rose-500/60 rounded-2xl p-4 text-center space-y-2.5 shadow-2xl relative overflow-hidden animate-in fade-in">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 animate-pulse" />
+          
+          <div className="flex items-center justify-center gap-2 text-rose-300 font-extrabold text-xs sm:text-sm">
+            <AlertCircle className="w-4 h-4 text-rose-400 animate-bounce" />
+            <span>YÊU CẦU LÀM LẠI VỆ SINH ({todayRedoReport.shiftType === 'MORNING' ? 'Ca Sáng' : todayRedoReport.shiftType === 'AFTERNOON' ? 'Ca Chiều' : 'Ca Tối'})</span>
+          </div>
+
+          <p className="text-xs text-rose-200/90 leading-relaxed max-w-sm mx-auto">
+            Yêu cầu từ {todayRedoReport.reviewedBy || 'Founder'}: <strong className="text-white italic">"{todayRedoReport.reviewNote || 'Ảnh chưa đạt chuẩn, vui lòng dọn dẹp lại quầy kệ và chụp bổ sung.'}"</strong>
+          </p>
+
+          <button
+            type="button"
+            onClick={() => setShowCleanlinessModal(true)}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs shadow-lg shadow-rose-950/40 cursor-pointer active:scale-95 transition-all"
+          >
+            <Camera className="w-3.5 h-3.5" />
+            <span>Chụp Lại & Nộp Bổ Sung Ngay</span>
+          </button>
+        </div>
+      )}
 
       {/* APPROVED LEAVE STATUS BANNER (From AI HR Sync) */}
       {todayApprovedLeave && (

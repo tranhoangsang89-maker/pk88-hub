@@ -22,7 +22,8 @@ import {
 import { 
   fetchCleanlinessReports, 
   reviewCleanlinessReport, 
-  purgeOldCleanlinessReports 
+  purgeOldCleanlinessReports,
+  deleteCleanlinessReport 
 } from '../lib/cleanlinessService';
 import { sortBranchesByPriority, getBranchOrderIndex } from '../lib/mockData';
 import { supabase } from '../lib/supabase';
@@ -172,11 +173,45 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
     return { groupedReports: groups, unassignedReports: unassigned };
   }, [reports, activeBranches, selectedBranchId]);
 
+  // Modal nhập lý do yêu cầu làm lại
+  const [redoModalReport, setRedoModalReport] = useState<CleanlinessReport | null>(null);
+  const [redoReason, setRedoReason] = useState<string>('');
+
+  const quickRedoReasons = [
+    '🔍 Ảnh mờ / thiếu sáng, không thấy rõ quầy',
+    '🧽 Kính tủ ốp lưng & phụ kiện chưa lau sạch',
+    '🧹 Sàn nhà / bàn kỹ thuật còn rác bẩn',
+    '📱 Ốp lưng & cường lực chưa xếp ngay ngắn',
+    '📸 Chụp lại góc rộng bao quát toàn cửa hàng'
+  ];
+
   // Xử lý duyệt / nhắc nhở báo cáo
-  const handleReview = async (reportId: string, status: CleanlinessStatus) => {
+  const handleReview = async (reportId: string, status: CleanlinessStatus, note?: string) => {
     const reviewerName = currentUser?.fullName || 'Founder / Admin';
-    await reviewCleanlinessReport(reportId, status, reviewerName);
+    await reviewCleanlinessReport(reportId, status, reviewerName, note);
     loadReports();
+  };
+
+  const handleOpenRedoModal = (report: CleanlinessReport) => {
+    setRedoModalReport(report);
+    setRedoReason(report.reviewNote || '');
+  };
+
+  const handleConfirmRedo = async () => {
+    if (!redoModalReport) return;
+    const reviewerName = currentUser?.fullName || 'Founder / Admin';
+    const note = redoReason.trim() || 'Ảnh chưa đạt yêu cầu, vui lòng dọn dẹp và chụp lại.';
+    await reviewCleanlinessReport(redoModalReport.id, 'NEEDS_REDO', reviewerName, note);
+    setRedoModalReport(null);
+    setRedoReason('');
+    loadReports();
+  };
+
+  const handleDeleteReport = async (reportId: string) => {
+    if (window.confirm('Anh có chắc chắn muốn xóa vĩnh viễn báo cáo ảnh này không? Dữ liệu trên Supabase sẽ bị gỡ bỏ ngay lập tức.')) {
+      await deleteCleanlinessReport(reportId);
+      loadReports();
+    }
   };
 
   // Xử lý dọn dẹp ảnh cũ (>14 ngày)
@@ -449,8 +484,8 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                             </div>
                           </div>
 
-                          {/* Status Badge */}
-                          <div>
+                          {/* Status Badge & Trash Delete Button */}
+                          <div className="flex items-center gap-1.5">
                             {report.status === 'APPROVED' ? (
                               <span className="px-2 py-0.5 rounded-full text-[9.5px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
                                 <CheckCircle2 className="w-3 h-3" /> Đạt chuẩn
@@ -464,6 +499,16 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                                 ⏳ Chờ duyệt
                               </span>
                             )}
+
+                            {/* Nút Xóa Báo Cáo (Dành cho Founder/Admin khi ảnh gửi nhầm) */}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteReport(report.id)}
+                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                              title="Xóa vĩnh viễn báo cáo này (ảnh gửi nhầm)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
                           </div>
                         </div>
 
@@ -487,6 +532,9 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                                 <img
                                   src={img}
                                   alt={`Vệ sinh ${imgIdx + 1}`}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><line x1="3" x2="21" y1="3" y2="21"/></svg>';
+                                  }}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
                                 <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -504,6 +552,21 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                           </div>
                         )}
 
+                        {/* Review Note from Founder if Redo or Approved */}
+                        {report.reviewNote && (
+                          <div className={`p-2 rounded-xl text-[11px] border ${
+                            report.status === 'NEEDS_REDO' 
+                              ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' 
+                              : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                          }`}>
+                            <span className="font-bold flex items-center gap-1">
+                              {report.status === 'NEEDS_REDO' ? <AlertCircle className="w-3.5 h-3.5 text-rose-400" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                              <span>{report.status === 'NEEDS_REDO' ? 'Yêu cầu từ' : 'Nhận xét từ'} {report.reviewedBy || 'Founder'}:</span>
+                            </span>
+                            <p className="mt-0.5 italic pl-4">"{report.reviewNote}"</p>
+                          </div>
+                        )}
+
                         {/* Founder Quick Actions: Duyệt / Nhắc nhở */}
                         <div className="flex items-center justify-between gap-2 pt-1 border-t border-slate-800/60 text-xs">
                           <button
@@ -517,7 +580,7 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
 
                           <button
                             type="button"
-                            onClick={() => handleReview(report.id, 'NEEDS_REDO')}
+                            onClick={() => handleOpenRedoModal(report)}
                             className="flex-1 py-1 px-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold border border-rose-500/40 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                           >
                             <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
@@ -564,7 +627,17 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                           {getShiftBadge(report.shiftType)}
                           <span className="text-[11px] font-mono text-slate-400">{timeStr}</span>
                         </div>
-                        <span className="text-[11px] font-bold text-amber-400">{report.branchName || 'Chưa rõ shop'}</span>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[11px] font-bold text-amber-400">{report.branchName || 'Chưa rõ shop'}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteReport(report.id)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 transition-all cursor-pointer"
+                            title="Xóa vĩnh viễn báo cáo này (ảnh gửi nhầm)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </div>
                       <div className="text-xs font-extrabold text-slate-200 mt-1">
                         {report.staffName}
@@ -589,6 +662,9 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                             <img 
                               src={img} 
                               alt={`Báo cáo ${imgIdx + 1}`} 
+                              onError={(e) => {
+                                (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><line x1="3" x2="21" y1="3" y2="21"/></svg>';
+                              }}
                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -605,6 +681,20 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                       </p>
                     )}
 
+                    {report.reviewNote && (
+                      <div className={`p-2 rounded-xl text-[11px] border ${
+                        report.status === 'NEEDS_REDO' 
+                          ? 'bg-rose-500/10 border-rose-500/30 text-rose-300' 
+                          : 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      }`}>
+                        <span className="font-bold flex items-center gap-1">
+                          {report.status === 'NEEDS_REDO' ? <AlertCircle className="w-3.5 h-3.5 text-rose-400" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                          <span>{report.status === 'NEEDS_REDO' ? 'Yêu cầu từ' : 'Nhận xét từ'} {report.reviewedBy || 'Founder'}:</span>
+                        </span>
+                        <p className="mt-0.5 italic pl-4">"{report.reviewNote}"</p>
+                      </div>
+                    )}
+
                     <div className="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 text-xs">
                       <button
                         type="button"
@@ -616,7 +706,7 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                       </button>
                       <button
                         type="button"
-                        onClick={() => handleReview(report.id, 'NEEDS_REDO')}
+                        onClick={() => handleOpenRedoModal(report)}
                         className="flex-1 py-1 px-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold border border-rose-500/40 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
                       >
                         <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
@@ -668,6 +758,9 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
               <img 
                 src={previewImage.url} 
                 alt="Chi tiết vệ sinh"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="%23f43f5e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/><line x1="3" x2="21" y1="3" y2="21"/></svg>';
+                }}
                 className="max-h-[68vh] w-auto max-w-full object-contain rounded-xl" 
               />
             </div>
@@ -678,6 +771,99 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                 "{previewImage.notes}"
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* 6. Modal Nhập Lý Do Yêu Cầu Làm Lại */}
+      {redoModalReport && (
+        <div 
+          className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 animate-fade-in select-none"
+          onClick={() => setRedoModalReport(null)}
+        >
+          <div 
+            className="relative w-full max-w-md bg-gradient-to-b from-slate-900 to-slate-950 border border-rose-500/40 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 space-y-4 border-t-2 border-t-rose-500"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-rose-500/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shrink-0">
+                  <AlertCircle className="w-4 h-4" />
+                </div>
+                <div>
+                  <h3 className="text-sm font-extrabold text-slate-100 uppercase tracking-wide">
+                    Yêu Cầu Làm Lại Báo Cáo
+                  </h3>
+                  <p className="text-xs text-rose-300 font-medium">
+                    {redoModalReport.branchName} • {redoModalReport.staffName} ({redoModalReport.shiftType === 'MORNING' ? 'Ca Sáng' : redoModalReport.shiftType === 'AFTERNOON' ? 'Ca Chiều' : 'Ca Tối'})
+                  </p>
+                </div>
+              </div>
+              <button 
+                type="button" 
+                onClick={() => setRedoModalReport(null)}
+                className="w-7 h-7 rounded-lg bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition-all cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Quick Reason Chips */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Chọn Nhanh Lý Do:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {quickRedoReasons.map((chip, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setRedoReason(chip)}
+                    className={`text-[11px] px-2.5 py-1 rounded-xl border transition-all cursor-pointer ${
+                      redoReason === chip
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-500/50 font-bold'
+                        : 'bg-slate-900 hover:bg-slate-800 text-slate-300 border-slate-800'
+                    }`}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Custom Reason Textarea */}
+            <div className="space-y-1.5">
+              <label className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+                Ghi Chú Chi Tiết Cho Nhân Viên:
+              </label>
+              <textarea
+                value={redoReason}
+                onChange={(e) => setRedoReason(e.target.value)}
+                placeholder="Ví dụ: Kính tủ quầy phụ kiện còn bám vân tay, lau lại rồi chụp góc rộng gửi lại anh..."
+                rows={3}
+                className="w-full p-3 rounded-xl bg-slate-950 border border-slate-800 focus:border-rose-500 text-xs text-slate-200 placeholder-slate-500 focus:outline-none resize-none leading-relaxed"
+              />
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-2 border-t border-slate-800/80">
+              <button
+                type="button"
+                onClick={() => setRedoModalReport(null)}
+                className="flex-1 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all cursor-pointer"
+              >
+                Hủy Bỏ
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmRedo}
+                className="flex-1 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white text-xs font-extrabold shadow-lg shadow-rose-950/40 transition-all cursor-pointer flex items-center justify-center gap-1.5 active:scale-95"
+              >
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Gửi Yêu Cầu Làm Lại</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
