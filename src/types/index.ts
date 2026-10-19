@@ -275,7 +275,7 @@ export interface JobApplication {
   notes?: string;
 }
 export type CleanlinessShiftType = 'MORNING' | 'AFTERNOON' | 'CLOSING';
-export type CleanlinessStatus = 'SUBMITTED' | 'APPROVED' | 'NEEDS_REDO';
+export type CleanlinessStatus = 'SUBMITTED' | 'PENDING' | 'APPROVED' | 'REDO_REQUESTED' | 'NEEDS_REDO';
 
 export interface CleanlinessReport {
   id: string;

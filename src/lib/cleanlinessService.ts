@@ -92,6 +92,12 @@ export const compressCleanlinessImage = (file: File, maxDimension = 1280, qualit
   });
 };
 
+// Helper kiểm tra chuỗi có phải UUID hợp lệ
+const isValidUuid = (val?: string): boolean => {
+  if (!val) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+};
+
 /**
  * Lấy danh sách báo cáo vệ sinh từ Supabase (có fallback LocalStorage)
  */
@@ -111,10 +117,12 @@ export const fetchCleanlinessReports = async (
     let query = supabase.from('cleanliness_reports').select('*');
 
     if (targetDate) {
-      query = query.eq('report_date', targetDate);
+      query = query.eq('date', targetDate);
     }
     if (targetBranchId && targetBranchId !== 'ALL') {
-      query = query.eq('branch_id', targetBranchId);
+      if (isValidUuid(targetBranchId)) {
+        query = query.eq('branch_id', targetBranchId);
+      }
     }
 
     const { data, error } = await query.order('created_at', { ascending: false });
@@ -122,17 +130,17 @@ export const fetchCleanlinessReports = async (
     if (!error && data && Array.isArray(data)) {
       const formatted: CleanlinessReport[] = data.map((item: any) => ({
         id: item.id,
-        branchId: item.branch_id,
-        branchName: item.branch_name,
-        staffId: item.staff_id,
-        staffName: item.staff_name,
-        staffPhone: item.staff_phone,
-        staffRole: item.staff_role,
+        branchId: item.branch_id || '',
+        branchName: item.branch_name || '',
+        staffId: item.staff_id || '',
+        staffName: item.staff_name || '',
+        staffPhone: item.staff_phone || '',
+        staffRole: item.staff_role || '',
         shiftType: (item.shift_type || 'MORNING') as CleanlinessShiftType,
-        reportDate: item.report_date,
+        reportDate: item.date || item.report_date || targetDate || new Date().toISOString().slice(0, 10),
         images: Array.isArray(item.images) ? item.images : (typeof item.images === 'string' ? JSON.parse(item.images || '[]') : []),
         notes: item.notes || '',
-        status: (item.status || 'SUBMITTED') as CleanlinessStatus,
+        status: (item.status === 'PENDING' ? 'SUBMITTED' : (item.status === 'REDO_REQUESTED' ? 'NEEDS_REDO' : item.status)) as CleanlinessStatus,
         reviewedBy: item.reviewed_by,
         reviewNote: item.review_note,
         createdAt: item.created_at || new Date().toISOString()
@@ -194,17 +202,15 @@ export const submitCleanlinessReport = async (
   try {
     const payload = {
       id: newReport.id,
-      branch_id: newReport.branchId,
+      branch_id: isValidUuid(newReport.branchId) ? newReport.branchId : null,
       branch_name: newReport.branchName,
-      staff_id: newReport.staffId,
+      staff_id: isValidUuid(newReport.staffId) ? newReport.staffId : null,
       staff_name: newReport.staffName,
-      staff_phone: newReport.staffPhone,
-      staff_role: newReport.staffRole,
+      date: newReport.reportDate,
       shift_type: newReport.shiftType,
-      report_date: newReport.reportDate,
-      images: newReport.images,
+      images: newReport.images || [],
       notes: newReport.notes || '',
-      status: newReport.status,
+      status: 'PENDING',
       created_at: newReport.createdAt
     };
 
@@ -248,8 +254,11 @@ export const reviewCleanlinessReport = async (
 
   // 2. Cập nhật Supabase Cloud
   try {
+    const dbStatus = status === 'APPROVED' ? 'APPROVED' :
+                     (status === 'NEEDS_REDO' || status === 'REDO_REQUESTED') ? 'REDO_REQUESTED' : 'PENDING';
+
     await supabase.from('cleanliness_reports').update({
-      status,
+      status: dbStatus,
       reviewed_by: reviewedBy,
       review_note: reviewNote || null
     }).eq('id', id);
@@ -291,7 +300,7 @@ export const purgeOldCleanlinessReports = async (retentionDays = 14): Promise<nu
     const { count, error } = await supabase
       .from('cleanliness_reports')
       .delete({ count: 'exact' })
-      .lt('report_date', cutoffStr);
+      .lt('date', cutoffStr);
 
     if (!error && typeof count === 'number') {
       purgedCount = Math.max(purgedCount, count);
