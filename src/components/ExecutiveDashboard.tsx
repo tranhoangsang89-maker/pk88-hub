@@ -33,6 +33,7 @@ import {
   ShieldAlert
 } from 'lucide-react';
 import { ExecutiveLivePresence } from './ExecutiveLivePresence';
+import { ExecutiveCleanlinessBoard } from './ExecutiveCleanlinessBoard';
 import {
   AreaChart,
   Area,
@@ -66,6 +67,7 @@ interface ExecutiveDashboardProps {
   marketingPosts?: MarketingPost[];
   leaveRequests?: LeaveRequest[];
   tickets?: RepairTicket[];
+  currentUser?: Staff | null;
   onOpenAIHRModal?: () => void;
   onNavigateTab?: (tab: any) => void;
   onRefreshAttendance?: () => void;
@@ -78,6 +80,7 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   marketingPosts = [],
   leaveRequests = [],
   tickets = [],
+  currentUser,
   onOpenAIHRModal,
   onNavigateTab,
   onRefreshAttendance
@@ -388,6 +391,13 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         attendanceLogs={attendanceLogs}
         leaveRequests={leaveRequests}
         onRefreshAttendance={onRefreshAttendance}
+      />
+
+      {/* EXECUTIVE CLEANLINESS BOARD - BÁO CÁO & GIÁM SÁT VỆ SINH CỬA HÀNG HÀNG NGÀY */}
+      <ExecutiveCleanlinessBoard
+        branches={branches}
+        staffList={staffList}
+        currentUser={currentUser}
       />
 
       {/* CHARTS SECTION - HIỂN THỊ TRẠNG THÁI DỮ LIỆU THẬT */}

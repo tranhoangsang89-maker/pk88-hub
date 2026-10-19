@@ -1806,6 +1806,7 @@ export function App() {
                 marketingPosts={marketingPosts}
                 leaveRequests={leaveRequests}
                 tickets={tickets}
+                currentUser={currentUser}
                 onOpenAIHRModal={handleOpenAIHRModal}
                 onNavigateTab={(tab) => handleNavigateTab(tab)}
                 onRefreshAttendance={fetchRealAttendance}

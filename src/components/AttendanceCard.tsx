@@ -33,6 +33,7 @@ import {
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
+import { CleanlinessReportModal } from './CleanlinessReportModal';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
@@ -75,6 +76,9 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [isDisputeModalOpen, setIsDisputeModalOpen] = useState<boolean>(false);
   const [disputeInitialType, setDisputeInitialType] = useState<any>('OUTSIDE_GEOFENCE');
   const [disputeExistingRecord, setDisputeExistingRecord] = useState<AttendanceRecord | null>(null);
+
+  // Cleanliness Report Modal State
+  const [showCleanlinessModal, setShowCleanlinessModal] = useState<boolean>(false);
 
   const todayYmd = React.useMemo(() => {
     const now = new Date();
@@ -961,8 +965,8 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Buttons for Shift Schedule, Leave Request & Password */}
-      <div className="grid grid-cols-2 gap-2">
+      {/* Quick Action Buttons for Shift Schedule, Leave Request & Cleanliness Report */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
         <button
           type="button"
           onClick={onOpenMyShiftsModal}
@@ -978,6 +982,15 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         >
           <Sparkles className="w-3.5 h-3.5 text-pink-400" />
           <span>Xin Nghỉ Phép (AI Chị 8)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setShowCleanlinessModal(true)}
+          className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+          title="Báo cáo ảnh vệ sinh ca trực gửi Founder & Cửa Hàng Trưởng"
+        >
+          <Camera className="w-3.5 h-3.5 text-emerald-400" />
+          <span>Báo Cáo Vệ Sinh Ca</span>
         </button>
       </div>
 
@@ -1828,6 +1841,22 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                   </p>
                 </div>
               )}
+
+              {/* Cleanliness Reminder Tip */}
+              <div className="p-2.5 rounded-xl bg-slate-900 border border-emerald-500/20 flex items-center justify-between">
+                <span className="text-[11px] text-slate-300 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Đã chụp ảnh vệ sinh ca trực chưa?</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowCleanlinessModal(true)}
+                  className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10.5px] font-bold border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+                >
+                  <Camera className="w-3 h-3" />
+                  <span>Gửi ảnh</span>
+                </button>
+              </div>
             </div>
 
             {/* Action Buttons */}
@@ -1867,6 +1896,14 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           </div>
         </div>
       )}
+
+      {/* MODAL BÁO CÁO VỆ SINH CA TRỰC HÀNG NGÀY (Cleanliness Report) */}
+      <CleanlinessReportModal
+        isOpen={showCleanlinessModal}
+        onClose={() => setShowCleanlinessModal(false)}
+        currentUser={currentStaff}
+        currentBranch={currentBranch}
+      />
     </div>
   );
 };

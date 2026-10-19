@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 17/10/2026 (Cấu hình PWA: Thêm manifest.json, Service Worker, hỗ trợ Thêm vào màn hình chính Standalone cho iOS & Android)*
+*Ngày cập nhật mới nhất: 19/10/2026 (Triển khai Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày, Nén ảnh WebP client-side, Cơ chế tự động dọn dẹp ảnh 14 ngày bảo vệ Supabase)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,16 +7,30 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, và Ma trận Phân chia ca & Điều động nhân sự 15 ngày.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, và Báo cáo vệ sinh cửa hàng bằng hình ảnh nén kèm cơ chế tự động dọn dẹp lưu trữ 14 ngày.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`), Progressive Web App (PWA).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
 - **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 17/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 19/10/2026) - QUAN TRỌNG
 
-### K. Nâng Cấp Ma Trận Chia Ca & Đồng Bộ 100% Supabase Cloud (NEW - 17/10/2026)
+### L. Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày (Cleanliness Reporting & 14-Day Auto-Retention - NEW 19/10/2026)
+1. **Yêu cầu từ Founder:**
+   - Nhân viên tại các chi nhánh cửa hàng bán lẻ phải chụp ảnh báo cáo vệ sinh quầy kệ, kính trưng bày, sàn nhà, bàn kỹ thuật theo từng ca (Ca Sáng - Mở cửa, Ca Chiều, Ca Tối - Chốt ca).
+   - Founder và Ban Lãnh Đạo xem toàn bộ ảnh báo cáo theo từng chi nhánh trên `ExecutiveDashboard` (Executive Cleanliness Board).
+   - **Tối ưu chi phí & dung lượng Supabase:** Toàn bộ ảnh được nén trực tiếp trên trình duyệt (Client-side HTML5 Canvas -> WebP 1280px, dung lượng giảm 95-98% còn ~40KB - 60KB/ảnh).
+   - **Cơ chế lưu trữ vòng đời 14 ngày (14-day Auto-retention):** Tự động dọn dẹp các ảnh cũ hơn 14 ngày khi tải dữ liệu hoặc qua nút bấm `[🧹 Dọn ảnh cũ (>14 ngày)]` trên Executive Board, đảm bảo Supabase không bao giờ bị đầy dung lượng.
+2. **Cấu trúc & Module triển khai:**
+   - `src/types/index.ts`: Bổ sung `CleanlinessShiftType` (`MORNING`, `AFTERNOON`, `CLOSING`), `CleanlinessStatus` (`PENDING`, `APPROVED`, `REDO_REQUESTED`), và interface `CleanlinessReport`.
+   - `src/lib/cleanlinessService.ts`: Chứa thuật toán nén ảnh `compressCleanlinessImage`, các hàm `fetchCleanlinessReports`, `submitCleanlinessReport`, `reviewCleanlinessReport`, và `purgeOldCleanlinessReports`. Kèm định nghĩa schema SQL `CLEANLINESS_REPORTS_SQL` sẵn sàng cho bảng `cleanliness_reports` trên Supabase (hỗ trợ fallback local cache an toàn).
+   - `src/components/CleanlinessReportModal.tsx`: Modal thân thiện trên di động dành cho nhân sự nộp báo cáo ca: chọn ca trực, chụp ảnh camera trực tiếp hoặc chọn từ thư viện, chip ghi chú nhanh ("✨ Đã lau kính tủ phụ kiện", "🧹 Đã quét dọn & lau sàn"...), xem trước ảnh và xóa ảnh sai.
+   - `src/components/ExecutiveCleanlinessBoard.tsx`: Bảng giám sát chuyên dụng trên Executive Dashboard: Bộ lọc ngày (Hôm nay, Hôm qua, Ngày tùy chọn), bộ lọc chi nhánh theo đúng thứ tự ưu tiên chuỗi (`Văn Phòng` ➔ `Phú Khương` ➔ `Đồng Khởi` ➔ `Mỹ Tho` ➔ `Cần Thơ` ➔ `Vĩnh Long` ➔ `Thủ Đức`), thanh tiến độ KPI nộp báo cáo (`x/7 Chi Nhánh`), cảnh báo chi nhánh chưa nộp ảnh, chế độ Lightbox phóng to ảnh độ nét cao và nút duyệt `Đạt Chuẩn` / `Yêu Cầu Làm Lại`.
+   - `src/components/AttendanceCard.tsx`: Tích hợp nút `[📷 Báo Cáo Vệ Sinh Ca]` ngay tại thanh Quick Actions trên màn hình chấm công và gắn thông báo nhắc nhở nhẹ nhàng trong hộp thoại Chốt tan ca.
+   - `src/components/ExecutiveDashboard.tsx`: Tích hợp `ExecutiveCleanlinessBoard` ngay dưới bảng giám sát trực tiếp quân số `ExecutiveLivePresence`.
+
+### K. Nâng Cấp Ma Trận Chia Ca & Đồng Bộ 100% Supabase Cloud (17/10/2026)
 1. **Hỗ Trợ Toàn Diện Ca Gãy & 2 Thẻ Ca Nhỏ Lồng Nhau Trong Cùng 1 Ô Ngày:**
    - **Ca Gãy chuẩn chuỗi (`CA_GAY`):** Khung giờ Sáng 07:00 – 12:00 (5h) và Tối 17:00 – 22:00 (5h), tổng 10.0h công. Trên bảng ma trận 15 ngày, tự động hiển thị thành **2 thẻ ca nhỏ lồng nhau** gọn gàng:
      + Thẻ nhỏ trên: `☀️ Sáng 07:00-12:00` (Amber)

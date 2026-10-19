@@ -274,4 +274,23 @@ export interface JobApplication {
   interview_date?: string;
   notes?: string;
 }
+export type CleanlinessShiftType = 'MORNING' | 'AFTERNOON' | 'CLOSING';
+export type CleanlinessStatus = 'SUBMITTED' | 'APPROVED' | 'NEEDS_REDO';
 
+export interface CleanlinessReport {
+  id: string;
+  branchId: string;
+  branchName: string;
+  staffId: string;
+  staffName: string;
+  staffPhone?: string;
+  staffRole?: string;
+  shiftType: CleanlinessShiftType;
+  reportDate: string; // YYYY-MM-DD
+  images: string[]; // WebP Base64 or Supabase Storage URLs
+  notes?: string;
+  status: CleanlinessStatus;
+  reviewedBy?: string;
+  reviewNote?: string;
+  createdAt: string;
+}
