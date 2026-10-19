@@ -729,6 +729,7 @@ export const AdminPanel: React.FC<AdminPanelProps> = ({
                   currentStaff={currentUser}
                   onCheckInSuccess={() => onRefreshAttendance?.()}
                   attendanceHistory={combinedLogs}
+                  leaveRequests={leaveRequests}
                 />
               </div>
             ) : (

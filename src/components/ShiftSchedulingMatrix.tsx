@@ -420,6 +420,19 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     });
   };
 
+  // Helper tìm đơn nghỉ phép đã duyệt của nhân sự vào 1 ngày cụ thể (Đồng bộ AI HR)
+  const getApprovedLeaveForStaffOnDate = (staff: Staff, dateStr: string): LeaveRequest | undefined => {
+    if (!leaveRequests || leaveRequests.length === 0) return undefined;
+    return leaveRequests.find(req => {
+      if (req.status !== 'APPROVED') return false;
+      const isMatch = req.staffId === staff.id ||
+        (staff.phone && req.phone === staff.phone) ||
+        (staff.fullName && req.staffName && req.staffName.trim().toLowerCase() === staff.fullName.trim().toLowerCase());
+      if (!isMatch) return false;
+      return dateStr >= req.startDate && dateStr <= req.endDate;
+    });
+  };
+
   // Helper to compute live attendance status for today
   const getTodayAttendanceStatus = (
     staff: Staff, 
@@ -446,22 +459,17 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     const now = new Date();
     const currentHHMM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-    // 1. Nếu có đơn nghỉ phép đã duyệt hôm nay
-    const hasApprovedLeave = leaveRequests && leaveRequests.some(req => {
-      if (req.status !== 'APPROVED') return false;
-      const isMatch = req.staffId === staff.id || (staff.phone && req.phone === staff.phone);
-      if (!isMatch) return false;
-      return todayStr >= req.startDate && todayStr <= req.endDate;
-    });
-
-    if (hasApprovedLeave) {
+    // 1. Nếu có đơn nghỉ phép đã duyệt hôm nay (Đồng bộ AI HR Chị 8)
+    const approvedLeaveToday = getApprovedLeaveForStaffOnDate(staff, todayStr);
+    if (approvedLeaveToday) {
+      const isSick = approvedLeaveToday.type === 'SICK_LEAVE';
       return {
         type: 'ON_LEAVE' as const,
-        label: '🏖️ Nghỉ phép',
-        shortLabel: 'Nghỉ phép',
+        label: isSick ? '💊 Nghỉ ốm' : '🏖️ Nghỉ phép',
+        shortLabel: isSick ? 'Nghỉ ốm' : 'Nghỉ phép',
         badgeClass: 'bg-pink-500/20 text-pink-300 border-pink-500/50 shadow-sm shadow-pink-500/20',
         dotClass: 'bg-pink-400',
-        tooltip: `${staff.fullName} đang trong kỳ nghỉ phép đã duyệt (${todayStr})`
+        tooltip: `${staff.fullName} đang trong kỳ ${isSick ? 'nghỉ ốm' : 'nghỉ phép'} đã duyệt (${todayStr})${approvedLeaveToday.replacementStaffName ? ` • Nhân sự gánh ca thay: ${approvedLeaveToday.replacementStaffName}` : ''} • Phê duyệt bởi: ${approvedLeaveToday.approvedBy || 'Chị 8 AI HR'}`
       };
     }
 
@@ -488,6 +496,36 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         };
       }
 
+      // Kiểm tra tính cờ đi trễ (quá giờ bắt đầu ca + 10 phút ân hạn)
+      let isLate = false;
+      let lateMinutes = 0;
+      if (latestRecord.isLate) {
+        isLate = true;
+      } else if (earliestStartTime && checkInTime) {
+        const [sH, sM] = earliestStartTime.split(':').map(Number);
+        const [cH, cM] = checkInTime.split(':').map(Number);
+        if (!isNaN(sH) && !isNaN(cH)) {
+          const startTotalM = sH * 60 + sM;
+          const checkInTotalM = cH * 60 + cM;
+          if (checkInTotalM > startTotalM + 10) {
+            isLate = true;
+            lateMinutes = checkInTotalM - startTotalM;
+          }
+        }
+      }
+
+      if (isLate) {
+        return {
+          type: 'WORKING_LATE' as const,
+          label: `${checkInTime} (Trễ)`,
+          shortLabel: `${checkInTime} Trễ`,
+          time: checkInTime,
+          badgeClass: 'bg-amber-500/25 text-amber-200 border-amber-400 shadow-sm shadow-amber-500/30 ring-1 ring-amber-400/50',
+          dotClass: 'bg-amber-400',
+          tooltip: `${staff.fullName} check-in lúc ${checkInTime}${lateMinutes > 0 ? ` (Đi trễ ${lateMinutes}p so với ca ${earliestStartTime})` : ' (Đi trễ)'}. Đang trực ca tại cửa hàng.`
+        };
+      }
+
       return {
         type: 'WORKING' as const,
         label: `${checkInTime} Đang làm`,
@@ -495,7 +533,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
         time: checkInTime,
         badgeClass: 'bg-emerald-500/25 text-emerald-200 border-emerald-400 shadow-sm shadow-emerald-500/20 animate-pulse',
         dotClass: 'bg-emerald-400 animate-ping',
-        tooltip: `${staff.fullName} đã check-in lúc ${checkInTime} và đang trực ca làm việc tại cửa hàng.`
+        tooltip: `${staff.fullName} đã check-in lúc ${checkInTime} (Đúng giờ) và đang trực ca làm việc tại cửa hàng.`
       };
     }
 
@@ -572,6 +610,21 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   // Helper render audit badge for past days
   const renderPastAuditBadge = (staff: Staff, dateStr: string, dayAsgs: ShiftAssignment[]) => {
     if (dayAsgs.every(a => a.status === 'OFF')) return null;
+
+    // Nếu nhân sự có đơn nghỉ phép đã được phê duyệt trong ngày này (Đồng bộ AI HR)
+    const approvedLeave = getApprovedLeaveForStaffOnDate(staff, dateStr);
+    if (approvedLeave) {
+      const isSick = approvedLeave.type === 'SICK_LEAVE';
+      return (
+        <div 
+          className="mt-1 flex items-center justify-center gap-0.5 py-0.5 px-1 rounded bg-pink-500/20 border border-pink-500/40 text-pink-300 text-[7px] font-bold leading-none shadow-sm"
+          title={`Nghỉ phép hợp lệ (${isSick ? 'Nghỉ ốm' : 'Nghỉ thường'}) ngày ${dateStr} đã được phê duyệt bởi ${approvedLeave.approvedBy || 'Chị 8 AI HR'}${approvedLeave.replacementStaffName ? ` (Gánh thay: ${approvedLeave.replacementStaffName})` : ''}. Miễn trừ chấm công.`}
+        >
+          <span>{isSick ? '💊' : '🏖️'}</span> <span>{isSick ? 'Nghỉ Ốm' : 'Có Phép'}</span>
+        </div>
+      );
+    }
+
     const pastRecords = getStaffRecordsForDate(staff, dateStr);
     if (pastRecords.length > 0) {
       const rec = pastRecords[0];
@@ -612,10 +665,12 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   // Thống kê trạng thái chấm công trực tiếp hôm nay của các nhân sự tại shop
   const todayLivePresence = useMemo(() => {
     let workingCount = 0;
+    let lateCount = 0;
     let breakCount = 0;
     let endedCount = 0;
     let missingCount = 0;
     let waitingCount = 0;
+    let leaveCount = 0;
 
     activeStaffForMatrix.forEach(staff => {
       const dayAsgs = assignments.filter(
@@ -624,14 +679,62 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       const status = getTodayAttendanceStatus(staff, dayAsgs);
       if (!status) return;
       if (status.type === 'WORKING') workingCount++;
+      else if (status.type === 'WORKING_LATE') {
+        workingCount++;
+        lateCount++;
+      }
       else if (status.type === 'ON_BREAK') breakCount++;
       else if (status.type === 'SHIFT_ENDED') endedCount++;
       else if (status.type === 'NOT_CHECKED_IN_LATE') missingCount++;
       else if (status.type === 'WAITING_SHIFT') waitingCount++;
+      else if (status.type === 'ON_LEAVE') leaveCount++;
     });
 
-    return { workingCount, breakCount, endedCount, missingCount, waitingCount };
+    return { workingCount, lateCount, breakCount, endedCount, missingCount, waitingCount, leaveCount };
   }, [activeStaffForMatrix, assignments, todayStr, selectedBranchId, localAttendanceLogs, leaveRequests]);
+
+  // Helper tính tổng giờ làm thực tế theo GPS của toàn bộ nhân sự tại shop trong 1 ngày
+  const getActualShopHoursForDate = (dateStr: string): number => {
+    if (dateStr > todayStr) return 0;
+    let dayActual = 0;
+    const countedRecordIds = new Set<string>();
+
+    activeStaffForMatrix.forEach(staff => {
+      const records = getStaffRecordsForDate(staff, dateStr);
+      records.forEach(rec => {
+        if (countedRecordIds.has(rec.id)) return;
+        const hasAssignmentAtBranch = assignments.some(
+          a => isAssignmentForStaff(a, staff) && a.date === dateStr && a.workingBranchId === selectedBranchId && a.status !== 'OFF'
+        );
+        const isRecordAtBranch = rec.branchId === selectedBranchId;
+        if (hasAssignmentAtBranch || isRecordAtBranch) {
+          countedRecordIds.add(rec.id);
+          let hrs = rec.workHours;
+          if (!hrs || hrs <= 0) {
+            if (rec.checkIn && rec.checkOut) {
+              const diffMs = new Date(rec.checkOut).getTime() - new Date(rec.checkIn).getTime();
+              hrs = Math.max(0.1, +(diffMs / (1000 * 60 * 60)).toFixed(1));
+            } else if (rec.checkIn && !rec.checkOut && dateStr === todayStr) {
+              const dayAsg = assignments.find(a => isAssignmentForStaff(a, staff) && a.date === dateStr && a.workingBranchId === selectedBranchId && a.status !== 'OFF');
+              hrs = dayAsg?.hours || 8;
+            } else {
+              hrs = 0;
+            }
+          }
+          dayActual += hrs;
+        }
+      });
+    });
+
+    return +dayActual.toFixed(1);
+  };
+
+  // Tổng giờ thực tế theo GPS đã làm được từ đầu kỳ tới ngày hôm nay
+  const totalActualHours = useMemo(() => {
+    return cycleDates
+      .filter(d => d <= todayStr)
+      .reduce((sum, d) => sum + getActualShopHoursForDate(d), 0);
+  }, [cycleDates, todayStr, activeStaffForMatrix, assignments, localAttendanceLogs, selectedBranchId]);
 
   // Helper to get Shift Card Color & Icon
   const getShiftBadgeStyle = (assignment: ShiftAssignment) => {
@@ -1760,6 +1863,19 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
             <span>Đang làm việc:</span>
             <span className="font-mono font-black">{todayLivePresence.workingCount}</span>
           </div>
+          {todayLivePresence.lateCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/20 border border-amber-400/50 text-amber-200 font-bold" title="Nhân viên check-in vào ca muộn quá 10 phút">
+              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+              <span>Đi trễ:</span>
+              <span className="font-mono font-black">{todayLivePresence.lateCount}</span>
+            </div>
+          )}
+          {todayLivePresence.leaveCount > 0 && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-pink-500/15 border border-pink-500/30 text-pink-300 font-bold" title="Nhân viên đang trong kỳ nghỉ phép đã duyệt hôm nay">
+              <span>🏖️ Nghỉ phép:</span>
+              <span className="font-mono font-black">{todayLivePresence.leaveCount}</span>
+            </div>
+          )}
           {todayLivePresence.breakCount > 0 && (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold" title="Nhân viên đang tạm nghỉ trưa / ăn tối luân phiên">
               <span>☕ Nghỉ giữa ca:</span>
@@ -2005,6 +2121,22 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
                     {/* Đối Soát Ngày Quá Khứ */}
                     {isPast && dayAsgs.some(a => a.status !== 'OFF') && (() => {
+                      const approvedLeave = getApprovedLeaveForStaffOnDate(staff, selectedDailyDate);
+                      if (approvedLeave) {
+                        const isSick = approvedLeave.type === 'SICK_LEAVE';
+                        return (
+                          <div className="flex items-center justify-between p-2.5 rounded-xl bg-pink-500/10 border border-pink-500/30 text-pink-300 text-xs font-bold shadow-sm">
+                            <div className="flex items-center gap-1.5">
+                              <span>{isSick ? '💊' : '🏖️'}</span>
+                              <span>Nghỉ phép hợp lệ ({isSick ? 'Nghỉ ốm' : 'Nghỉ phép'})</span>
+                            </div>
+                            <span className="text-[10px] text-pink-400 font-mono">
+                              Duyệt: {approvedLeave.approvedBy || 'Chị 8 AI HR'}
+                            </span>
+                          </div>
+                        );
+                      }
+
                       const pastRecords = getStaffRecordsForDate(staff, selectedDailyDate);
                       if (pastRecords.length > 0) {
                         const rec = pastRecords[0];
@@ -2068,12 +2200,23 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       ) : (
         /* CHẾ ĐỘ XEM MA TRẬN 15 NGÀY (TỐI ƯU CỘT GỌN CHO CẢ DI ĐỘNG & MÁY TÍNH) */
         <div className="glass-card rounded-2xl border border-slate-800 bg-slate-900/80 overflow-hidden shadow-2xl">
-          <div className="overflow-x-auto">
+          {cycle === 'cycle2' && (
+            <div className="px-3.5 py-1.5 bg-slate-950/70 border-b border-slate-800 text-[11px] text-slate-400 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                <span>Kỳ 2 (Tháng {selectedMonth}/{selectedYear}): Ngày 16 đến ngày {lastDayOfMonth} ({cycleDates.length} ngày)</span>
+              </div>
+              <span className="text-[10px] text-cyan-300 font-mono hidden sm:inline">
+                👉 Cuộn ngang bảng để xem các ngày cuối tháng (Ngày 28 - {lastDayOfMonth})
+              </span>
+            </div>
+          )}
+          <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-slate-700 scrollbar-track-slate-950 pb-1">
             <table className="w-full text-left border-collapse min-w-[1000px]">
               <thead>
                 <tr className="bg-slate-950 border-b border-slate-800 text-[11px] font-bold text-slate-400">
-                  {/* Fixed Staff Column (w-32 on mobile, w-56 on desktop) */}
-                  <th className="py-2.5 px-2 sm:px-4 w-32 sm:w-56 sticky left-0 bg-slate-950 z-20 border-r border-slate-800">
+                  {/* Fixed Staff Column (w-36 on mobile, w-60 on desktop) */}
+                  <th className="py-2.5 px-2 sm:px-4 w-36 sm:w-60 min-w-[145px] sm:min-w-[220px] sticky left-0 bg-slate-950 z-20 border-r border-slate-800">
                     NHÂN SỰ ({currentBranch.name})
                   </th>
 
@@ -2142,8 +2285,8 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
                   return (
                     <tr key={staff.id} className="hover:bg-slate-800/30 transition-colors group">
-                      {/* Staff Profile Cell (w-32 on mobile, w-56 on desktop) */}
-                      <td className="py-2 px-1.5 sm:px-4 w-32 sm:w-56 sticky left-0 bg-slate-900 group-hover:bg-slate-850 z-10 border-r border-slate-800">
+                      {/* Staff Profile Cell (w-36 on mobile, w-60 on desktop) */}
+                      <td className="py-2 px-1.5 sm:px-4 w-36 sm:w-60 min-w-[145px] sm:min-w-[220px] sticky left-0 bg-slate-900 group-hover:bg-slate-850 z-10 border-r border-slate-800">
                         <div className="flex items-center gap-1.5 sm:gap-2.5">
                           <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center font-bold text-xs flex-shrink-0 border ${
                             isCross 
@@ -2164,7 +2307,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                               )}
                             </div>
                             <div className="text-[9px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
-                              <span className="font-mono text-cyan-400/90">{staff.code || 'NV'}</span>
+                              <span className="font-mono text-cyan-400/90 whitespace-nowrap">{staff.code || 'NV'}</span>
                               <span className="hidden sm:inline">•</span>
                               <span className="text-slate-500 hidden sm:inline">
                                 {isCross ? `Gốc: ${homeBranch?.name}` : staff.role}
@@ -2220,6 +2363,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
 
                       const isCaGay = dayAsgs.length === 1 && (dayAsgs[0].shiftCode === 'CA_GAY' || dayAsgs[0].shiftName?.toLowerCase().includes('gãy'));
                       const isMultipleShifts = dayAsgs.length >= 2;
+                      const approvedLeave = getApprovedLeaveForStaffOnDate(staff, dateStr);
 
                       return (
                         <td
@@ -2227,8 +2371,32 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                           onClick={() => handleCellClick(staff, dateStr)}
                           className="py-1 px-1 text-center border-r border-slate-800/50 cursor-pointer relative group/cell hover:bg-cyan-500/5 transition-all align-middle"
                         >
-                          {/* TRƯỜNG HỢP 1: CA GÃY (Hiển thị 2 thẻ nhỏ lồng nhau: Sáng & Tối) */}
-                          {isCaGay ? (
+                          {/* TRƯỜNG HỢP ƯU TIÊN 0: ĐƠN NGHỈ PHÉP ĐÃ DUYỆT (AI HR) */}
+                          {approvedLeave ? (
+                            <div 
+                              className="p-1.5 rounded-xl border border-pink-500/50 bg-gradient-to-br from-pink-500/20 via-slate-900 to-pink-950/40 text-pink-300 text-center leading-tight shadow-md hover:border-pink-400 transition-all select-none"
+                              title={`Đơn nghỉ phép (${approvedLeave.type === 'SICK_LEAVE' ? 'Nghỉ ốm' : 'Nghỉ phép'}): ${approvedLeave.reason}${approvedLeave.replacementStaffName ? ` • Người gánh thay: ${approvedLeave.replacementStaffName}` : ''} • Phê duyệt bởi: ${approvedLeave.approvedBy || 'Chị 8 AI HR'}`}
+                            >
+                              <div className="font-extrabold text-[9px] flex items-center justify-center gap-1 text-pink-200">
+                                <span>{approvedLeave.type === 'SICK_LEAVE' ? '💊' : '🏖️'}</span>
+                                <span>{approvedLeave.type === 'SICK_LEAVE' ? 'Nghỉ Ốm' : 'Nghỉ Phép'}</span>
+                              </div>
+                              {approvedLeave.replacementStaffName ? (
+                                <div className="text-[7.5px] font-mono text-amber-300 mt-0.5 truncate font-bold" title={`Nhân sự gánh thay: ${approvedLeave.replacementStaffName}`}>
+                                  Thế: {approvedLeave.replacementStaffName}
+                                </div>
+                              ) : (
+                                <div className="text-[7.5px] font-mono text-pink-400/90 mt-0.5 truncate">
+                                  {approvedLeave.approvedBy ? `Duyệt: ${approvedLeave.approvedBy}` : 'Đã duyệt'}
+                                </div>
+                              )}
+                              {/* Trạng thái chấm công trực tiếp hôm nay */}
+                              {isToday && renderLiveAttendanceBadge(staff, dayAsgs)}
+                              {/* Đối soát quá khứ */}
+                              {!isToday && dateStr < todayStr && renderPastAuditBadge(staff, dateStr, dayAsgs)}
+                            </div>
+                          ) : isCaGay ? (
+                            /* TRƯỜNG HỢP 1: CA GÃY (Hiển thị 2 thẻ nhỏ lồng nhau: Sáng & Tối) */
                             <div className="flex flex-col gap-1 w-full p-1 rounded-xl border border-amber-500/40 bg-gradient-to-b from-amber-500/15 via-slate-900 to-indigo-500/15 hover:border-amber-400 transition-all shadow-md group/gay">
                               {/* Thẻ nhỏ 1: Sáng */}
                               <div className="py-1 px-1.5 rounded-lg bg-amber-500/25 border border-amber-500/50 text-amber-200 text-center leading-none">
@@ -2329,14 +2497,38 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                                   );
                                 }
                                 return (
-                                  <div className="w-full h-10 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 text-slate-500 hover:text-cyan-400">
-                                    <Plus className="w-3.5 h-3.5" />
+                                  <div className="w-full h-8 flex items-center justify-center text-slate-700 text-xs font-mono select-none group-hover/cell:text-cyan-400">
+                                    <span className="group-hover/cell:hidden">—</span>
+                                    <Plus className="w-3.5 h-3.5 hidden group-hover/cell:inline-block" />
+                                  </div>
+                                );
+                              })()
+                            ) : dateStr < todayStr ? (
+                              (() => {
+                                const pastRecords = getStaffRecordsForDate(staff, dateStr);
+                                if (pastRecords.length > 0) {
+                                  const rec = pastRecords[0];
+                                  const checkInTime = rec.checkIn ? new Date(rec.checkIn).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '';
+                                  return (
+                                    <div 
+                                      className="p-1 rounded-lg border border-emerald-500/30 bg-emerald-500/10 text-emerald-300 text-[8px] font-mono text-center leading-none"
+                                      title={`Có chấm công lúc ${checkInTime} (Không có lịch xếp ca)`}
+                                    >
+                                      <span>✓ {checkInTime}</span>
+                                    </div>
+                                  );
+                                }
+                                return (
+                                  <div className="w-full h-8 flex items-center justify-center text-slate-700 text-xs font-mono select-none group-hover/cell:text-cyan-400">
+                                    <span className="group-hover/cell:hidden">—</span>
+                                    <Plus className="w-3.5 h-3.5 hidden group-hover/cell:inline-block" />
                                   </div>
                                 );
                               })()
                             ) : (
-                              <div className="w-full h-10 flex items-center justify-center opacity-0 group-hover/cell:opacity-100 text-slate-500 hover:text-cyan-400">
-                                <Plus className="w-3.5 h-3.5" />
+                              <div className="w-full h-8 flex items-center justify-center text-slate-700 text-xs font-mono select-none group-hover/cell:text-cyan-400">
+                                <span className="group-hover/cell:hidden opacity-40">—</span>
+                                <Plus className="w-3.5 h-3.5 hidden group-hover/cell:inline-block" />
                               </div>
                             )
                           )}
@@ -2363,11 +2555,15 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
               })}
             </tbody>
 
-            {/* Footer Summary: Total Hours per Day for the Store */}
+            {/* Footer Summary: Dual-Row Reconciliation (Planned vs Actual GPS) */}
             <tfoot>
+              {/* Row 1: Giờ Kế Hoạch */}
               <tr className="bg-slate-950 border-t-2 border-slate-800 font-bold text-xs text-slate-300">
-                <td className="py-3 px-4 sticky left-0 bg-slate-950 border-r border-slate-800 text-[11px] uppercase tracking-wider text-cyan-400 font-extrabold">
-                  TỔNG GIỜ KẾ HOẠCH SHOP / NGÀY
+                <td className="py-2.5 px-2 sm:px-4 w-36 sm:w-60 min-w-[145px] sm:min-w-[220px] sticky left-0 bg-slate-950 z-20 border-r border-slate-800 text-[10.5px] uppercase tracking-wider text-emerald-400 font-extrabold">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">📅</span>
+                    <span className="truncate">GIỜ KẾ HOẠCH (Dự kiến)</span>
+                  </div>
                 </td>
                 {cycleDates.map(dateStr => {
                   const dayHours = assignments
@@ -2375,18 +2571,93 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                     .reduce((sum, a) => sum + (a.hours || 0), 0);
                   
                   return (
-                    <td key={dateStr} className="py-2 px-1 text-center font-mono text-[11px] border-r border-slate-800 text-slate-200">
+                    <td key={`plan-${dateStr}`} className="py-2 px-1 text-center font-mono text-[11px] border-r border-slate-800 text-slate-200">
                       {dayHours > 0 ? (
                         <span className="text-emerald-400 font-bold">{dayHours.toFixed(0)}h</span>
                       ) : (
-                        <span className="text-slate-600">-</span>
+                        <span className="text-slate-600">—</span>
                       )}
                     </td>
                   );
                 })}
                 <td className="py-2.5 px-3 text-center font-mono bg-slate-950" title="Tổng giờ công kế hoạch toàn shop trong kỳ">
                   <div className="text-emerald-400 font-black text-sm">{totalHours.toFixed(0)}h</div>
-                  <div className="text-[9px] text-slate-500 font-sans font-normal">Kế hoạch</div>
+                  <div className="text-[8.5px] text-slate-400 font-sans font-medium">Toàn kỳ</div>
+                </td>
+              </tr>
+
+              {/* Row 2: Giờ Thực Tế GPS */}
+              <tr className="bg-slate-950/95 border-t border-slate-800/80 font-bold text-xs text-slate-300">
+                <td className="py-2.5 px-2 sm:px-4 w-36 sm:w-60 min-w-[145px] sm:min-w-[220px] sticky left-0 bg-slate-950 z-20 border-r border-slate-800 text-[10.5px] uppercase tracking-wider text-cyan-300 font-extrabold">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm">⏱️</span>
+                    <span className="truncate">GIỜ THỰC TẾ (GPS)</span>
+                  </div>
+                </td>
+                {cycleDates.map(dateStr => {
+                  const dayPlanned = assignments
+                    .filter(a => a.workingBranchId === selectedBranchId && a.date === dateStr && a.status === 'SCHEDULED')
+                    .reduce((sum, a) => sum + (a.hours || 0), 0);
+                  const isFuture = dateStr > todayStr;
+                  const actual = getActualShopHoursForDate(dateStr);
+
+                  if (isFuture) {
+                    return (
+                      <td key={`act-${dateStr}`} className="py-2 px-1 text-center font-mono text-[10px] border-r border-slate-800 text-slate-600">
+                        —
+                      </td>
+                    );
+                  }
+
+                  const percent = dayPlanned > 0 ? Math.round((actual / dayPlanned) * 100) : null;
+
+                  return (
+                    <td key={`act-${dateStr}`} className="py-1.5 px-0.5 text-center font-mono border-r border-slate-800">
+                      {dayPlanned > 0 ? (
+                        <div>
+                          <span className={`text-[10.5px] font-bold ${
+                            actual >= dayPlanned * 0.9 ? 'text-cyan-300' :
+                            actual > 0 ? 'text-amber-300' : 'text-rose-400'
+                          }`}>
+                            {actual.toFixed(0)}h
+                          </span>
+                          <span className={`block text-[8px] font-medium leading-none mt-0.5 ${
+                            actual >= dayPlanned * 0.9 ? 'text-cyan-400/80' :
+                            actual > 0 ? 'text-amber-400/80' : 'text-rose-400'
+                          }`}>
+                            {percent}%
+                          </span>
+                        </div>
+                      ) : actual > 0 ? (
+                        <div>
+                          <span className="text-amber-300 text-[10.5px] font-bold">{actual.toFixed(0)}h</span>
+                          <span className="block text-[7.5px] text-amber-400/80 leading-none mt-0.5">Ngoài KH</span>
+                        </div>
+                      ) : (
+                        <span className="text-slate-600 text-[10px]">—</span>
+                      )}
+                    </td>
+                  );
+                })}
+                <td className="py-2.5 px-3 text-center font-mono bg-slate-950" title="Tổng giờ thực tế ghi nhận qua chấm công GPS">
+                  {(() => {
+                    const pastPlanned = cycleDates
+                      .filter(d => d <= todayStr)
+                      .reduce((sum, d) => {
+                        return sum + assignments
+                          .filter(a => a.workingBranchId === selectedBranchId && a.date === d && a.status === 'SCHEDULED')
+                          .reduce((s, a) => s + (a.hours || 0), 0);
+                      }, 0);
+                    const overallPercent = pastPlanned > 0 ? Math.round((totalActualHours / pastPlanned) * 100) : 0;
+                    return (
+                      <div>
+                        <div className="text-cyan-300 font-black text-sm">{totalActualHours.toFixed(0)}h</div>
+                        <div className="text-[8.5px] font-mono text-cyan-400 font-bold">
+                          {pastPlanned > 0 ? `${overallPercent}% thực đạt` : 'GPS'}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </td>
               </tr>
             </tfoot>

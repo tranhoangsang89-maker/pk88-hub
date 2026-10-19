@@ -488,6 +488,67 @@ export function App() {
     fetchMarketingPosts();
     fetchLeaveRequests();
     fetchShiftAssignmentsFromCloud();
+
+    // 1. KẾT NỐI REALTIME SUPABASE CHO TOÀN BỘ CHUỖI CỬA HÀNG PHỤ KIỆN 88
+    const channel = supabase
+      .channel('realtime_pk88_operations')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'attendance' },
+        (payload) => {
+          console.log('⚡ Realtime attendance update received from Supabase:', payload.eventType);
+          fetchRealAttendance();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'leave_requests' },
+        (payload) => {
+          console.log('⚡ Realtime leave_requests update received from Supabase:', payload.eventType);
+          fetchLeaveRequests();
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'job_applications' },
+        (payload) => {
+          // Bảng job_applications lưu trữ lịch chia ca pk88_shift_assignments
+          if ((payload.new as any)?.id === '00000000-0000-0000-0000-000000000002') {
+            console.log('⚡ Realtime shifts update received from Supabase');
+            fetchShiftAssignmentsFromCloud();
+            window.dispatchEvent(new CustomEvent('pk88_shifts_updated'));
+          }
+        }
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'staff' },
+        () => {
+          fetchStaff();
+        }
+      )
+      .subscribe();
+
+    // 2. NHỊP TIM DỰ PHÒNG (HEARTBEAT): Tự động đồng bộ mỗi 20 giây đảm bảo không bao giờ trễ số liệu dù mạng 4G/Wifi gián đoạn
+    const heartbeat = setInterval(() => {
+      fetchRealAttendance();
+    }, 20000);
+
+    // 3. TỰ ĐỘNG ĐỒNG BỘ TỨC THÌ KHI USER CHUYỂN LẠI TAB TRÌNH DUYỆT
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        fetchRealAttendance();
+        fetchLeaveRequests();
+        fetchShiftAssignmentsFromCloud();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(heartbeat);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, []);
 
   // Lắng nghe sự kiện nút "Back" / "Forward" trên điện thoại và trình duyệt
@@ -1845,6 +1906,7 @@ export function App() {
                   onCheckInSuccess={handleCheckInSuccess}
                   onDisputeSubmit={handleAttendanceDisputeSubmit}
                   attendanceHistory={attendanceHistory}
+                  leaveRequests={leaveRequests}
                   onOpenMyShiftsModal={() => setShowPersonalShiftsModal(true)}
                   onOpenLeaveModal={handleOpenAIHRModal}
                   onOpenProfileModal={() => setShowProfileModal(true)}

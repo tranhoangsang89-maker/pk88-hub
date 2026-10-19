@@ -560,7 +560,19 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 4. **Khung Ảnh Tự Động 1080×1080 (Canvas Auto-Framing) & Bàn Biên Tập Kanban:**
    - Tự động gắn khung thương hiệu PK88 Gold/Dark/Accent, dán thông tin sản phẩm và xuất ảnh JPG chuẩn tỷ lệ 1:1 cho bài đăng Fanpage.
-   - Bàn tổng biên tập Kanban hỗ trợ kiểm duyệt bài viết marketing từ các chi nhánh trước khi xuất bản.
+5. **Bảng Ma Trận Phân Ca & Bảng Giám Sát Trực Tiếp Quân Số Toàn Chuỗi (19/10/2026):**
+   - **Bảng Ma Trận Phân Ca Tự Động (`ShiftSchedulingMatrix.tsx`):**
+     - Phân bổ định ngạch ca Sáng / Tối theo từng chi nhánh, hỗ trợ xếp ca điều chuyển chéo chi nhánh (Cross-branch shifts).
+     - Tự động liên kết chặt chẽ 2 chiều với Đơn Nghỉ Phép đã duyệt (`leave_requests`) và Trợ Lý AI HR (Chị 8 HR). Khi nhân sự được duyệt nghỉ phép, ma trận tự động gán nhãn Nghỉ Phép, hiển thị người gánh ca và cảnh báo thiếu hụt quân số.
+     - Lưu trữ và đồng bộ hóa thời gian thực lên Supabase Cloud.
+   - **Bảng Giám Sát Trực Tiếp Quân Số Toàn Chuỗi Cho Cấp Điều Hành (`ExecutiveLivePresence.tsx`):**
+     - Tích hợp trực tiếp trên Dashboard Tổng Quan (Executive Dashboard) dành riêng cho Founder, Admin và HR ở chế độ **Read-Only** an toàn tuyệt đối.
+     - Phân tích theo thời gian thực trạng thái trực chiến của toàn bộ nhân sự: Đang làm việc (`WORKING`), Vào trễ (`WORKING_LATE`), Nghỉ giữa ca (`ON_BREAK`), Nghỉ phép (`ON_LEAVE`), Chưa check-in (`NOT_CHECKED_IN`), Đã tan ca (`SHIFT_ENDED`), Chưa xếp ca (`UNSCHEDULED`).
+     - Kết nối Supabase Realtime Channel (`realtime_pk88_operations`) lắng nghe tức thời thay đổi dữ liệu từ các bảng `attendance`, `leave_requests`, `job_applications` (shifts), `staff`.
+     - So khớp định danh nhân sự đa tầng (UUID Supabase, Số Điện Thoại `phone`, Mã NV `code`, Họ Tên).
+   - **Tối Ưu Trải Nghiệm Mobile Đột Phá:**
+     - Loại bỏ hoàn toàn thanh cuộn ngang chọn chi nhánh; thay thế bằng cơ chế `flex flex-wrap` tự động dàn rớt xuống dòng thứ 2-3 thẩm mỹ.
+     - Thu nhỏ kích thước thẻ nhân viên, chuyển sang lưới 2 cột song song (`grid-cols-2`) trên điện thoại, hiển thị đồng thời 4–6 nhân sự trên một khung nhìn trực quan, không bị tù túng.
 
 ---
 
@@ -595,7 +607,7 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 2. **Quản lý Khách hàng & Bảo hành (CRM):** Lưu lịch sử mua bán/sửa chữa qua SĐT, theo dõi thời hạn bảo hành tự động.
 3. **Bot Thông báo Telegram/Zalo:** Tự động bắn tin nhắn thông báo ca trực, phiếu sửa chữa mới, đơn xin nghỉ phép đã duyệt.
 4. **PWA (Progressive Web App):** Hỗ trợ cài đặt thành app độc lập trên màn hình điện thoại (iOS/Android).
-5. **Hệ Thống Cào Dữ Liệu Tự Động Đối Thủ (Live Scraping Website, Fanpage, TikTok):** Kế hoạch chi tiết, kiến trúc Vercel Serverless / Cron Jobs, phương án vượt rào cản Meta và mã SQL Supabase đã được biên soạn đầy đủ tại tệp **`KE_HOACH_CAO_DATA_DOI_THU_MKT.md`**. AI Agent kế tiếp hãy mở và làm theo hướng dẫn trong tệp này.
+5. **Hệ Thống Cào Dữ Liệu Tự Động Đối Thủ (Live Stealth Scraping & Monitoring - Radar 3km):** Đã hoàn thiện toàn bộ thiết kế kiến trúc tinh vi (khắc phục timeout Vercel bằng GitHub Actions, cào Meta Ad Library API, Reverse Internal APIs giá phụ kiện/ép kính, và Google Maps Reviews) kèm mã SQL Supabase sẵn sàng tại tệp [KE_HOACH_CAO_DATA_DOI_THU_MKT.md](file:///d:/PK88%20AI%20AUTOMATION/KE_HOACH_CAO_DATA_DOI_THU_MKT.md). Hiện đang ở trạng thái **ON-HOLD**, sẵn sàng triển khai ngay khi Ban Lãnh Đạo duyệt kích hoạt.
 
 ---
 

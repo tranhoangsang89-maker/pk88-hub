@@ -1,181 +1,137 @@
-# KẾ HOẠCH CHI TIẾT: CÀO DỮ LIỆU TỰ ĐỘNG WEBSITE, FANPAGE FACEBOOK & TIKTOK ĐỐI THỦ
+# KẾ HOẠCH NÂNG CẤP: HỆ THỐNG CÀO DỮ LIỆU TÌNH BÁO ĐỐI THỦ THỜI GIAN THỰC (RADAR 3KM)
 **Dự án:** PK88 Automation Portal (Chuỗi Cửa Hàng Phụ Kiện 88)  
 **Phân hệ áp dụng:** Radar Đối Thủ 3km — Xưởng Marketing 88 (`src/components/PK88MarketingStudio.tsx`)  
-**Tài liệu dành cho:** AI Agent kế tiếp và Đội ngũ Kỹ thuật tiếp quản dự án.  
-**Ngày lập kế hoạch:** 18/10/2026  
+**Tài liệu lưu trữ dành cho:** Ban Lãnh Đạo & AI Agent kế tiếp khi bắt đầu bấm nút kích hoạt.  
+**Ngày cập nhật mới nhất:** 19/10/2026  
+**Trạng thái tính năng:** ⏸️ **TẠM HOÃN (ON-HOLD) — ĐÃ HOÀN TẤT THIẾT KẾ KIẾN TRÚC, SẴN SÀNG TRIỂN KHAI**
 
 ---
 
 ## 1. BỐI CẢNH & MỤC TIÊU DỰ ÁN
-Hiện tại, phân hệ **"Radar Đối Thủ 3km"** trong Xưởng Marketing 88 đã hoạt động ổn định với tập dữ liệu tình báo địa bàn chuẩn xác (tọa độ GPS từ `google-maps.txt`, danh sách 5–7 đối thủ thực tế quanh 7 chi nhánh, nhận diện tử huyệt và sinh kịch bản phản công bằng Gemini AI).
+Hiện tại, phân hệ **"Radar Đối Thủ 3km"** trong Xưởng Marketing 88 đang hoạt động ổn định với tập dữ liệu tình báo định kỳ (danh sách đối thủ định sẵn quanh 7 chi nhánh, tọa độ GPS từ `google-maps.txt`, phân tích tử huyệt và sinh kịch bản phản công bằng Google Gemini AI).
 
-**Mục tiêu nâng cấp:**
-Chuyển đổi từ dữ liệu tình báo định kỳ sang **Hệ thống Cào Dữ Liệu Thời Gian Thực (Live Scraping & Monitoring)** tự động thu thập tin tức từ:
-1. **Website đối thủ** (Thế Giới Di Động, FPT Shop, Điện Thoại Vui, CellphoneS, Di Động Việt...): Bắt trọn biến động bảng giá ép kính, thay pin, củ sạc, flash sale.
-2. **Fanpage Facebook đối thủ** quanh 7 chi nhánh: Quét các bài đăng khuyến mãi, minigame, ưu đãi cục bộ.
-3. **Kênh TikTok đối thủ**: Quét video mới nhất, các chủ đề/trend đang viral tại địa phương.
-4. **Tự động kích hoạt phản công:** Khi phát hiện đối thủ giảm giá hoặc tung ưu đãi, AI Gemini sẽ lập tức cảnh báo và viết sẵn kịch bản "khắc chế" cho nhân viên Phụ Kiện 88 đăng bài hút khách ngay trong ngày.
+**Mục tiêu nâng cấp khi kích hoạt:**
+Chuyển đổi từ dữ liệu mô phỏng sang **Hệ thống Cào Dữ Liệu Thời Gian Thực (Live Stealth Scraping & Monitoring)** tự động quét ngầm mỗi sáng sớm để:
+1. **Bắt trọn chiến dịch quảng cáo trả phí (Paid Ads)** của đối thủ đang chạy ngầm quanh địa bàn các chi nhánh.
+2. **Theo dõi biến động bảng giá:** Bảng giá ép kính, thay pin, củ sạc, kính cường lực, combo flash sale của các chuỗi lớn và tiệm mạnh địa phương.
+3. **Bắt tử huyệt phục vụ:** Quét các đánh giá tiêu cực (1–2 sao) của khách hàng tại các tiệm đối thủ trên Google Maps trong bán kính 3km.
+4. **Tự động kích hoạt phản công:** Gemini Flash Lite đọc dữ liệu cào được, tự động phát hiện đối thủ đang giảm giá món gì hoặc khách đang chê đối thủ điều gì ➔ Viết sẵn kịch bản video TikTok và bài đăng Fanpage để nhân viên PK88 đăng bài hút khách ngay trong ngày.
 
 ---
 
-## 2. KIẾN TRÚC KỸ THUẬT TẬN DỤNG NỀN TẢNG VERCEL
-Dự án được deploy trực tiếp trên **Vercel** (`pk88-hub.vercel.app`), do đó giải pháp tối ưu nhất là tận dụng 100% hạ tầng Serverless có sẵn của Vercel mà **không cần thuê thêm máy chủ VPS tốn kém**:
+## 2. BÀI HỌC KINH NGHIỆM & ĐÁNH GIÁ KỸ THUẬT PHƯƠNG ÁN CŨ
+
+Trong bản phác thảo ban đầu (18/10), có 3 điểm nghẽn kỹ thuật đã được nhận diện và cần triệt tiêu:
+* ⚠️ **Trần giới hạn thời gian chạy của Vercel (10 giây timeout):** Vercel Serverless gói Hobby tự động ngắt kết nối sau 10 giây. Quét 25–35 trang đối thủ qua mạng chắc chắn sẽ sập lỗi `504 Gateway Timeout`.
+* ⚠️ **Tường lửa Meta (Facebook Login Wall):** Cào trực tiếp Fanpage qua IP server Vercel/AWS sẽ bị Meta chặn 100% bằng trang đăng nhập hoặc Captcha.
+* ⚠️ **Website SPA (Single Page App):** Các web lớn (TGDĐ, CellphoneS, FPT Shop) render bảng giá bằng JavaScript client-side; nếu dùng `cheerio` tải HTML thô sẽ chỉ nhận được khung rỗng (skeleton).
+
+---
+
+## 3. KIẾN TRÚC KỸ THUẬT TINH VI ĐÃ NÂNG CẤP (4 ĐÒN BẨY CHIẾN LƯỢC)
 
 ```mermaid
 graph TD
-    A[Vercel Cron Job - 06:00 Sáng Hàng Ngày] --> B[Vercel Serverless Function: /api/competitor-radar/scan]
-    B --> C1[1. Scraper Website: Cheerio / Fetch HTML]
-    B --> C2[2. Scraper Facebook Fanpage: Proxy / OpenGraph / Apify]
-    B --> C3[3. Scraper TikTok: Universal Data Rehydration]
-    C1 --> D[Tổng hợp dữ liệu bài đăng mới & giá mới]
+    A[GitHub Actions Cron Job - 05:30 Sáng Hàng Ngày] --> B[Bộ Thu Thập Tình Báo Stealth Engine]
+    B --> C1[1. Meta Ad Library Web: Quét các bài chạy Ads ngầm quanh chi nhánh]
+    B --> C2[2. Reverse Internal APIs: Lấy bảng giá JSON sạch từ TGDĐ/CellphoneS/FPT]
+    B --> C3[3. Google Maps Reviews: Bắt đánh giá 1-2 sao của khách tại các tiệm địa phương 3km]
+    C1 --> D[Tổng hợp & Phân loại đe dọa: Threat Score Filter]
     C2 --> D
     C3 --> D
     D --> E[(Lưu trữ vào Supabase: competitor_feed_logs)]
-    E --> F[Google Gemini Flash Lite: Phân tích đòn phản công]
-    F --> G[Hiển thị trực tiếp trên Tab 'Radar Đối Thủ 3km']
+    E --> F[Google Gemini Flash Lite: Phân tích tử huyệt & Soạn đòn phản công]
+    F --> G[Hiển thị thời gian thực trên Tab 'Radar Đối Thủ 3km' PK88]
 ```
 
-1. **Vercel Serverless Function (`api/competitor-radar.ts`):** Xử lý ngầm ở phía máy chủ, bảo mật API key, không gây đơ lag trình duyệt người dùng.
-2. **Vercel Cron Jobs (`vercel.json`):** Đặt lịch tự động kích hoạt 1 lần mỗi ngày (hoặc mỗi sáng 06:00 trước giờ mở cửa).
-3. **Supabase Database:** Lưu lịch sử các bài đăng/bảng giá đã cào để AI so sánh điểm khác biệt (diff) giữa các ngày.
-4. **Google Gemini Flash Lite (`gemini-flash-lite-latest`):** Đóng vai trò Giám đốc Chiến lược Marketing, đọc dữ liệu thô cào được và biến thành bài đăng TikTok/Facebook chuẩn xác.
+### 🎯 Đòn Bẩy 1: Khai Thác Meta Ad Library (Thư Viện Quảng Cáo Facebook)
+* **Nguyên lý:** Thay vì cào Fanpage đối thủ (dễ bị chặn và lẫn nhiều bài rác), hệ thống cào thẳng trang **Thư Viện Quảng Cáo công khai của Meta** (`facebook.com/ads/library`).
+* **Lợi thế:**
+  * Meta bắt buộc phải công khai 100% bài quảng cáo đang phân phối theo luật minh bạch toàn cầu.
+  * Bắt trọn các **bài quảng cáo ngầm (Dark Posts)** mà đối thủ đang đổ ngân sách chạy quanh địa phương mà không đăng trên dòng thời gian Fanpage.
+  * Hoàn toàn hợp pháp, không bao giờ bị chặn IP hay bắt đăng nhập.
+
+### 🎯 Đòn Bẩy 2: Tấn Công Trực Tiếp Reverse-Engineered Internal APIs
+* **Nguyên lý:** Không tải toàn bộ trang HTML 3MB rồi dùng `cheerio` bóc tách. Thay vào đó, gọi trực tiếp các API tìm kiếm/danh mục nội bộ dạng JSON của các chuỗi bán lẻ (`/api/v2/products`, `/graphql`).
+* **Lợi thế:** Phản hồi trong 100ms, nhẹ gấp 50 lần, lấy chuẩn từng con số giá niêm yết, giá khuyến mãi và tình trạng còn hàng.
+
+### 🎯 Đòn Bẩy 3: Radar Google Maps Reviews & Tình Báo Địa Bàn 3km
+* **Nguyên lý:** Quét các đánh giá 1–2 sao mới nhất của khách hàng tại các tiệm sửa chữa/phụ kiện đối thủ tư nhân quanh bán kính 3km của shop.
+* **Lợi thế:** Khai thác triệt để tử huyệt phục vụ (chờ lâu, thái độ cọc cằn, giá mập mờ) để AI của PK88 sinh kịch bản đập tan nghi ngờ của khách hàng.
+
+### 🎯 Đòn Bẩy 4: Hạ Tầng GitHub Actions Engine (Khắc Phục Timeout Vercel)
+* **Nguyên lý:** Chuyển tác vụ cào dữ liệu sang chạy bằng **GitHub Actions Scheduled Workflow** (05:30 sáng hàng ngày).
+* **Lợi thế:**
+  * Có sẵn 2.000 phút chạy miễn phí mỗi tháng trong kho lưu trữ GitHub của dự án.
+  * Chạy trên máy ảo Ubuntu độc lập trong 2–3 phút thoải mái, không lo giới hạn 10 giây của Vercel.
+  * Sau khi phân tích xong với Gemini AI, dữ liệu ghi thẳng vào Supabase. Vercel Portal chỉ việc đọc hiển thị trong 0.1 giây!
 
 ---
 
-## 3. PHƯƠNG ÁN CHI TIẾT THEO TỪNG NỀN TẢNG
+## 4. CƠ SỞ DỮ LIỆU CẦN THIẾT TRÊN SUPABASE (SQL SẴN SÀNG)
 
-### 3.1. Cào Website Đối Thủ (Bảng giá sửa chữa & Phụ kiện)
-- **Độ khả thi:** **95%** (Rất dễ triển khai, ít bị chặn).
-- **Đối tượng:**
-  - `thegioididong.com`, `fptshop.com.vn` (Giá sạc cáp, tai nghe, pin dự phòng, ốp lưng).
-  - `dienthoaivui.com.vn`, `cellphones.com.vn` (Bảng giá thay pin iPhone, ép kính màn hình, sửa chữa).
-- **Kỹ thuật thực hiện:**
-  - Sử dụng thư viện nhẹ `cheerio` hoặc `node-html-parser` trong Node.js.
-  - Gửi HTTP Request kèm `User-Agent` chuẩn trình duyệt máy tính.
-  - Trích xuất các thẻ chứa giá: Tên sản phẩm, giá niêm yết, giá khuyến mãi, tình trạng còn hàng.
-- **Tín hiệu AI cần bắt:**
-  - Khi đối thủ giảm giá củ sạc 20W từ 350k xuống 290k ➔ AI báo hiệu để PK88 tung đòn củ sạc Quaker 25W chỉ 205k.
-  - Khi đối thủ tăng phí công thay pin ➔ AI gợi ý PK88 nhấn mạnh thông điệp "Bao công thay lắp miễn phí lấy liền 15 phút".
-
----
-
-### 3.2. Cào Mạng Xã Hội Facebook (Fanpage Đối Thủ)
-- **Độ khả thi:** **80%** (Cần vượt rào cản chặn IP & Login Wall của Meta).
-- **Rào cản:** Meta chặn IP các trung tâm dữ liệu lớn của Vercel/AWS và bắt đăng nhập nếu gửi nhiều request liên tục.
-- **3 Phương án triển khai khả thi (Xếp theo độ ưu tiên):**
-
-#### ➤ Phương án A (Khuyến nghị số 1 - Ổn định & Chuyên nghiệp): Kết nối qua Actor API chuyên dụng
-- Sử dụng **Apify** (có sẵn Actor `apify/facebook-posts-scraper` chạy trên hạ tầng proxy xoay vòng miễn phí 5$/tháng, đủ quét 30 trang fanpage mỗi ngày).
-- Vercel Serverless chỉ cần gọi 1 HTTP request sang Apify để lấy về danh sách bài viết dạng JSON sạch: Tiêu đề bài viết, link ảnh, ngày đăng, lượng like/comment.
-- **Ưu điểm:** 100% không bị Facebook chặn, không lo bảo trì code khi Facebook đổi giao diện.
-
-#### ➤ Phương án B: Cào qua giao diện mbasic / RSS / OpenGraph
-- Sử dụng endpoint di động nhẹ `mbasic.facebook.com` hoặc OpenGraph meta tags của bài viết công khai.
-- **Ưu điểm:** Hoàn toàn miễn phí, chạy trực tiếp trên Vercel.
-- **Nhược điểm:** Phải xoay vòng User-Agent và cookie ngẫu nhiên để tránh bị Facebook đòi mã xác minh.
-
-#### ➤ Phương án C: Sử dụng Gemini Search Grounding (AI Tự Tìm Kiếm)
-- Tận dụng tính năng Google Search Grounding của Gemini API:
-  - Cung cấp prompt: *"Hãy tìm kiếm các chương trình ưu đãi, bài đăng mới nhất trong tuần này của Fanpage [Tên đối thủ] tại khu vực [Địa bàn Bến Tre / Vĩnh Long / Cần Thơ]..."*
-- **Ưu điểm:** Không cần code scraper phức tạp, an toàn tuyệt đối.
-
----
-
-### 3.3. Cào Video & Kịch Bản TikTok Đối Thủ
-- **Độ khả thi:** **85%**.
-- **Kỹ thuật thực hiện:** Kế thừa phương pháp đã chạy thành công trong file [api/scrape-metrics.ts](file:///d:/PK88%20AI%20AUTOMATION/api/scrape-metrics.ts) của dự án.
-- **Quy trình:**
-  1. Gửi request đến URL trang hồ sơ kênh TikTok của đối thủ (hoặc hashtag địa phương như `#suadienthoaibentre`, `#phukienbentre`).
-  2. Bóc tách thẻ kịch bản ngầm:
-     ```javascript
-     const match = html.match(/<script id="__UNIVERSAL_DATA_FOR_REHYDRATION__"[^>]*>([\s\S]*?)<\/script>/);
-     // hoặc thẻ <script id="sigi-state">
-     ```
-  3. Đọc dữ liệu JSON có sẵn trong mã HTML của TikTok: Lấy 3 video mới nhất, mô tả video (caption), số lượt xem (views), số lượt tim (likes).
-- **Tín hiệu AI cần bắt:**
-  - Nếu đối thủ có video clip đạt trên 50.000 views nói về chủ đề "Tại sao kính cường lực dễ vỡ?" ➔ AI đề xuất ngay kịch bản "Bí mật kính URR Sapphire búa đập không vỡ của Phụ Kiện 88".
-
----
-
-## 4. BẢNG DỮ LIỆU CẦN THÊM VÀO SUPABASE
-
-Khi triển khai code thực tế, AI Agent kế tiếp cần chạy đoạn script SQL sau trong Supabase Editor:
+Khi người dùng ra lệnh kích hoạt, chỉ cần chạy đoạn SQL này trong Supabase SQL Editor:
 
 ```sql
--- 1. Bảng danh bạ theo dõi đối thủ theo từng chi nhánh
+-- 1. Bảng danh bạ các đối thủ trọng điểm theo từng chi nhánh PK88
 CREATE TABLE IF NOT EXISTS competitor_monitors (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  branch_id TEXT NOT NULL,                -- Chi nhánh PK88 quản lý (vd: PK88_PHUKHUONG)
-  competitor_name TEXT NOT NULL,           -- Tên đối thủ (vd: FPT Shop Phú Khương, Mai Dũng)
-  platform TEXT NOT NULL CHECK (platform IN ('website', 'facebook', 'tiktok', 'gmaps')),
-  target_url TEXT NOT NULL,               -- Link theo dõi trực tiếp
+  branch_id TEXT NOT NULL,                -- Chi nhánh PK88 (vd: PK88_PHUKHUONG, PK88_MYTHO...)
+  competitor_name TEXT NOT NULL,           -- Tên tiệm đối thủ (vd: Mai Dũng Mobile, FPT Shop...)
+  platform TEXT NOT NULL CHECK (platform IN ('ad_library', 'website_api', 'gmaps', 'tiktok')),
+  target_identifier TEXT NOT NULL,         -- Page ID / Search Query / Endpoint API
   is_active BOOLEAN DEFAULT TRUE,
   last_scraped_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 2. Bảng lưu trữ nội dung cào được và đòn phản công của AI
+-- 2. Bảng lưu vết tình báo cào được và kịch bản phản công của Gemini AI
 CREATE TABLE IF NOT EXISTS competitor_feed_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   branch_id TEXT NOT NULL,
   competitor_id UUID REFERENCES competitor_monitors(id) ON DELETE CASCADE,
-  post_title TEXT,                        -- Tiêu đề / Nội dung bài đối thủ vừa đăng
-  post_url TEXT,                          -- Đường dẫn bài viết
-  price_detected NUMERIC,                 -- Mức giá đối thủ đang chạy (nếu có)
-  discount_info TEXT,                     -- Khuyến mãi đối thủ đang tung ra
-  ai_threat_level TEXT DEFAULT 'medium' CHECK (threat_level IN ('low', 'medium', 'high', 'urgent')),
-  ai_counter_campaign JSONB,              -- Kịch bản TikTok & Facebook phản công do Gemini viết
+  competitor_name TEXT NOT NULL,
+  feed_type TEXT NOT NULL,                -- 'PROMOTION_AD', 'PRICE_DROP', 'BAD_REVIEW'
+  original_content TEXT,                  -- Tiêu đề / Nội dung bài quảng cáo hoặc đánh giá khách chê
+  detected_price NUMERIC,                 -- Mức giá đối thủ đang áp dụng (nếu có)
+  threat_level TEXT DEFAULT 'medium' CHECK (threat_level IN ('low', 'medium', 'high', 'urgent')),
+  ai_counter_campaign JSONB,              -- Kịch bản TikTok, bài đăng Fanpage do Gemini viết
   scraped_date DATE DEFAULT CURRENT_DATE,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- Chỉ mục tối ưu tốc độ truy vấn
+-- Chỉ mục tăng tốc độ truy vấn
 CREATE INDEX IF NOT EXISTS idx_competitor_branch ON competitor_monitors(branch_id);
-CREATE INDEX IF NOT EXISTS idx_feed_date ON competitor_feed_logs(scraped_date);
+CREATE INDEX IF NOT EXISTS idx_feed_date_branch ON competitor_feed_logs(branch_id, scraped_date);
 ```
 
 ---
 
-## 5. LỘ TRÌNH THỰC HIỆN DÀNH CHO AI AGENT TIẾP THEO
+## 5. CHECKLIST THÔNG TIN NGHIỆP VỤ CẦN CUNG CẤP KHI KÍCH HOẠT
 
-### Giai đoạn 1: Chuẩn bị CSDL & Danh bạ URL (1–2 giờ)
-1. Tạo 2 bảng `competitor_monitors` và `competitor_feed_logs` trên Supabase theo script SQL ở Mục 4.
-2. Thu thập và điền danh bạ 25–35 đường link thực tế (Fanpage, Website, TikTok) của các đối thủ quanh 7 chi nhánh của Phụ Kiện 88.
+Khi Ban Điều Hành sẵn sàng hoàn thiện tính năng này, chỉ cần cung cấp các thông tin sau để nạp vào hệ thống:
 
-### Giai đoạn 2: Xây dựng Backend Serverless trên Vercel (2–3 giờ)
-1. Tạo tệp backend: `api/competitor-radar/scan.ts`.
-2. Tích hợp module cào Website trước (dùng `cheerio` quét giá phụ kiện & sửa chữa).
-3. Tích hợp module quét Fanpage & TikTok (kết hợp `api/scrape-metrics.ts` hoặc Apify free tier).
-4. Cấu hình lịch tự động trong `vercel.json`:
-   ```json
-   {
-     "crons": [
-       {
-         "path": "/api/competitor-radar/scan",
-         "schedule": "0 23 * * *"
-       }
-     ]
-   }
-   ```
-   *(Chạy vào 23:00 UTC = 06:00 sáng giờ Việt Nam mỗi ngày).*
+### Danh sách 2–3 tiệm đối thủ "đáng gờm nhất" trên từng địa bàn:
+* [ ] **Bến Tre (Phú Khương & Đồng Khởi):** Tên tiệm hoặc link Fanpage/Google Maps (vd: Mai Dũng Mobile...).
+* [ ] **Tiền Giang (Mỹ Tho):** Tên tiệm hoặc link Fanpage/Google Maps.
+* [ ] **Cần Thơ:** Tên tiệm hoặc link Fanpage/Google Maps.
+* [ ] **Vĩnh Long:** Tên tiệm hoặc link Fanpage/Google Maps.
+* [ ] **Thủ Đức (TP.HCM):** Tên tiệm hoặc link Fanpage/Google Maps.
 
-### Giai đoạn 3: Tích hợp Gemini AI sinh chiến dịch (1 giờ)
-1. Sau khi cào xong bài viết mới, gom toàn bộ text gửi vào Gemini (`gemini-flash-lite-latest`).
-2. Prompt mẫu:
-   > *"Hôm nay các đối thủ quanh chi nhánh {branch_name} vừa đăng các nội dung sau: {posts}. Hãy bóc tách xem họ đang giảm giá món gì, điểm yếu trong chương trình của họ là gì, và viết 1 kịch bản TikTok + 1 bài Fanpage để Phụ Kiện 88 hút hết khách của họ hôm nay."*
-3. Lưu kết quả JSON vào bảng `competitor_feed_logs`.
-
-### Giai đoạn 4: Hiển thị lên giao diện Radar Đối Thủ 3km (1–2 giờ)
-1. Trong component [src/components/PK88MarketingStudio.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/PK88MarketingStudio.tsx), bổ sung tab nhỏ: **`[ 🟢 Tin Tức Sống Từ Đối Thủ Hôm Nay ]`**.
-2. Hiển thị badge: `🔴 Khẩn cấp: Đối thủ A vừa giảm giá ốp lưng còn 39k` kèm nút `[ Xem Đòn Phản Công Của AI ]`.
-3. Kiểm tra bản build `npm run build` đạt exit code 0 và deploy lên Vercel.
+### Nhóm mặt hàng / Dịch vụ mũi nhọn ưu tiên rình giá:
+* [ ] **Dịch vụ Ép Kính:** Màn hình phẳng iPhone 11/12/13/14/15/16 hay màn hình cong Android?
+* [ ] **Dịch vụ Thay Pin:** Pin Pisen, Pin Dung Lượng Cao, bảo hành 12 tháng?
+* [ ] **Kính Cường Lực:** KingKong, Quaker, URR Sapphire, chống nhìn trộm?
+* [ ] **Củ / Cáp Sạc:** Củ sạc nhanh 20W, 25W, 30W, 65W GaN?
+* [ ] **Dán PPF / Skin mặt lưng / Lens Camera?**
 
 ---
 
-## 6. LƯU Ý BẢO MẬT & ĐẠO ĐỨC DỮ LIỆU
-1. **Tuân thủ tần suất truy cập (Rate Limit):** Chỉ quét 1 lần/ngày vào lúc sáng sớm (06:00), tuyệt đối không gửi request dồn dập trong ngày để tránh gây nghẽn mạng và tránh bị chặn IP.
-2. **Chỉ cào nội dung công khai (Public Data):** Chỉ lấy bài viết, bảng giá công khai trên Fanpage/Website, không đụng chạm đến dữ liệu cá nhân hay tin nhắn riêng tư.
-3. **An toàn thương hiệu Phụ Kiện 88:** Chiến dịch phản công của AI tập trung vào việc **nâng cao cam kết vàng và lợi ích của Phụ Kiện 88**, nói chuyện văn minh, hóm hỉnh chuẩn phong cách miền Tây, không bôi nhọ hay phạm luật cạnh tranh thương mại.
+## 6. LỘ TRÌNH THỰC THI (KHI CÓ LỆNH TRIỂN KHAI)
+* **Giai đoạn 1 (30 phút):** Chạy SQL trên Supabase tạo 2 bảng `competitor_monitors` và `competitor_feed_logs`. Nạp dữ liệu danh bạ đối thủ theo danh sách cung cấp.
+* **Giai đoạn 2 (1 giờ):** Tạo workflow GitHub Actions `.github/workflows/competitor-radar.yml` và script thu thập dữ liệu ngầm không token.
+* **Giai đoạn 3 (45 phút):** Kết nối pipeline Gemini Flash Lite phân tích tự động mỗi 05:30 sáng và lưu kịch bản phản công vào Supabase.
+* **Giai đoạn 4 (45 phút):** Cập nhật giao diện trong `PK88MarketingStudio.tsx` để hiển thị thẻ *"Tình Báo Đối Thủ Hôm Nay"* kèm nút *"Lấy Kịch Bản Phản Công Ngay"*.
 
 ---
-*Tài liệu đã được lưu trữ hoàn chỉnh tại thư mục gốc của dự án. AI Agent kế tiếp khi nhận nhiệm vụ có thể mở ngay tệp này để lập trình chuẩn xác theo các bước đã định sẵn.*
+*Tài liệu này đã được lưu trữ vĩnh viễn trong kho mã nguồn của dự án. AI Agent hoặc kỹ sư tiếp theo chỉ cần đọc tệp này là có thể bắt tay lập trình ngay lập tức mà không cần khảo sát lại từ đầu.*

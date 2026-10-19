@@ -36,6 +36,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     // Chuẩn hóa số điện thoại: bỏ khoảng trắng, dấu chấm, dấu gạch nối
     let normalizedPhone = phone.replace(/[\s\.\-]+/g, '').trim();
 
+    // Hỗ trợ tiền tố quốc tế +84 hoặc 84
+    if (normalizedPhone.startsWith('+84')) {
+      normalizedPhone = '0' + normalizedPhone.slice(3);
+    } else if (normalizedPhone.startsWith('84') && normalizedPhone.length === 11) {
+      normalizedPhone = '0' + normalizedPhone.slice(2);
+    }
+
     // Hỗ trợ trường hợp gõ nhầm 0888803285 hoặc 0888003205
     if (normalizedPhone === '0888803285') {
       normalizedPhone = '0888003205';
@@ -61,7 +68,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
     const enteredPwd = password.trim();
     const expectedPassword = getStaffPassword(foundStaff.phone);
 
-    // Xác thực nghiêm ngặt: Chỉ chấp nhận mật khẩu hiện hành (mật khẩu mới nếu đã đổi, hoặc mặc định ban đầu nếu chưa đổi)
+    // Xác thực nghiêm ngặt 100%: Chỉ chấp nhận mật khẩu hiện hành của tài khoản
+    // (Nếu tài khoản đã đổi mật khẩu thì bắt buộc phải nhập đúng mật khẩu mới; các mật khẩu cũ hoặc mật khẩu mặc định 123456 đều bị vô hiệu hóa hoàn toàn)
     if (enteredPwd !== expectedPassword) {
       setErrorMsg('Mật khẩu không chính xác. Vui lòng kiểm tra lại!');
       return;

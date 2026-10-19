@@ -32,6 +32,7 @@ import {
   Building2,
   ShieldAlert
 } from 'lucide-react';
+import { ExecutiveLivePresence } from './ExecutiveLivePresence';
 import {
   AreaChart,
   Area,
@@ -379,6 +380,15 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
           </div>
         </div>
       </div>
+
+      {/* LIVE PRESENCE OVERVIEW - BẢNG GIÁM SÁT TRỰC TIẾP QUÂN SỐ TOÀN CHUỖI (READ-ONLY) */}
+      <ExecutiveLivePresence
+        branches={branches}
+        staffList={staffList}
+        attendanceLogs={attendanceLogs}
+        leaveRequests={leaveRequests}
+        onRefreshAttendance={onRefreshAttendance}
+      />
 
       {/* CHARTS SECTION - HIỂN THỊ TRẠNG THÁI DỮ LIỆU THẬT */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

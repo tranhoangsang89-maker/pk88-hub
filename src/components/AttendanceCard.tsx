@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Branch, AttendanceRecord, Staff, ShiftType } from '../types';
+import { Branch, AttendanceRecord, Staff, ShiftType, LeaveRequest } from '../types';
 import { getDistanceMeters, formatDistance } from '../lib/geoUtils';
 import { supabase } from '../lib/supabase';
 import L from 'leaflet';
@@ -39,6 +39,7 @@ interface AttendanceCardProps {
   currentStaff: Staff;
   onCheckInSuccess: (record: AttendanceRecord) => void;
   attendanceHistory: AttendanceRecord[];
+  leaveRequests?: LeaveRequest[];
   onDisputeSubmit?: (record: AttendanceRecord) => Promise<void> | void;
   onOpenMyShiftsModal?: () => void;
   onOpenLeaveModal?: () => void;
@@ -50,6 +51,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   currentStaff,
   onCheckInSuccess,
   attendanceHistory,
+  leaveRequests = [],
   onDisputeSubmit,
   onOpenMyShiftsModal,
   onOpenLeaveModal,
@@ -99,6 +101,19 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
   const isTodayOff = rawTodayAssignment?.status === 'OFF';
   const todayAssignment = rawTodayAssignment && rawTodayAssignment.status !== 'OFF' ? rawTodayAssignment : null;
+
+  // Kiểm tra đơn xin nghỉ phép đã được phê duyệt hôm nay (Đồng bộ AI HR & Ma Trận Chia Ca)
+  const todayApprovedLeave = React.useMemo(() => {
+    if (!leaveRequests || leaveRequests.length === 0) return null;
+    return leaveRequests.find(req => {
+      if (req.status !== 'APPROVED') return false;
+      const isMatch = req.staffId === currentStaff.id ||
+        (currentStaff.phone && req.phone === currentStaff.phone) ||
+        (currentStaff.fullName && req.staffName && req.staffName.trim().toLowerCase() === currentStaff.fullName.trim().toLowerCase());
+      if (!isMatch) return false;
+      return todayYmd >= req.startDate && todayYmd <= req.endDate;
+    }) || null;
+  }, [leaveRequests, currentStaff.id, currentStaff.phone, currentStaff.fullName, todayYmd]);
 
   useEffect(() => {
     if (todayAssignment) {
@@ -965,6 +980,31 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <span>Xin Nghỉ Phép (AI Chị 8)</span>
         </button>
       </div>
+
+      {/* APPROVED LEAVE STATUS BANNER (From AI HR Sync) */}
+      {todayApprovedLeave && (
+        <div className="bg-gradient-to-r from-pink-950/80 via-slate-900 to-pink-950/80 border-2 border-pink-500/50 rounded-2xl p-4 text-center space-y-2.5 shadow-xl relative overflow-hidden animate-in fade-in">
+          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-pink-500 via-rose-300 to-pink-500 animate-pulse"></div>
+          
+          <div className="flex items-center justify-center gap-2 text-pink-300 font-extrabold text-xs sm:text-sm">
+            <span className="text-lg">{todayApprovedLeave.type === 'SICK_LEAVE' ? '💊' : '🏖️'}</span>
+            <span>HÔM NAY BẠN ĐANG TRONG KỲ {todayApprovedLeave.type === 'SICK_LEAVE' ? 'NGHỈ ỐM' : 'NGHỈ PHÉP'} ĐÃ DUYỆT</span>
+          </div>
+
+          <p className="text-xs text-pink-200/90 leading-relaxed max-w-sm mx-auto">
+            Đơn xin nghỉ từ <span className="font-mono font-bold text-pink-300">{todayApprovedLeave.startDate}</span> đến <span className="font-mono font-bold text-pink-300">{todayApprovedLeave.endDate}</span> đã được <span className="font-bold text-pink-300">{todayApprovedLeave.approvedBy || 'Chị 8 AI HR'}</span> phê duyệt hợp lệ.
+            {todayApprovedLeave.replacementStaffName && (
+              <span className="block mt-1 text-[11px] text-amber-300 font-medium">
+                ✈️ Nhân sự gánh ca thay: <strong>{todayApprovedLeave.replacementStaffName}</strong>
+              </span>
+            )}
+          </p>
+
+          <div className="inline-block px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 border border-pink-500/40 text-[10.5px] font-bold">
+            ✨ Bạn không bắt buộc phải check-in GPS hôm nay
+          </div>
+        </div>
+      )}
 
       {/* LIVE WORK TIMER & BREAK TIMER BANNER (When Checked In) */}
       {isCurrentlyCheckedIn && activeRecord && (
