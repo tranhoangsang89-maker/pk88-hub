@@ -8,6 +8,7 @@ import {
 import { supabase } from '../lib/supabase';
 import { compressAvatarImage, CompressedImageResult } from '../lib/imageCompression';
 import { saveStaffPasswordToCloud, saveStaffProfileToCloud } from '../lib/staffAuthService';
+import { fetchMonthlyCleanlinessStats } from '../lib/cleanlinessService';
 
 interface StaffDetailModalProps {
   staff: Staff | null;
@@ -268,6 +269,32 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
   const [editEmail, setEditEmail] = useState<string>('');
   const [editIsActive, setEditIsActive] = useState<boolean>(true);
   const [savingProfile, setSavingProfile] = useState<boolean>(false);
+
+  // Cleanliness Monthly Stats
+  const [cleanlinessStats, setCleanlinessStats] = useState<{ approvedCount: number; totalSubmitted: number }>({ approvedCount: 0, totalSubmitted: 0 });
+
+  useEffect(() => {
+    if (!staff) return;
+    let isMounted = true;
+    const loadStats = async () => {
+      try {
+        const stats = await fetchMonthlyCleanlinessStats();
+        if (!isMounted) return;
+        const sStats = (staff.id && stats.byStaffId[staff.id]) ||
+                       (staff.fullName && stats.byStaffName[staff.fullName.trim().toLowerCase()]);
+        if (sStats) {
+          setCleanlinessStats({
+            approvedCount: sStats.approvedCount,
+            totalSubmitted: sStats.totalSubmitted
+          });
+        }
+      } catch (e) {
+        console.warn('Load staff cleanliness stats error:', e);
+      }
+    };
+    loadStats();
+    return () => { isMounted = false; };
+  }, [staff?.id, staff?.fullName]);
 
   // Password Change State
   const [showPasswordChange, setShowPasswordChange] = useState<boolean>(false);
@@ -1281,11 +1308,11 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
               </div>
             </div>
 
-            {/* Work & Attendance Stats */}
-            <div className="grid grid-cols-2 gap-3 text-center">
-              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
-                <div className="text-[10px] text-slate-400 font-semibold mb-0.5">TỔNG GIỜ LÀM THÁNG NÀY</div>
-                <div className="text-lg font-black text-emerald-400 font-mono">
+            {/* Work & Attendance & Cleanliness Stats */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-center">
+              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5 sm:p-3">
+                <div className="text-[10px] text-slate-400 font-semibold mb-0.5">TỔNG GIỜ LÀM (THÁNG)</div>
+                <div className="text-base sm:text-lg font-black text-emerald-400 font-mono">
                   {effectiveHours.toFixed(1)}h
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5">
@@ -1293,13 +1320,27 @@ export const StaffDetailModal: React.FC<StaffDetailModalProps> = ({
                 </div>
               </div>
 
-              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-3">
+              <div className="bg-slate-950/80 border border-slate-800 rounded-2xl p-2.5 sm:p-3">
                 <div className="text-[10px] text-slate-400 font-semibold mb-0.5">LƯƠNG TẠM TÍNH (THÁNG)</div>
-                <div className="text-lg font-black text-rose-400 font-mono">
+                <div className="text-base sm:text-lg font-black text-rose-400 font-mono">
                   {effectiveSalaryInfo.label}
                 </div>
                 <div className="text-[10px] text-slate-500 mt-0.5 truncate" title={effectiveSalaryInfo.subText}>
                   {effectiveSalaryInfo.subText}
+                </div>
+              </div>
+
+              <div className="bg-slate-950/80 border border-cyan-500/30 rounded-2xl p-2.5 sm:p-3 bg-gradient-to-b from-cyan-950/20 to-transparent">
+                <div className="text-[10px] text-cyan-300 font-semibold mb-0.5 flex items-center justify-center gap-1">
+                  <Sparkles className="w-3 h-3 text-cyan-400" />
+                  <span>VỆ SINH 5S (THÁNG)</span>
+                </div>
+                <div className="text-base sm:text-lg font-black text-cyan-300 font-mono flex items-center justify-center gap-1">
+                  <span>{cleanlinessStats.approvedCount}</span>
+                  <span className="text-xs font-bold text-slate-400">/ {cleanlinessStats.totalSubmitted} ca</span>
+                </div>
+                <div className="text-[10px] text-cyan-200/80 mt-0.5 font-medium">
+                  {cleanlinessStats.approvedCount > 0 ? `${cleanlinessStats.approvedCount} ca Đạt Chuẩn` : 'Chưa có ca duyệt'}
                 </div>
               </div>
             </div>

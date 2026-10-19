@@ -269,25 +269,148 @@ export const reviewCleanlinessReport = async (
 };
 
 /**
- * Tự động xóa dọn dẹp các báo cáo cũ vượt quá retentionDays (Mặc định 14 ngày)
- * Giữ cho hệ thống luôn nhẹ và không bao giờ đầy database
+ * Thống kê số ca vệ sinh của nhân viên trong tháng
+ */
+export interface StaffCleanlinessStats {
+  approvedCount: number;
+  totalSubmitted: number;
+  redoCount: number;
+}
+
+/**
+ * Thống kê số ca vệ sinh đạt chuẩn trong tháng của từng nhân viên
+ * Dữ liệu được tính toán và đồng bộ trực tiếp từ Supabase Cloud
+ * @param monthStr Định dạng 'YYYY-MM' (Mặc định là tháng hiện tại theo giờ VN)
+ */
+export const fetchMonthlyCleanlinessStats = async (monthStr?: string): Promise<{
+  byStaffId: Record<string, StaffCleanlinessStats>;
+  byStaffName: Record<string, StaffCleanlinessStats>;
+}> => {
+  const targetMonth = monthStr || new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date()).slice(0, 7);
+  const startDate = `${targetMonth}-01`;
+  const endDate = `${targetMonth}-31`;
+
+  const byStaffId: Record<string, StaffCleanlinessStats> = {};
+  const byStaffName: Record<string, StaffCleanlinessStats> = {};
+
+  const recordStats = (staffId: string | undefined, staffName: string | undefined, status: string) => {
+    const isApproved = status === 'APPROVED';
+    const isRedo = status === 'REDO_REQUESTED' || status === 'NEEDS_REDO';
+
+    if (staffId) {
+      if (!byStaffId[staffId]) {
+        byStaffId[staffId] = { approvedCount: 0, totalSubmitted: 0, redoCount: 0 };
+      }
+      byStaffId[staffId].totalSubmitted++;
+      if (isApproved) byStaffId[staffId].approvedCount++;
+      if (isRedo) byStaffId[staffId].redoCount++;
+    }
+
+    if (staffName) {
+      const cleanName = staffName.trim().toLowerCase();
+      if (!byStaffName[cleanName]) {
+        byStaffName[cleanName] = { approvedCount: 0, totalSubmitted: 0, redoCount: 0 };
+      }
+      byStaffName[cleanName].totalSubmitted++;
+      if (isApproved) byStaffName[cleanName].approvedCount++;
+      if (isRedo) byStaffName[cleanName].redoCount++;
+    }
+  };
+
+  // 1. Quét LocalStorage (Dành cho trường hợp offline hoặc báo cáo vừa tạo)
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const localList: CleanlinessReport[] = JSON.parse(raw);
+      localList
+        .filter(r => r.reportDate && r.reportDate.startsWith(targetMonth))
+        .forEach(r => recordStats(r.staffId, r.staffName, r.status));
+    }
+  } catch (err) {
+    console.warn('Read local monthly cleanliness stats error:', err);
+  }
+
+  // 2. Lấy dữ liệu chính xác từ bảng cleanliness_reports trên Supabase Cloud
+  try {
+    const { data, error } = await supabase
+      .from('cleanliness_reports')
+      .select('id, staff_id, staff_name, status, date')
+      .gte('date', startDate)
+      .lte('date', endDate);
+
+    if (!error && data && data.length > 0) {
+      const cloudByStaffId: Record<string, StaffCleanlinessStats> = {};
+      const cloudByStaffName: Record<string, StaffCleanlinessStats> = {};
+
+      data.forEach(r => {
+        const isApproved = r.status === 'APPROVED';
+        const isRedo = r.status === 'REDO_REQUESTED' || r.status === 'NEEDS_REDO';
+
+        if (r.staff_id) {
+          if (!cloudByStaffId[r.staff_id]) {
+            cloudByStaffId[r.staff_id] = { approvedCount: 0, totalSubmitted: 0, redoCount: 0 };
+          }
+          cloudByStaffId[r.staff_id].totalSubmitted++;
+          if (isApproved) cloudByStaffId[r.staff_id].approvedCount++;
+          if (isRedo) cloudByStaffId[r.staff_id].redoCount++;
+        }
+
+        if (r.staff_name) {
+          const cleanName = r.staff_name.trim().toLowerCase();
+          if (!cloudByStaffName[cleanName]) {
+            cloudByStaffName[cleanName] = { approvedCount: 0, totalSubmitted: 0, redoCount: 0 };
+          }
+          cloudByStaffName[cleanName].totalSubmitted++;
+          if (isApproved) cloudByStaffName[cleanName].approvedCount++;
+          if (isRedo) cloudByStaffName[cleanName].redoCount++;
+        }
+      });
+
+      return { byStaffId: cloudByStaffId, byStaffName: cloudByStaffName };
+    }
+  } catch (err) {
+    console.warn('Fetch Supabase monthly cleanliness stats error:', err);
+  }
+
+  return { byStaffId, byStaffName };
+};
+
+/**
+ * Tự động xóa dọn dẹp dung lượng ảnh cũ (>14 ngày)
+ * Thay vì xóa mất lịch sử ca trực của nhân viên, hệ thống làm rỗng mảng images = [] 
+ * để giải phóng 100% dung lượng lưu trữ ảnh trên Supabase, đồng thời BẢO LƯU TOÀN BỘ
+ * số ca đạt chuẩn của nhân sự cho báo cáo tháng. Chỉ xóa vĩnh viễn báo cáo cũ hơn 60 ngày.
  */
 export const purgeOldCleanlinessReports = async (retentionDays = 14): Promise<number> => {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - retentionDays);
   const cutoffStr = cutoff.toISOString().slice(0, 10); // YYYY-MM-DD
 
+  const sixtyDaysAgo = new Date();
+  sixtyDaysAgo.setDate(sixtyDaysAgo.getDate() - 60);
+  const sixtyDaysCutoffStr = sixtyDaysAgo.toISOString().slice(0, 10);
+
   let purgedCount = 0;
 
-  // 1. Dọn dẹp LocalStorage
+  // 1. Dọn dẹp LocalStorage (Làm rỗng mảng images của các báo cáo cũ để giải phóng bộ nhớ máy)
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const list: CleanlinessReport[] = JSON.parse(raw);
-      const remaining = list.filter(r => r.reportDate >= cutoffStr);
-      purgedCount = list.length - remaining.length;
-      if (purgedCount > 0) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(remaining));
+      let changed = false;
+      const updatedList = list
+        .filter(r => r.reportDate >= sixtyDaysCutoffStr) // Chỉ xóa bỏ hoàn toàn nếu quá 60 ngày
+        .map(r => {
+          if (r.reportDate < cutoffStr && r.images && r.images.length > 0) {
+            changed = true;
+            purgedCount++;
+            return { ...r, images: [] }; // Giữ lại thông tin ca & trạng thái APPROVED, xóa mảng ảnh nặng
+          }
+          return r;
+        });
+
+      if (changed || updatedList.length !== list.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(updatedList));
         window.dispatchEvent(new CustomEvent('pk88_cleanliness_updated'));
       }
     }
@@ -297,14 +420,22 @@ export const purgeOldCleanlinessReports = async (retentionDays = 14): Promise<nu
 
   // 2. Dọn dẹp Supabase Cloud
   try {
-    const { count, error } = await supabase
+    // Làm rỗng mảng images giải phóng dung lượng ảnh
+    const { count: imageClearedCount } = await supabase
       .from('cleanliness_reports')
-      .delete({ count: 'exact' })
+      .update({ images: [] }, { count: 'exact' })
       .lt('date', cutoffStr);
 
-    if (!error && typeof count === 'number') {
-      purgedCount = Math.max(purgedCount, count);
+    if (typeof imageClearedCount === 'number') {
+      purgedCount = Math.max(purgedCount, imageClearedCount);
     }
+
+    // Xóa vĩnh viễn các dòng quá cũ (> 60 ngày)
+    await supabase
+      .from('cleanliness_reports')
+      .delete()
+      .lt('date', sixtyDaysCutoffStr);
+
   } catch (err) {
     console.warn('Purge cloud error:', err);
   }

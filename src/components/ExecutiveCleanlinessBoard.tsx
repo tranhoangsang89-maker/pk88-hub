@@ -23,7 +23,9 @@ import {
   fetchCleanlinessReports, 
   reviewCleanlinessReport, 
   purgeOldCleanlinessReports,
-  deleteCleanlinessReport 
+  deleteCleanlinessReport,
+  fetchMonthlyCleanlinessStats,
+  StaffCleanlinessStats 
 } from '../lib/cleanlinessService';
 import { sortBranchesByPriority, getBranchOrderIndex } from '../lib/mockData';
 import { supabase } from '../lib/supabase';
@@ -76,12 +78,36 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
   const [purgeNotice, setPurgeNotice] = useState<string | null>(null);
   const [isPurging, setIsPurging] = useState<boolean>(false);
 
+  // Thống kê số ca đạt chuẩn trong tháng của nhân viên
+  const [monthlyStats, setMonthlyStats] = useState<{
+    byStaffId: Record<string, StaffCleanlinessStats>;
+    byStaffName: Record<string, StaffCleanlinessStats>;
+  }>({ byStaffId: {}, byStaffName: {} });
+
+  const selectedMonthNum = useMemo(() => {
+    if (selectedDate && selectedDate.includes('-')) {
+      return parseInt(selectedDate.split('-')[1], 10);
+    }
+    return new Date().getMonth() + 1;
+  }, [selectedDate]);
+
+  const loadMonthlyStats = async () => {
+    try {
+      const monthStr = selectedDate ? selectedDate.slice(0, 7) : undefined;
+      const stats = await fetchMonthlyCleanlinessStats(monthStr);
+      setMonthlyStats(stats);
+    } catch (err) {
+      console.warn('Load monthly cleanliness stats error:', err);
+    }
+  };
+
   // Tải danh sách báo cáo
   const loadReports = async () => {
     setLoading(true);
     try {
       const data = await fetchCleanlinessReports(selectedDate);
       setReports(data);
+      await loadMonthlyStats();
     } catch (err) {
       console.error('Load cleanliness reports error:', err);
     } finally {
@@ -474,13 +500,33 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                                 {timeStr}
                               </span>
                             </div>
-                            <div className="text-xs font-extrabold text-slate-200 mt-1">
-                              {report.staffName}
+                            <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                              <span className="text-xs font-extrabold text-slate-200">
+                                {report.staffName}
+                              </span>
                               {report.staffRole && (
-                                <span className="text-[10px] text-slate-400 font-normal ml-1">
+                                <span className="text-[10px] text-slate-400 font-normal">
                                   ({report.staffRole})
                                 </span>
                               )}
+                              {(() => {
+                                const sStats = (report.staffId && monthlyStats.byStaffId[report.staffId]) ||
+                                               (report.staffName && monthlyStats.byStaffName[report.staffName.trim().toLowerCase()]);
+                                const count = sStats ? sStats.approvedCount : 0;
+                                return (
+                                  <span 
+                                    title={`Số ca vệ sinh đã được duyệt Đạt Chuẩn của ${report.staffName} trong tháng ${selectedMonthNum}`}
+                                    className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border transition-all ${
+                                      count > 0 
+                                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' 
+                                        : 'bg-slate-800 text-slate-400 border-slate-700'
+                                    }`}
+                                  >
+                                    <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                                    <span>{count} ca chuẩn (T{selectedMonthNum})</span>
+                                  </span>
+                                );
+                              })()}
                             </div>
                           </div>
 
@@ -639,8 +685,28 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
                           </button>
                         </div>
                       </div>
-                      <div className="text-xs font-extrabold text-slate-200 mt-1">
-                        {report.staffName}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-1">
+                        <span className="text-xs font-extrabold text-slate-200">
+                          {report.staffName}
+                        </span>
+                        {(() => {
+                          const sStats = (report.staffId && monthlyStats.byStaffId[report.staffId]) ||
+                                         (report.staffName && monthlyStats.byStaffName[report.staffName.trim().toLowerCase()]);
+                          const count = sStats ? sStats.approvedCount : 0;
+                          return (
+                            <span 
+                              title={`Số ca vệ sinh đã được duyệt Đạt Chuẩn của ${report.staffName} trong tháng ${selectedMonthNum}`}
+                              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[9.5px] font-bold border transition-all ${
+                                count > 0 
+                                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' 
+                                  : 'bg-slate-800 text-slate-400 border-slate-700'
+                              }`}
+                            >
+                              <Sparkles className="w-2.5 h-2.5 text-emerald-400" />
+                              <span>{count} ca chuẩn (T{selectedMonthNum})</span>
+                            </span>
+                          );
+                        })()}
                       </div>
                     </div>
 

@@ -35,7 +35,7 @@ import {
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
 import { CleanlinessReportModal } from './CleanlinessReportModal';
-import { fetchCleanlinessReports } from '../lib/cleanlinessService';
+import { fetchCleanlinessReports, fetchMonthlyCleanlinessStats } from '../lib/cleanlinessService';
 
 interface AttendanceCardProps {
   currentBranch: Branch;
@@ -82,6 +82,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   // Cleanliness Report Modal State
   const [showCleanlinessModal, setShowCleanlinessModal] = useState<boolean>(false);
   const [todayRedoReport, setTodayRedoReport] = useState<CleanlinessReport | null>(null);
+  const [myMonthlyCleanlinessStats, setMyMonthlyCleanlinessStats] = useState<{ approvedCount: number; totalSubmitted: number }>({ approvedCount: 0, totalSubmitted: 0 });
 
   // Lắng nghe và kiểm tra xem hôm nay có báo cáo vệ sinh bị yêu cầu Làm Lại hay không
   useEffect(() => {
@@ -101,16 +102,37 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       }
     };
 
-    checkRedo();
+    const loadMyMonthlyStats = async () => {
+      try {
+        const stats = await fetchMonthlyCleanlinessStats();
+        if (!isMounted) return;
+        const sStats = (currentStaff.id && stats.byStaffId[currentStaff.id]) ||
+                       (currentStaff.fullName && stats.byStaffName[currentStaff.fullName.trim().toLowerCase()]);
+        if (sStats) {
+          setMyMonthlyCleanlinessStats({
+            approvedCount: sStats.approvedCount,
+            totalSubmitted: sStats.totalSubmitted
+          });
+        }
+      } catch (err) {
+        console.warn('Load my cleanliness stats error:', err);
+      }
+    };
 
-    const handleUpdate = () => checkRedo();
+    checkRedo();
+    loadMyMonthlyStats();
+
+    const handleUpdate = () => {
+      checkRedo();
+      loadMyMonthlyStats();
+    };
     window.addEventListener('pk88_cleanliness_updated', handleUpdate);
 
     return () => {
       isMounted = false;
       window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
     };
-  }, [currentStaff.id, currentStaff.phone, currentBranch.id]);
+  }, [currentStaff.id, currentStaff.phone, currentStaff.fullName, currentBranch.id]);
 
   const todayYmd = React.useMemo(() => {
     const now = new Date();
@@ -1025,6 +1047,19 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           <span>Báo Cáo Vệ Sinh Ca</span>
         </button>
       </div>
+
+      {/* THỐNG KÊ SỐ CA ĐẠT CHUẨN TRONG THÁNG CỦA NHÂN VIÊN */}
+      {myMonthlyCleanlinessStats.approvedCount > 0 && (
+        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-xs">
+          <span className="text-emerald-300 font-bold flex items-center gap-1.5 text-[11px]">
+            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Vệ sinh tháng này:</span>
+          </span>
+          <span className="text-white font-extrabold text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/40 font-mono">
+            {myMonthlyCleanlinessStats.approvedCount} ca Đạt Chuẩn
+          </span>
+        </div>
+      )}
 
       {/* CẢNH BÁO YÊU CẦU LÀM LẠI VỆ SINH CA TRỰC */}
       {todayRedoReport && (
