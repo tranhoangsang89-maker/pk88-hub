@@ -92,10 +92,10 @@ export const compressCleanlinessImage = (file: File, maxDimension = 1280, qualit
   });
 };
 
-// Helper kiểm tra chuỗi có phải UUID hợp lệ
+// Helper kiểm tra chuỗi có phải UUID hợp lệ chuẩn Postgres
 const isValidUuid = (val?: string): boolean => {
   if (!val) return false;
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val.trim());
 };
 
 /**

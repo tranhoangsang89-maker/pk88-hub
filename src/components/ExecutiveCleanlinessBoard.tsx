@@ -25,6 +25,21 @@ import {
   purgeOldCleanlinessReports 
 } from '../lib/cleanlinessService';
 import { sortBranchesByPriority, getBranchOrderIndex } from '../lib/mockData';
+import { supabase } from '../lib/supabase';
+
+// Helper so khớp báo cáo với chi nhánh (theo branchId hoặc branchName)
+const isReportForBranch = (report: CleanlinessReport, branch: Branch): boolean => {
+  if (report.branchId && branch.id && report.branchId === branch.id) {
+    return true;
+  }
+  if (report.branchName && branch.name) {
+    const cleanR = report.branchName.toLowerCase().replace(/phụ kiện 88\s*-\s*/i, '').trim();
+    const cleanB = branch.name.toLowerCase().replace(/phụ kiện 88\s*-\s*/i, '').trim();
+    if (cleanR === cleanB) return true;
+    if (cleanR && cleanB && (cleanR.includes(cleanB) || cleanB.includes(cleanR))) return true;
+  }
+  return false;
+};
 
 interface ExecutiveCleanlinessBoardProps {
   branches: Branch[];
@@ -64,7 +79,7 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
   const loadReports = async () => {
     setLoading(true);
     try {
-      const data = await fetchCleanlinessReports(selectedDate, selectedBranchId);
+      const data = await fetchCleanlinessReports(selectedDate);
       setReports(data);
     } catch (err) {
       console.error('Load cleanliness reports error:', err);
@@ -81,8 +96,30 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
     };
 
     window.addEventListener('pk88_cleanliness_updated', handleUpdate);
-    return () => window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
-  }, [selectedDate, selectedBranchId]);
+
+    // Lắng nghe realtime từ Supabase khi có bất kỳ nhân viên nào nộp báo cáo ảnh mới
+    const channel = supabase
+      .channel('cleanliness_reports_realtime_board')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleanliness_reports' },
+        () => {
+          loadReports();
+        }
+      )
+      .subscribe();
+
+    // Tự động kiểm tra làm mới mỗi 12 giây đảm bảo không sót dữ liệu
+    const interval = setInterval(() => {
+      loadReports();
+    }, 12000);
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearInterval(interval);
+      window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
+    };
+  }, [selectedDate]);
 
   // Chi nhánh active sắp xếp theo thứ tự ưu tiên chuẩn
   const activeBranches = useMemo(() => {
@@ -91,9 +128,8 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
 
   // Thống kê tiến độ nộp báo cáo hôm nay của các chi nhánh
   const stats = useMemo(() => {
-    const submittedBranchIds = new Set(reports.map(r => r.branchId));
-    const submittedCount = activeBranches.filter(b => submittedBranchIds.has(b.id)).length;
-    const missingBranches = activeBranches.filter(b => !submittedBranchIds.has(b.id));
+    const submittedCount = activeBranches.filter(b => reports.some(r => isReportForBranch(r, b))).length;
+    const missingBranches = activeBranches.filter(b => !reports.some(r => isReportForBranch(r, b)));
 
     return {
       totalBranches: activeBranches.length,
@@ -103,8 +139,8 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
     };
   }, [activeBranches, reports]);
 
-  // Gom nhóm báo cáo theo chi nhánh chuẩn
-  const groupedReports = useMemo(() => {
+  // Gom nhóm báo cáo theo chi nhánh chuẩn và thu thập các báo cáo chưa gắn chi nhánh
+  const { groupedReports, unassignedReports } = useMemo(() => {
     const list = [...reports].sort((a, b) => {
       const bA = getBranchOrderIndex(a.branchName);
       const bB = getBranchOrderIndex(b.branchName);
@@ -117,16 +153,23 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
       reports: CleanlinessReport[];
     }> = [];
 
+    const matchedReportIds = new Set<string>();
+
     activeBranches.forEach(branch => {
       if (selectedBranchId !== 'ALL' && branch.id !== selectedBranchId) return;
-      const bReports = list.filter(r => r.branchId === branch.id);
+      const bReports = list.filter(r => isReportForBranch(r, branch));
+      bReports.forEach(r => matchedReportIds.add(r.id));
       groups.push({
         branch,
         reports: bReports
       });
     });
 
-    return groups;
+    const unassigned = (selectedBranchId === 'ALL')
+      ? list.filter(r => !matchedReportIds.has(r.id))
+      : [];
+
+    return { groupedReports: groups, unassignedReports: unassigned };
   }, [reports, activeBranches, selectedBranchId]);
 
   // Xử lý duyệt / nhắc nhở báo cáo
@@ -325,7 +368,7 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
           {activeBranches.map(branch => {
             const shortName = branch.name.replace('Phụ Kiện 88 - ', '');
             const isSelected = selectedBranchId === branch.id;
-            const bReportsCount = reports.filter(r => r.branchId === branch.id).length;
+            const bReportsCount = reports.filter(r => isReportForBranch(r, branch)).length;
 
             return (
               <button
@@ -493,6 +536,99 @@ export const ExecutiveCleanlinessBoard: React.FC<ExecutiveCleanlinessBoardProps>
             </div>
           );
         })}
+
+        {/* Unassigned Reports Section (Báo cáo khác / Chưa phân nhóm) */}
+        {unassignedReports.length > 0 && (
+          <div className="space-y-2.5 pt-4 border-t border-amber-500/30">
+            <div className="flex items-center justify-between pt-2 pb-1.5 border-b border-amber-500/20">
+              <div className="flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
+                <h4 className="text-xs sm:text-sm font-extrabold text-amber-300 uppercase tracking-wide flex items-center gap-1.5">
+                  <span>📌 Báo Cáo Khác / Chưa Phân Nhóm ({unassignedReports.length})</span>
+                </h4>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+              {unassignedReports.map((report) => {
+                const timeStr = new Date(report.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+
+                return (
+                  <div 
+                    key={report.id} 
+                    className="rounded-2xl p-3 bg-slate-950/70 border border-amber-500/30 hover:border-amber-400 transition-all space-y-2.5 shadow-md flex flex-col justify-between"
+                  >
+                    <div>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5">
+                          {getShiftBadge(report.shiftType)}
+                          <span className="text-[11px] font-mono text-slate-400">{timeStr}</span>
+                        </div>
+                        <span className="text-[11px] font-bold text-amber-400">{report.branchName || 'Chưa rõ shop'}</span>
+                      </div>
+                      <div className="text-xs font-extrabold text-slate-200 mt-1">
+                        {report.staffName}
+                      </div>
+                    </div>
+
+                    {report.images && report.images.length > 0 && (
+                      <div className={`grid gap-1.5 ${report.images.length === 1 ? 'grid-cols-1' : report.images.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+                        {report.images.map((img, imgIdx) => (
+                          <div 
+                            key={imgIdx}
+                            onClick={() => setPreviewImage({
+                              url: img,
+                              branchName: report.branchName || 'Chi nhánh',
+                              staffName: report.staffName,
+                              shiftName: report.shiftType === 'MORNING' ? 'Ca Sáng' : report.shiftType === 'AFTERNOON' ? 'Ca Chiều' : 'Ca Tối',
+                              time: timeStr,
+                              notes: report.notes
+                            })}
+                            className="relative group rounded-xl overflow-hidden bg-slate-900 border border-slate-800 aspect-video cursor-pointer hover:border-amber-400 transition-all"
+                          >
+                            <img 
+                              src={img} 
+                              alt={`Báo cáo ${imgIdx + 1}`} 
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" 
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Maximize2 className="w-4 h-4 text-white" />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {report.notes && (
+                      <p className="text-[11px] text-slate-300 italic line-clamp-2 bg-slate-900/60 p-2 rounded-xl border border-slate-800/80">
+                        "{report.notes}"
+                      </p>
+                    )}
+
+                    <div className="flex items-center gap-1.5 pt-1 border-t border-slate-800/80 text-xs">
+                      <button
+                        type="button"
+                        onClick={() => handleReview(report.id, 'APPROVED')}
+                        className="flex-1 py-1 px-2 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-bold border border-emerald-500/40 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                      >
+                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <span>Đạt Chuẩn</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleReview(report.id, 'NEEDS_REDO')}
+                        className="flex-1 py-1 px-2 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 text-rose-300 font-bold border border-rose-500/40 transition-all cursor-pointer flex items-center justify-center gap-1 active:scale-95"
+                      >
+                        <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                        <span>Làm Lại</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* 5. Lightbox Modal Phóng To Ảnh Vệ Sinh Sắc Nét */}
