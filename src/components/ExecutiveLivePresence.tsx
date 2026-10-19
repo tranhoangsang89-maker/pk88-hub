@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Branch, Staff, AttendanceRecord, LeaveRequest, ShiftAssignment } from '../types';
 import { getAllAssignments } from '../lib/shiftService';
-import { sortBranchesByPriority } from '../lib/mockData';
+import { sortBranchesByPriority, getBranchOrderIndex } from '../lib/mockData';
 import { 
   Users, 
   Clock, 
@@ -494,9 +494,39 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
     return liveStaffData.filter(i => i.statusType === 'WORKING' || i.statusType === 'WORKING_LATE' || i.statusType === 'ON_BREAK').length;
   }, [liveStaffData]);
 
-  // 6. Lọc danh sách hiển thị
+  // 6. Lọc và Sắp Xếp danh sách hiển thị
+  // Thứ tự ưu tiên chuẩn xác tuyệt đối:
+  // 1. Thứ tự Chi Nhánh: Văn Phòng (1) -> Phú Khương (2) -> Đồng Khởi (3) -> Mỹ Tho (4) -> Cần Thơ (5) -> Vĩnh Long (6) -> Thủ Đức (7)
+  // 2. Thứ tự Vai Trò / Cấp Bậc: Founder/Admin (1-2) -> Quản Lý CHT (7) -> Kỹ Thuật (8) -> Bán Hàng (9)
+  // 3. Thứ tự Trạng Thái: Đang làm việc -> Chờ ca -> Chưa check-in -> Chưa xếp ca -> Nghỉ phép -> Đã tan ca
+  // 4. Thứ tự Tên nhân sự (A-Z)
   const filteredStaffItems = useMemo(() => {
-    return liveStaffData.filter(item => {
+    const ROLE_PRIORITY: Record<string, number> = {
+      founder: 1,
+      admin: 2,
+      sales_head: 3,
+      accountant: 4,
+      warehouse_accountant: 4,
+      marketing: 5,
+      media: 5,
+      hr: 6,
+      manager: 7,
+      technician: 8,
+      sales: 9
+    };
+
+    const STATUS_PRIORITY: Record<string, number> = {
+      WORKING: 1,
+      WORKING_LATE: 2,
+      ON_BREAK: 3,
+      WAITING: 4,
+      NOT_CHECKED_IN: 5,
+      UNSCHEDULED: 6,
+      ON_LEAVE: 7,
+      SHIFT_ENDED: 8
+    };
+
+    const filtered = liveStaffData.filter(item => {
       // Lọc theo chi nhánh
       if (selectedBranchId !== 'ALL' && item.branchId !== selectedBranchId) return false;
 
@@ -522,7 +552,52 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
 
       return true;
     });
+
+    return [...filtered].sort((a, b) => {
+      // 1. Thứ tự Chi nhánh ưu tiên chuẩn: Văn Phòng (1) -> Phú Khương (2) -> Đồng Khởi (3) -> Mỹ Tho (4) -> Cần Thơ (5) -> Vĩnh Long (6) -> Thủ Đức (7)
+      const branchOrderA = getBranchOrderIndex(a.branch);
+      const branchOrderB = getBranchOrderIndex(b.branch);
+      if (branchOrderA !== branchOrderB) {
+        return branchOrderA - branchOrderB;
+      }
+
+      // 2. Thứ tự Cấp bậc / Chức vụ trong chi nhánh
+      const roleA = ROLE_PRIORITY[a.staff.role] || 99;
+      const roleB = ROLE_PRIORITY[b.staff.role] || 99;
+      if (roleA !== roleB) {
+        return roleA - roleB;
+      }
+
+      // 3. Thứ tự trạng thái trực chiến (Đang làm việc ưu tiên lên trước)
+      const stA = STATUS_PRIORITY[a.statusType] || 99;
+      const stB = STATUS_PRIORITY[b.statusType] || 99;
+      if (stA !== stB) {
+        return stA - stB;
+      }
+
+      // 4. Theo tên nhân sự tiếng Việt
+      return a.staff.fullName.localeCompare(b.staff.fullName, 'vi');
+    });
   }, [liveStaffData, selectedBranchId, statusFilter, searchQuery]);
+
+  // 7. Nhóm nhân sự theo từng Chi Nhánh để hiển thị trực quan, khoa học
+  const groupedStaffByBranch = useMemo(() => {
+    const groups: Array<{
+      branch: Branch;
+      items: typeof filteredStaffItems;
+    }> = [];
+
+    filteredStaffItems.forEach(item => {
+      let group = groups.find(g => g.branch.id === item.branch.id);
+      if (!group) {
+        group = { branch: item.branch, items: [] };
+        groups.push(group);
+      }
+      group.items.push(item);
+    });
+
+    return groups;
+  }, [filteredStaffItems]);
 
   return (
     <div className="glass-card rounded-2xl p-4 sm:p-5 border border-cyan-500/30 bg-slate-900/90 shadow-2xl space-y-4">
@@ -759,133 +834,162 @@ export const ExecutiveLivePresence: React.FC<ExecutiveLivePresenceProps> = ({
         </div>
       </div>
 
-      {/* Staff Live Presence Cards Grid: 2 columns on mobile, scaling up to 5 on wide screens */}
+      {/* Staff Live Presence Cards: Grouped and ordered by Branch Priority */}
       {filteredStaffItems.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
-          {filteredStaffItems.map((item, idx) => {
-            const { staff, branch, assignment, record, leave, statusLabel, statusBadgeClass, statusDotClass, isCrossBranch } = item;
-            const branchShortName = branch.name.replace('Phụ Kiện 88 - ', '');
+        <div className="space-y-4">
+          {groupedStaffByBranch.map((group) => {
+            const branchShortName = group.branch.name.replace('Phụ Kiện 88 - ', '');
+            const activeCount = group.items.filter(
+              i => i.statusType === 'WORKING' || i.statusType === 'WORKING_LATE' || i.statusType === 'ON_BREAK'
+            ).length;
 
             return (
-              <div
-                key={`${staff.id}-${idx}`}
-                onClick={() => setSelectedStaffItem(item as LiveStaffModalItem)}
-                className="rounded-xl sm:rounded-2xl p-2 sm:p-3 bg-slate-950/70 border border-slate-800/90 hover:border-cyan-500/70 hover:bg-slate-900/80 transition-all flex flex-col justify-between space-y-1.5 sm:space-y-2 shadow-md relative overflow-hidden select-none cursor-pointer group active:scale-[0.98]"
-                title={`${staff.fullName} - Bấm để xem ảnh avatar, hồ sơ & gọi điện / Zalo`}
-              >
-                {/* Staff Info Top */}
-                <div className="flex items-start gap-1.5 sm:gap-2">
-                  <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-[10px] sm:text-xs flex-shrink-0 border relative ${
-                    isCrossBranch
-                      ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-                      : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
-                  }`}>
-                    {staff.avatarUrl ? (
-                      <img 
-                        src={staff.avatarUrl} 
-                        alt={staff.fullName} 
-                        className="w-full h-full object-cover object-center" 
-                        onError={(e) => {
-                          (e.target as HTMLElement).style.display = 'none';
-                        }}
-                      />
-                    ) : (
-                      <span>{staff.fullName.charAt(0)}</span>
-                    )}
-                  </div>
-
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-1">
-                      <span className="font-extrabold text-slate-200 text-[11px] sm:text-xs truncate block group-hover:text-cyan-300 transition-colors" title={staff.fullName}>
-                        {staff.fullName}
-                      </span>
-                      {isCrossBranch && (
-                        <span className="text-[7.5px] sm:text-[8px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/40 font-bold whitespace-nowrap">
-                          ✈️
-                        </span>
-                      )}
+              <div key={group.branch.id} className="space-y-2">
+                {/* Branch Header Divider (When viewing Toàn Chuỗi or searching across multiple branches) */}
+                {selectedBranchId === 'ALL' && (
+                  <div className="flex items-center justify-between pt-2 pb-1.5 border-b border-slate-800/80">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
+                      <h4 className="text-xs sm:text-sm font-extrabold text-slate-200 uppercase tracking-wide flex items-center gap-1.5">
+                        <span>📍 {branchShortName}</span>
+                      </h4>
                     </div>
-                    <div className="text-[9px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-0.5 font-mono truncate">
-                      <span className="text-cyan-400 font-semibold whitespace-nowrap">{staff.code || 'PK88'}</span>
-                      <span>•</span>
-                      <span className="text-slate-300 font-sans font-medium truncate">{formatRoleVN(staff.role)}</span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Location & Shift Details */}
-                <div className="bg-slate-900/80 rounded-lg sm:rounded-xl p-1.5 sm:p-2 border border-slate-800/60 space-y-0.5 sm:space-y-1 text-[9.5px] sm:text-[11px]">
-                  <div className="flex items-center justify-between">
-                    <span className="text-slate-400 flex items-center gap-1">
-                      <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 flex-shrink-0" />
-                      <span className="font-medium">Shop:</span>
+                    <span className="text-[10px] sm:text-[11px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-950 border border-slate-800 text-cyan-300 shadow-inner">
+                      {activeCount}/{group.items.length} trực chiến
                     </span>
-                    <span className="font-bold text-slate-200 truncate ml-1">{branchShortName}</span>
-                  </div>
-
-                  {assignment ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 flex-shrink-0" />
-                        <span className="font-medium">Ca:</span>
-                      </span>
-                      <span className="font-mono font-semibold text-slate-300 truncate ml-1 text-[9px] sm:text-[10px]">
-                        {assignment.startTime}-{assignment.endTime}
-                      </span>
-                    </div>
-                  ) : record ? (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 flex-shrink-0" />
-                        <span className="font-medium">Chấm công:</span>
-                      </span>
-                      <span className="font-mono text-cyan-300 font-semibold truncate ml-1 text-[9px] sm:text-[10px]">Ngoài lịch</span>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="text-slate-400 flex items-center gap-1">
-                        <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 flex-shrink-0" />
-                        <span className="font-medium">Lịch ca:</span>
-                      </span>
-                      <span className="font-mono text-slate-400 italic text-[9px] sm:text-[10px] truncate ml-1">Chưa xếp ca</span>
-                    </div>
-                  )}
-
-                  {leave && leave.replacementStaffName && (
-                    <div className="flex items-center justify-between pt-0.5 border-t border-slate-800 text-[9px] text-amber-300 truncate">
-                      <span>✈️ Gánh:</span>
-                      <span className="font-bold truncate ml-1">{leave.replacementStaffName}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Status Badge */}
-                <div className={`py-1 sm:py-1.5 px-1.5 sm:px-2 rounded-lg sm:rounded-xl border text-center text-[9.5px] sm:text-xs font-bold flex items-center justify-center gap-1 ${statusBadgeClass}`}>
-                  <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass}`} />
-                  <span className="truncate">{statusLabel}</span>
-                </div>
-
-                {/* GPS Verification Tag (If record exists) */}
-                {record && (
-                  <div className="flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-mono text-slate-400 px-0.5 pt-0.5 truncate">
-                    <span>
-                      {record.isOutsideGeofence ? (
-                        <span className="text-rose-400 flex items-center gap-0.5">
-                          <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" />
-                          <span>Lệch GPS</span>
-                        </span>
-                      ) : (
-                        <span className="text-emerald-400 flex items-center gap-0.5">
-                          <Check className="w-2.5 h-2.5 flex-shrink-0" />
-                          <span>Đúng shop</span>
-                        </span>
-                      )}
-                    </span>
-                    {record.workHours ? (
-                      <span className="text-cyan-300 font-bold ml-1">{record.workHours}h</span>
-                    ) : null}
                   </div>
                 )}
+
+                {/* 2 columns on mobile, scaling up to 5 on wide screens */}
+                <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2 sm:gap-3">
+                  {group.items.map((item, idx) => {
+                    const { staff, branch, assignment, record, leave, statusLabel, statusBadgeClass, statusDotClass, isCrossBranch } = item;
+                    const bShortName = branch.name.replace('Phụ Kiện 88 - ', '');
+
+                    return (
+                      <div
+                        key={`${staff.id}-${idx}`}
+                        onClick={() => setSelectedStaffItem(item as LiveStaffModalItem)}
+                        className="rounded-xl sm:rounded-2xl p-2 sm:p-3 bg-slate-950/70 border border-slate-800/90 hover:border-cyan-500/70 hover:bg-slate-900/80 transition-all flex flex-col justify-between space-y-1.5 sm:space-y-2 shadow-md relative overflow-hidden select-none cursor-pointer group active:scale-[0.98]"
+                        title={`${staff.fullName} - Bấm để xem ảnh avatar, hồ sơ & gọi điện / Zalo`}
+                      >
+                        {/* Staff Info Top */}
+                        <div className="flex items-start gap-1.5 sm:gap-2">
+                          <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden flex items-center justify-center font-bold text-[10px] sm:text-xs flex-shrink-0 border relative ${
+                            isCrossBranch
+                              ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+                              : 'bg-cyan-500/20 text-cyan-300 border-cyan-500/40'
+                          }`}>
+                            {staff.avatarUrl ? (
+                              <img 
+                                src={staff.avatarUrl} 
+                                alt={staff.fullName} 
+                                className="w-full h-full object-cover object-center" 
+                                onError={(e) => {
+                                  (e.target as HTMLElement).style.display = 'none';
+                                }}
+                              />
+                            ) : (
+                              <span>{staff.fullName.charAt(0)}</span>
+                            )}
+                          </div>
+
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-1">
+                              <span className="font-extrabold text-slate-200 text-[11px] sm:text-xs truncate block group-hover:text-cyan-300 transition-colors" title={staff.fullName}>
+                                {staff.fullName}
+                              </span>
+                              {isCrossBranch && (
+                                <span className="text-[7.5px] sm:text-[8px] bg-amber-500/20 text-amber-300 px-1 py-0.2 rounded border border-amber-500/40 font-bold whitespace-nowrap">
+                                  ✈️
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[9px] sm:text-[10px] text-slate-400 flex items-center gap-1 mt-0.5 font-mono truncate">
+                              <span className="text-cyan-400 font-semibold whitespace-nowrap">{staff.code || 'PK88'}</span>
+                              <span>•</span>
+                              <span className="text-slate-300 font-sans font-medium truncate">{formatRoleVN(staff.role)}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Location & Shift Details */}
+                        <div className="bg-slate-900/80 rounded-lg sm:rounded-xl p-1.5 sm:p-2 border border-slate-800/60 space-y-0.5 sm:space-y-1 text-[9.5px] sm:text-[11px]">
+                          <div className="flex items-center justify-between">
+                            <span className="text-slate-400 flex items-center gap-1">
+                              <MapPin className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 flex-shrink-0" />
+                              <span className="font-medium">Shop:</span>
+                            </span>
+                            <span className="font-bold text-slate-200 truncate ml-1">{bShortName}</span>
+                          </div>
+
+                          {assignment ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-amber-400 flex-shrink-0" />
+                                <span className="font-medium">Ca:</span>
+                              </span>
+                              <span className="font-mono font-semibold text-slate-300 truncate ml-1 text-[9px] sm:text-[10px]">
+                                {assignment.startTime}-{assignment.endTime}
+                              </span>
+                            </div>
+                          ) : record ? (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 flex items-center gap-1">
+                                <Sparkles className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-cyan-400 flex-shrink-0" />
+                                <span className="font-medium">Chấm công:</span>
+                              </span>
+                              <span className="font-mono text-cyan-300 font-semibold truncate ml-1 text-[9px] sm:text-[10px]">Ngoài lịch</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-between">
+                              <span className="text-slate-400 flex items-center gap-1">
+                                <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-slate-500 flex-shrink-0" />
+                                <span className="font-medium">Lịch ca:</span>
+                              </span>
+                              <span className="font-mono text-slate-400 italic text-[9px] sm:text-[10px] truncate ml-1">Chưa xếp ca</span>
+                            </div>
+                          )}
+
+                          {leave && leave.replacementStaffName && (
+                            <div className="flex items-center justify-between pt-0.5 border-t border-slate-800 text-[9px] text-amber-300 truncate">
+                              <span>✈️ Gánh:</span>
+                              <span className="font-bold truncate ml-1">{leave.replacementStaffName}</span>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className={`py-1 sm:py-1.5 px-1.5 sm:px-2 rounded-lg sm:rounded-xl border text-center text-[9.5px] sm:text-xs font-bold flex items-center justify-center gap-1 ${statusBadgeClass}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusDotClass}`} />
+                          <span className="truncate">{statusLabel}</span>
+                        </div>
+
+                        {/* GPS Verification Tag (If record exists) */}
+                        {record && (
+                          <div className="flex items-center justify-between text-[8.5px] sm:text-[9.5px] font-mono text-slate-400 px-0.5 pt-0.5 truncate">
+                            <span>
+                              {record.isOutsideGeofence ? (
+                                <span className="text-rose-400 flex items-center gap-0.5">
+                                  <AlertTriangle className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span>Lệch GPS</span>
+                                </span>
+                              ) : (
+                                <span className="text-emerald-400 flex items-center gap-0.5">
+                                  <Check className="w-2.5 h-2.5 flex-shrink-0" />
+                                  <span>Đúng shop</span>
+                                </span>
+                              )}
+                            </span>
+                            {record.workHours ? (
+                              <span className="text-cyan-300 font-bold ml-1">{record.workHours}h</span>
+                            ) : null}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             );
           })}

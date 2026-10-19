@@ -578,6 +578,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      - Hiển thị ảnh chân dung chất lượng cao, huy hiệu vai trò, ngày sinh, ngày vào làm, chi nhánh gốc, ca làm việc và xác thực vị trí GPS hôm nay.
      - Tích hợp 2 nút tiện ích hỏa tốc: **Gọi Điện Thoại Ngay** (`tel:`) và **Chat Qua Zalo** (`https://zalo.me/`).
      - Cơ chế bảo mật 100% **Read-only**, không có bất kỳ nút chỉnh sửa/đổi mật khẩu nào, đảm bảo tính nguyên vẹn cho Ban Điều Hành.
+   - **Chuẩn Hóa Thứ Tự Hiển Thị Chi Nhánh & Phân Nhóm Trực Quan:**
+     - Sắp xếp thứ tự ưu tiên tuyệt đối theo chuỗi chuẩn: **Văn Phòng ➔ Phú Khương ➔ Đồng Khởi ➔ Mỹ Tho ➔ Cần Thơ ➔ Vĩnh Long ➔ Thủ Đức**.
+     - Trong từng chi nhánh, nhân sự được sắp xếp theo cấp bậc (`ROLE_PRIORITY`: Founder/Admin ➔ Quản lý CHT ➔ Kỹ thuật ➔ Bán hàng) và trạng thái trực ca (`WORKING` lên đầu).
+     - Khi xem chế độ Toàn Chuỗi, hệ thống tự động phân tách theo từng cụm chi nhánh với thanh Header hiển thị tên shop và tỷ lệ trực chiến riêng biệt (`x/y trực chiến`), giúp Ban Điều Hành giám sát bao quát toàn chuỗi khoa học, dễ nhìn.
 
 ---
 
