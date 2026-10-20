@@ -34,6 +34,7 @@ import {
 } from 'lucide-react';
 import { ExecutiveLivePresence } from './ExecutiveLivePresence';
 import { ExecutiveCleanlinessBoard } from './ExecutiveCleanlinessBoard';
+import { ExecutiveMarketingMatrix } from './ExecutiveMarketingMatrix';
 import {
   AreaChart,
   Area,
@@ -71,6 +72,7 @@ interface ExecutiveDashboardProps {
   onOpenAIHRModal?: () => void;
   onNavigateTab?: (tab: any) => void;
   onRefreshAttendance?: () => void;
+  onRefreshMarketing?: () => void;
 }
 
 export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({ 
@@ -83,7 +85,8 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
   currentUser,
   onOpenAIHRModal,
   onNavigateTab,
-  onRefreshAttendance
+  onRefreshAttendance,
+  onRefreshMarketing
 }) => {
   const activeBranches = sortBranchesByPriority(branches.filter(b => b.isActive));
   const inactiveBranches = branches.filter(b => !b.isActive);
@@ -398,6 +401,14 @@ export const ExecutiveDashboard: React.FC<ExecutiveDashboardProps> = ({
         branches={branches}
         staffList={staffList}
         currentUser={currentUser}
+      />
+
+      {/* EXECUTIVE MARKETING MATRIX - BẢNG MA TRẬN ĐĂNG BÀI MARKETING TOÀN CHUỖI */}
+      <ExecutiveMarketingMatrix
+        branches={branches}
+        marketingPosts={marketingPosts}
+        onNavigateTab={onNavigateTab}
+        onRefreshMarketing={onRefreshMarketing}
       />
 
       {/* CHARTS SECTION - HIỂN THỊ TRẠNG THÁI DỮ LIỆU THẬT */}

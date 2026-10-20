@@ -529,6 +529,14 @@ export function App() {
           fetchStaff();
         }
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'marketing_posts' },
+        () => {
+          console.log('⚡ Realtime marketing_posts update received from Supabase');
+          fetchMarketingPosts();
+        }
+      )
       .subscribe();
 
     // 2. NHỊP TIM DỰ PHÒNG (HEARTBEAT): Tự động đồng bộ mỗi 20 giây đảm bảo không bao giờ trễ số liệu dù mạng 4G/Wifi gián đoạn
@@ -542,6 +550,7 @@ export function App() {
         fetchRealAttendance();
         fetchLeaveRequests();
         fetchShiftAssignmentsFromCloud();
+        fetchMarketingPosts();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -1812,6 +1821,7 @@ export function App() {
                 onOpenAIHRModal={handleOpenAIHRModal}
                 onNavigateTab={(tab) => handleNavigateTab(tab)}
                 onRefreshAttendance={fetchRealAttendance}
+                onRefreshMarketing={fetchMarketingPosts}
               />
             )}
 
