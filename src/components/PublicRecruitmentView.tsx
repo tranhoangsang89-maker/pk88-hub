@@ -168,58 +168,71 @@ export const PublicRecruitmentView: React.FC<PublicRecruitmentViewProps> = ({
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-amber-500 selection:text-slate-950">
       {/* Top Navigation Bar */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-md border-b border-slate-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-black text-slate-950 text-lg shadow-lg shadow-amber-500/20">
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-md border-b border-slate-800 shadow-xl">
+        <div className="max-w-6xl mx-auto px-3 sm:px-6 h-14 sm:h-16 flex items-center justify-between gap-2 sm:gap-4">
+          {/* Brand Info */}
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center font-black text-slate-950 text-sm sm:text-lg shadow-lg shadow-amber-500/20 shrink-0">
               88
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-base tracking-wider text-white">PHỤ KIỆN 88</span>
-                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30">
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <span className="font-extrabold text-sm sm:text-base tracking-wider text-white whitespace-nowrap">
+                  PHỤ KIỆN 88
+                </span>
+                <span className="px-1.5 py-0.5 rounded text-[9px] sm:text-[10px] font-bold bg-amber-500/20 text-amber-400 border border-amber-500/30 whitespace-nowrap">
                   CAREERS
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">Cổng Tuyển Dụng & Đào Tạo Chuỗi 8 Cửa Hàng Miền Tây</p>
+              <p className="hidden sm:block text-[11px] text-slate-400 whitespace-nowrap">
+                Cổng Tuyển Dụng & Đào Tạo Chuỗi 8 Cửa Hàng Miền Tây
+              </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Nút Chỉnh Sửa Dành Riêng Cho Founder, Admin và HR Phan Hoàng Khánh */}
             {canEdit && (
               <button
+                type="button"
                 onClick={() => {
                   setEditingPositionId(null);
                   setShowEditModal(true);
                 }}
-                className="px-3.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-md shadow-amber-500/20 flex items-center gap-1.5 transition active:scale-95 animate-pulse"
+                className="px-2.5 sm:px-3.5 py-1.5 text-xs font-bold rounded-lg bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 shadow-md shadow-amber-500/20 flex items-center gap-1 sm:gap-1.5 transition active:scale-95 animate-pulse cursor-pointer shrink-0"
                 title="Quyền biên tập: Founder, Admin & HR Phan Hoàng Khánh"
               >
-                <Sparkles className="w-3.5 h-3.5" />
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
                 <span className="hidden sm:inline">Tùy Chỉnh Nội Dung</span>
-                <span className="sm:hidden">Sửa</span>
+                <span className="sm:hidden text-[11px]">Sửa</span>
               </button>
             )}
 
-            {onBackToApp && (
-              <button
-                onClick={onBackToApp}
-                className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5"
-              >
-                <ArrowLeft className="w-3.5 h-3.5" />
-                <span>Về Cổng Nội Bộ</span>
-              </button>
-            )}
-
+            {/* Nút Gọi Hotline Tuyển dụng */}
             <a
               href={`tel:${recruitmentConfig.hotline.replace(/\D/g, '')}`}
-              className="px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center gap-1.5"
+              title={`Hotline Tuyển dụng: ${recruitmentConfig.hotline}`}
+              className="px-2.5 sm:px-3 py-1.5 text-xs font-semibold rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/30 transition flex items-center gap-1 sm:gap-1.5 shrink-0 cursor-pointer whitespace-nowrap"
             >
-              <Phone className="w-3.5 h-3.5" />
+              <Phone className="w-3.5 h-3.5 shrink-0" />
               <span className="hidden sm:inline">Hotline HR:</span>
-              <span className="font-bold">{recruitmentConfig.hotline}</span>
+              <span className="hidden sm:inline font-bold">{recruitmentConfig.hotline}</span>
+              <span className="sm:hidden text-[11px] font-bold">Hotline</span>
             </a>
+
+            {/* Nút Về Cổng Nội Bộ */}
+            {onBackToApp && (
+              <button
+                type="button"
+                onClick={onBackToApp}
+                title="Về Cổng Nội Bộ"
+                className="p-1.5 sm:px-3 sm:py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition flex items-center gap-1.5 shrink-0 cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">Về Cổng Nội Bộ</span>
+              </button>
+            )}
           </div>
         </div>
       </header>

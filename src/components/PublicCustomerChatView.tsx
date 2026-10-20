@@ -314,65 +314,68 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-rose-500 selection:text-white">
       {/* 1. HEADER CHÍNH */}
-      <header className="sticky top-0 z-40 bg-slate-900/90 backdrop-blur-xl border-b border-slate-800 shadow-2xl">
-        <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
+      <header className="sticky top-0 z-40 bg-slate-900/95 backdrop-blur-xl border-b border-slate-800 shadow-2xl">
+        <div className="max-w-4xl mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2 sm:gap-3">
           {/* Thông tin Bot & Avatar */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="relative shrink-0">
               <img
                 src="/be8-avatar.jpg"
                 alt="Bé 8 AI CSKH"
-                className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ring-rose-500/50 shadow-lg shadow-rose-500/20"
+                className="w-10 h-10 sm:w-12 sm:h-12 rounded-2xl object-cover ring-2 ring-rose-500/50 shadow-lg shadow-rose-500/20"
                 onError={(e) => {
                   // Fallback nếu ảnh không tải được
                   (e.target as HTMLImageElement).src = '/logo-pk88.jpg';
                 }}
               />
-              <span className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse" />
+              <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 sm:w-3.5 sm:h-3.5 bg-emerald-500 border-2 border-slate-900 rounded-full animate-pulse" />
             </div>
 
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-base sm:text-lg font-black text-white flex items-center gap-1.5 tracking-tight">
-                  <span>Bé 8 AI CSKH</span>
-                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40">
-                    Phụ Kiện 88
-                  </span>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2">
+                <h1 className="text-sm sm:text-lg font-black text-white tracking-tight whitespace-nowrap">
+                  Bé 8 AI CSKH
                 </h1>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/40 whitespace-nowrap">
+                  PK88
+                </span>
               </div>
-              <p className="text-[11px] sm:text-xs text-emerald-400 flex items-center gap-1.5 font-medium">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-                <span>Trực tuyến 24/7 • Tư vấn & Giữ mã giảm 10%</span>
+              <p className="text-[10px] sm:text-xs text-emerald-400 flex items-center gap-1 font-medium whitespace-nowrap">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping shrink-0" />
+                <span className="hidden sm:inline">Trực tuyến 24/7 • Tư vấn & Giữ mã giảm 10%</span>
+                <span className="sm:hidden">Trực tuyến 24/7</span>
               </p>
             </div>
           </div>
 
           {/* Nút hành động đầu trang */}
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={handleCopyShareLink}
               title="Sao chép link chia sẻ Chatbot"
-              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 transition-all cursor-pointer"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 transition-all cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedLink ? 'Đã chép link' : 'Copy link'}</span>
+              <span className="hidden sm:inline">{copiedLink ? 'Đã chép link' : 'Copy link'}</span>
             </button>
 
             <a
               href="tel:0394336726"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all cursor-pointer shadow-lg shadow-rose-500/10"
+              title="Hotline: 0394.336.726"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all cursor-pointer shadow-lg shadow-rose-500/10 whitespace-nowrap"
             >
-              <Phone className="w-3.5 h-3.5 animate-bounce" />
+              <Phone className="w-3.5 h-3.5 animate-bounce shrink-0 text-rose-400" />
               <span className="hidden sm:inline">Hotline:</span>
-              <span>0394.336.726</span>
+              <span className="hidden sm:inline">0394.336.726</span>
+              <span className="sm:hidden">Gọi</span>
             </a>
 
             {onBackToApp && (
               <button
                 type="button"
                 onClick={onBackToApp}
-                className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition-all cursor-pointer"
+                className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 text-xs font-bold transition-all cursor-pointer shrink-0"
                 title="Quay lại Cổng Nội Bộ"
               >
                 <ArrowLeft className="w-4 h-4" />
@@ -382,18 +385,18 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
         </div>
 
         {/* Thanh chọn chi nhánh gần nhất */}
-        <div className="bg-slate-950/70 border-t border-slate-800/80 px-4 py-2">
+        <div className="bg-slate-950/80 border-t border-slate-800/80 px-3 sm:px-4 py-1.5 sm:py-2">
           <div className="max-w-4xl mx-auto flex items-center justify-between gap-2 text-xs">
-            <div className="flex items-center gap-1.5 text-slate-400 overflow-hidden text-ellipsis whitespace-nowrap">
-              <Store className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <span className="hidden sm:inline text-slate-400 font-medium">Chi nhánh phục vụ:</span>
+            <div className="flex items-center gap-1.5 text-slate-400 min-w-0 flex-1">
+              <Store className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span className="hidden sm:inline text-slate-400 font-medium whitespace-nowrap shrink-0">Chi nhánh:</span>
               <select
                 value={selectedBranch.id}
                 onChange={(e) => {
                   const b = activeBranches.find(item => item.id === e.target.value);
                   if (b) setSelectedBranch(b);
                 }}
-                className="bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-lg px-2 py-1 text-xs outline-none focus:border-amber-400 max-w-[220px] sm:max-w-xs cursor-pointer"
+                className="bg-slate-900 border border-slate-700 text-amber-300 font-bold rounded-lg px-2 py-1 text-xs outline-none focus:border-amber-400 w-full sm:w-auto sm:max-w-xs cursor-pointer truncate"
               >
                 {activeBranches.map(b => (
                   <option key={b.id} value={b.id}>
@@ -406,9 +409,9 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
             <button
               type="button"
               onClick={() => setShowLeadModal(true)}
-              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-[11px] shadow-md shadow-rose-500/20 hover:scale-105 transition-all cursor-pointer"
+              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 font-black text-[11px] sm:text-xs shadow-md shadow-rose-500/20 hover:scale-105 transition-all cursor-pointer shrink-0 whitespace-nowrap"
             >
-              <Gift className="w-3 h-3 text-slate-950" />
+              <Gift className="w-3 h-3 text-slate-950 shrink-0" />
               <span>Nhận Voucher 10%</span>
             </button>
           </div>
@@ -557,18 +560,18 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
           </form>
 
           {/* Banner nhắc nhở ưu đãi dưới cùng */}
-          <div className="flex items-center justify-between text-[11px] text-slate-400 pt-2 px-1">
-            <span className="flex items-center gap-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Bảo hành chính hãng 1 đổi 1 • Dán máy miễn phí</span>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-400 pt-2 px-1">
+            <span className="flex items-center gap-1 text-slate-400">
+              <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span className="truncate">Bảo hành 1 đổi 1 • Dán máy miễn phí</span>
             </span>
 
             <button
               type="button"
               onClick={() => setShowLeadModal(true)}
-              className="text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1 cursor-pointer"
+              className="text-amber-400 hover:text-amber-300 font-bold underline flex items-center gap-1 cursor-pointer shrink-0"
             >
-              <Gift className="w-3 h-3" />
+              <Gift className="w-3 h-3 shrink-0" />
               <span>Nhận mã giảm giá 10% ngay</span>
             </button>
           </div>
