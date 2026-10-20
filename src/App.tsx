@@ -1816,38 +1816,78 @@ export function App() {
                 </button>
               )}
 
-              {/* Toggle Customer Mode View */}
+              {/* 3 Cổng Tiện Ích & Kết Nối Công Khai (Hiển thị cùng dòng trên Desktop) */}
+              <div className="hidden sm:flex items-center gap-2 shrink-0">
+                {/* Toggle Customer Mode View */}
+                <button
+                  onClick={handleToggleCustomerMode}
+                  className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                    isCustomerMode
+                      ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
+                      : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                  }`}
+                  title="Chế độ khách quét QR tra cứu bảo hành"
+                >
+                  <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                  <span className="text-[11px] font-semibold">{isCustomerMode ? 'Thoát' : 'Khách QR'}</span>
+                </button>
+
+                {/* Nút xem trang Tuyển Dụng Công Khai */}
+                <button
+                  onClick={() => handleNavigateTab('recruitment')}
+                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                  title="Cổng ứng tuyển việc làm tại chuỗi Phụ Kiện 88"
+                >
+                  <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
+                  <span className="text-[11px] font-semibold">Tuyển Dụng</span>
+                </button>
+
+                {/* Nút xem trang Chatbot Bé 8 Tư Vấn Công Khai */}
+                <button
+                  onClick={() => handleNavigateTab('customer_chat')}
+                  className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-black border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-emerald-500/30 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                  title="Cổng Chatbot Bé 8 tư vấn bán hàng & tặng voucher công khai"
+                >
+                  <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                  <span className="text-[11px] font-bold">Chatbot Bé 8</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Hàng 3 DÀNH RIÊNG CHO MOBILE: 3 nút cổng tiện ích dàn đều 3 cột rõ ràng, không bao giờ bị tràn/cắt */}
+            <div className="grid grid-cols-3 gap-1.5 w-full sm:hidden pt-1.5 border-t border-slate-800/60">
+              {/* Khách QR */}
               <button
                 onClick={handleToggleCustomerMode}
-                className={`px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                className={`py-1.5 px-1.5 rounded-xl text-xs font-bold border transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm ${
                   isCustomerMode
                     ? 'bg-sky-500 text-slate-950 border-sky-400 font-extrabold'
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                    : 'bg-slate-900/90 text-slate-300 border-slate-800 hover:text-white'
                 }`}
                 title="Chế độ khách quét QR tra cứu bảo hành"
               >
-                <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
-                <span className="text-[11px] font-semibold">{isCustomerMode ? 'Thoát' : 'Khách QR'}</span>
+                <QrCode className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-[11px] font-semibold truncate">{isCustomerMode ? 'Thoát' : 'Khách QR'}</span>
               </button>
 
-              {/* Nút xem trang Tuyển Dụng Công Khai */}
+              {/* Tuyển Dụng */}
               <button
                 onClick={() => handleNavigateTab('recruitment')}
-                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+                className="py-1.5 px-1.5 rounded-xl text-xs font-bold border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm"
                 title="Cổng ứng tuyển việc làm tại chuỗi Phụ Kiện 88"
               >
-                <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
-                <span className="text-[11px] font-semibold">Tuyển Dụng</span>
+                <Briefcase className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span className="text-[11px] font-semibold truncate">Tuyển Dụng</span>
               </button>
 
-              {/* Nút xem trang Chatbot Bé 8 Tư Vấn Công Khai */}
+              {/* Chatbot Bé 8 */}
               <button
                 onClick={() => handleNavigateTab('customer_chat')}
-                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-black border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-emerald-500/30 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                className="py-1.5 px-1.5 rounded-xl text-xs font-black border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-emerald-500/30 hover:text-white transition-all flex items-center justify-center gap-1 cursor-pointer shadow-sm shadow-cyan-500/10"
                 title="Cổng Chatbot Bé 8 tư vấn bán hàng & tặng voucher công khai"
               >
-                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
-                <span className="text-[11px] font-bold">Chatbot Bé 8</span>
+                <Bot className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-[11px] font-bold truncate">Chatbot Bé 8</span>
               </button>
             </div>
           </div>
