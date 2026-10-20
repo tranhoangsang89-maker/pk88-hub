@@ -117,7 +117,7 @@ export const fetchCleanlinessReports = async (
     let query = supabase.from('cleanliness_reports').select('*');
 
     if (targetDate) {
-      query = query.eq('date', targetDate);
+      query = query.or(`date.eq.${targetDate},report_date.eq.${targetDate}`);
     }
     if (targetBranchId && targetBranchId !== 'ALL') {
       if (isValidUuid(targetBranchId)) {
@@ -137,7 +137,7 @@ export const fetchCleanlinessReports = async (
         staffPhone: item.staff_phone || '',
         staffRole: item.staff_role || '',
         shiftType: (item.shift_type || 'MORNING') as CleanlinessShiftType,
-        reportDate: item.date || item.report_date || targetDate || new Date().toISOString().slice(0, 10),
+        reportDate: item.report_date || item.date || targetDate || new Date().toISOString().slice(0, 10),
         images: Array.isArray(item.images) ? item.images : (typeof item.images === 'string' ? JSON.parse(item.images || '[]') : []),
         notes: item.notes || '',
         status: (item.status === 'PENDING' ? 'SUBMITTED' : (item.status === 'REDO_REQUESTED' ? 'NEEDS_REDO' : item.status)) as CleanlinessStatus,
@@ -148,8 +148,7 @@ export const fetchCleanlinessReports = async (
 
       // Khi kết nối Supabase Cloud thành công:
       // Supabase Cloud là Chân Lý Thực Tế (Single Source of Truth).
-      // Đối với targetDate đã truy vấn: cập nhật LocalStorage theo Cloud để xóa sạch mọi báo cáo
-      // đã bị xóa trên thiết bị khác (không giữ lại zombie report).
+      // Cập nhật LocalStorage theo Cloud để xóa sạch báo cáo bị xóa trên thiết bị khác
       let updatedLocalStorage: CleanlinessReport[] = [];
       if (targetDate && targetBranchId && targetBranchId !== 'ALL') {
         const nonMatching = localReports.filter(r => r.reportDate !== targetDate || r.branchId !== targetBranchId);
@@ -182,7 +181,7 @@ export const fetchCleanlinessReports = async (
 };
 
 /**
- * Gửi báo cáo vệ sinh mới (Lưu đồng thời Supabase Cloud và LocalStorage)
+ * Gửi báo cáo vệ sinh mới trực tiếp lên Supabase Cloud (với WebP nén siêu nhẹ)
  */
 export const submitCleanlinessReport = async (
   reportData: Omit<CleanlinessReport, 'id' | 'createdAt'>
@@ -194,7 +193,49 @@ export const submitCleanlinessReport = async (
     status: 'SUBMITTED'
   };
 
-  // 1. Lưu LocalStorage tức thì
+  // 1. Chuẩn bị payload chuẩn Supabase Cloud
+  const payload: any = {
+    id: newReport.id,
+    branch_id: isValidUuid(newReport.branchId) ? newReport.branchId : null,
+    branch_name: newReport.branchName,
+    staff_id: isValidUuid(newReport.staffId) ? newReport.staffId : null,
+    staff_name: newReport.staffName,
+    staff_phone: newReport.staffPhone || null,
+    staff_role: newReport.staffRole || null,
+    date: newReport.reportDate,
+    report_date: newReport.reportDate,
+    shift_type: newReport.shiftType,
+    images: newReport.images || [],
+    notes: newReport.notes || '',
+    status: 'SUBMITTED',
+    created_at: newReport.createdAt
+  };
+
+  // 2. Ghi trực tiếp lên Supabase Cloud (ưu tiên tuyệt đối Cloud là SSOT)
+  try {
+    let { error } = await supabase.from('cleanliness_reports').insert([payload]);
+
+    // Tự động phục hồi nếu có lỗi foreign key
+    if (error && (error.code === '23503' || error.message.includes('foreign key'))) {
+      console.warn('Supabase FK conflict, retrying with branch_id/staff_id null:', error.message);
+      payload.branch_id = null;
+      payload.staff_id = null;
+      const retryResult = await supabase.from('cleanliness_reports').insert([payload]);
+      error = retryResult.error;
+    }
+
+    if (error) {
+      console.error('Supabase cleanliness insert error:', error);
+      throw new Error(`Lỗi đồng bộ Supabase Cloud: ${error.message}`);
+    }
+
+    console.log(`[Supabase Cloud] Đã đồng bộ thành công báo cáo vệ sinh ID: ${newReport.id} lên Cloud!`);
+  } catch (err: any) {
+    console.error('Lỗi ngoại lệ khi ghi Supabase Cloud:', err);
+    throw err;
+  }
+
+  // 3. Khi đã ghi thành công lên Cloud, cập nhật cache LocalStorage để truy xuất tức thời
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const list: CleanlinessReport[] = raw ? JSON.parse(raw) : [];
@@ -202,38 +243,14 @@ export const submitCleanlinessReport = async (
     localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
     window.dispatchEvent(new CustomEvent('pk88_cleanliness_updated', { detail: newReport }));
   } catch (err) {
-    console.warn('LocalStorage save error:', err);
-  }
-
-  // 2. Đồng bộ lên Supabase Cloud
-  try {
-    const payload = {
-      id: newReport.id,
-      branch_id: isValidUuid(newReport.branchId) ? newReport.branchId : null,
-      branch_name: newReport.branchName,
-      staff_id: isValidUuid(newReport.staffId) ? newReport.staffId : null,
-      staff_name: newReport.staffName,
-      date: newReport.reportDate,
-      shift_type: newReport.shiftType,
-      images: newReport.images || [],
-      notes: newReport.notes || '',
-      status: 'PENDING',
-      created_at: newReport.createdAt
-    };
-
-    const { error } = await supabase.from('cleanliness_reports').insert([payload]);
-    if (error) {
-      console.warn('Supabase insert cleanliness report warning:', error.message);
-    }
-  } catch (err) {
-    console.warn('Supabase insert exception:', err);
+    console.warn('LocalStorage cache update warning:', err);
   }
 
   return newReport;
 };
 
 /**
- * Đánh giá báo cáo vệ sinh (Founder / Admin duyệt đạt chuẩn hoặc yêu cầu làm lại)
+ * Đánh giá báo cáo vệ sinh (Founder / Admin duyệt đạt chuẩn hoặc yêu cầu làm lại trên Cloud)
  */
 export const reviewCleanlinessReport = async (
   id: string,
@@ -241,7 +258,27 @@ export const reviewCleanlinessReport = async (
   reviewedBy: string,
   reviewNote?: string
 ): Promise<boolean> => {
-  // 1. Cập nhật LocalStorage
+  const dbStatus = status === 'APPROVED' ? 'APPROVED' :
+                   (status === 'NEEDS_REDO' || status === 'REDO_REQUESTED') ? 'REDO_REQUESTED' : 'SUBMITTED';
+
+  // 1. Cập nhật trực tiếp lên Supabase Cloud
+  try {
+    const { error } = await supabase.from('cleanliness_reports').update({
+      status: dbStatus,
+      reviewed_by: reviewedBy,
+      review_note: reviewNote || null
+    }).eq('id', id);
+
+    if (error) {
+      console.error('Supabase review update error:', error);
+      return false;
+    }
+  } catch (err) {
+    console.error('Supabase review exception:', err);
+    return false;
+  }
+
+  // 2. Cập nhật LocalStorage cache
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -256,23 +293,10 @@ export const reviewCleanlinessReport = async (
       }
     }
   } catch (err) {
-    console.warn('LocalStorage review update error:', err);
+    console.warn('LocalStorage review update cache error:', err);
   }
 
-  // 2. Cập nhật Supabase Cloud
-  try {
-    const dbStatus = status === 'APPROVED' ? 'APPROVED' :
-                     (status === 'NEEDS_REDO' || status === 'REDO_REQUESTED') ? 'REDO_REQUESTED' : 'PENDING';
-
-    await supabase.from('cleanliness_reports').update({
-      status: dbStatus,
-      reviewed_by: reviewedBy,
-      review_note: reviewNote || null
-    }).eq('id', id);
-    return true;
-  } catch {
-    return false;
-  }
+  return true;
 };
 
 /**
