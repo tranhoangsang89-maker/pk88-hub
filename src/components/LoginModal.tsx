@@ -9,10 +9,17 @@ interface LoginModalProps {
   onLoginSuccess: (staff: Staff) => void;
   onGuestLookup?: () => void;
   onRecruitmentApply?: () => void;
+  onCustomerChat?: () => void;
   staffList?: Staff[];
 }
 
-export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestLookup, onRecruitmentApply, staffList = MOCK_STAFF }) => {
+export const LoginModal: React.FC<LoginModalProps> = ({ 
+  onLoginSuccess, 
+  onGuestLookup, 
+  onRecruitmentApply, 
+  onCustomerChat,
+  staffList = MOCK_STAFF 
+}) => {
   const [phone, setPhone] = useState(''); // Mặc định để trống để bảo mật
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -190,6 +197,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({ onLoginSuccess, onGuestL
               className="w-full py-2 px-4 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2"
             >
               💼 Bạn muốn ứng tuyển vào PK88? Nộp hồ sơ ngay →
+            </button>
+          )}
+
+          {onCustomerChat && (
+            <button
+              type="button"
+              onClick={onCustomerChat}
+              className="w-full py-2 px-4 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/30 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer mt-1.5"
+            >
+              💬 Bạn là khách hàng? Chat với Bé 8 nhận voucher 10% →
             </button>
           )}
         </div>

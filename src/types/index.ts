@@ -294,3 +294,77 @@ export interface CleanlinessReport {
   reviewNote?: string;
   createdAt: string;
 }
+
+export type CustomerLeadStatus = 'NEW' | 'CONTACTED' | 'APPOINTED' | 'COMPLETED' | 'CANCELLED';
+
+export interface CustomerLead {
+  id: string | number;
+  lead_id?: string;
+  customer_name: string;
+  phone: string;
+  need?: string;
+  budget?: string;
+  timeline?: string;
+  branch?: string;
+  branch_id?: string;
+  score?: number;
+  label?: string;
+  status: CustomerLeadStatus | string;
+  priority?: string;
+  source?: string;
+  notes?: string;
+  conversation_summary?: string;
+  voucher_code?: string;
+  product_interest?: string;
+  assigned_to?: string | null;
+  last_action_at?: string | null;
+  activity_log?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  created_at: string;
+}
+
+export type CustomerTier = 'NEW' | 'SILVER' | 'GOLD' | 'DIAMOND';
+
+export interface CustomerCareReminder {
+  id: string;
+  type: 'SCREEN_PROTECTOR_REPLACE' | 'BATTERY_HEALTH_CHECK' | 'BIRTHDAY_GIFT' | 'VIP_WINBACK' | 'CUSTOM';
+  title: string;
+  message: string;
+  suggestedAction: string;
+  dueDays: number;
+  isUrgent?: boolean;
+}
+
+export interface CustomerCareLog {
+  id: string;
+  phone: string;
+  staff_name?: string;
+  action_type: 'CALL' | 'ZALO' | 'GIFT' | 'NOTE' | 'WARRANTY_REMINDER' | string;
+  content: string;
+  created_at: string;
+}
+
+export interface CustomerProfile {
+  id?: string;
+  phone: string;
+  fullName: string;
+  homeBranchId?: string;
+  homeBranchName?: string;
+  deviceModel?: string;
+  tier: CustomerTier;
+  totalSpent: number;
+  orderCount: number;
+  ticketCount: number;
+  leadCount: number;
+  firstSeenAt: string;
+  lastSeenAt: string;
+  notes?: string;
+  birthday?: string;
+  orders: any[];
+  tickets: any[];
+  leads: any[];
+  careLogs: CustomerCareLog[];
+  reminders: CustomerCareReminder[];
+}
+
+
+

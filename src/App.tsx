@@ -15,18 +15,21 @@ import { AIHRModal } from './components/AIHRModal';
 import { BranchStaffDirectory } from './components/BranchStaffDirectory';
 import { POSView } from './components/POSView';
 import { PublicRecruitmentView } from './components/PublicRecruitmentView';
+import { PublicCustomerChatView } from './components/PublicCustomerChatView';
+import { CustomerLeadsCRMModal } from './components/CustomerLeadsCRMModal';
 import { ShiftSchedulingMatrix } from './components/ShiftSchedulingMatrix';
 import { StaffDetailModal } from './components/StaffDetailModal';
 import { CounterServiceView } from './components/CounterServiceView';
 import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
 import { StoreCleanlinessStaffView } from './components/StoreCleanlinessStaffView';
+import { CustomerCRMView } from './components/CustomerCRMView';
 import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { fetchStaffAuthMetadataFromCloud } from './lib/staffAuthService';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings, MapPin, Sparkles } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings, MapPin, Sparkles, MessageSquare, HeartHandshake, Bot } from 'lucide-react';
 import { MarketingPost, MarketingPlatform, MarketingPostStatus } from './types';
-import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
+import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, isCustomerChatModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
 
 export function App() {
   // 1. Phục hồi user từ localStorage nếu đã đăng nhập trước đó
@@ -76,12 +79,13 @@ export function App() {
   const [attendanceHistory, setAttendanceHistory] = useState<AttendanceRecord[]>([]);
   const [tickets, setTickets] = useState<RepairTicket[]>(MOCK_REPAIR_TICKETS);
   
-  // Chỉ hiện modal đăng nhập nếu chưa có phiên đăng nhập, không ở chế độ khách tra cứu và không ở trang tuyển dụng
+  // Chỉ hiện modal đăng nhập nếu chưa có phiên đăng nhập, không ở chế độ khách tra cứu, không ở trang tuyển dụng và không ở trang chatbot
   const [showLoginModal, setShowLoginModal] = useState<boolean>(() => {
     const isGuest = isCustomerModeFromUrl();
     const isRecruit = isRecruitmentModeFromUrl();
+    const isChat = isCustomerChatModeFromUrl();
     const hasSavedUser = typeof window !== 'undefined' && !!localStorage.getItem('pk88_current_user');
-    return !isGuest && !isRecruit && !hasSavedUser;
+    return !isGuest && !isRecruit && !isChat && !hasSavedUser;
   });
 
   const [loadingDb, setLoadingDb] = useState<boolean>(false);
@@ -90,6 +94,7 @@ export function App() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showMarketingStudio, setShowMarketingStudio] = useState<boolean>(false);
   const [showPersonalShiftsModal, setShowPersonalShiftsModal] = useState<boolean>(false);
+  const [showLeadsModal, setShowLeadsModal] = useState<boolean>(() => initialUrlTab === 'leads');
   const [attendanceSubTab, setAttendanceSubTab] = useState<'gps' | 'cleanliness'>('gps');
 
   // Tự động điều hướng nếu tab hiện tại không thuộc quyền hạn của vai trò hiện tại
@@ -1319,7 +1324,7 @@ export function App() {
       ];
     }
 
-    // 1. Founder: Miễn chấm công, toàn quyền giám sát 4 Hub điều hành
+    // 1. Founder: Miễn chấm công, toàn quyền giám sát các Hub điều hành
     if (role === 'founder') {
       return [
         {
@@ -1328,6 +1333,13 @@ export function App() {
           shortLabel: 'Tổng Quan',
           icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'customer_crm',
+          label: '👥 Khách Hàng 360',
+          shortLabel: 'Khách Hàng',
+          icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
         },
         {
           id: 'hr_hub',
@@ -1348,7 +1360,7 @@ export function App() {
           label: '🎓 Học Viện 88',
           shortLabel: 'Học Viện',
           icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
-          activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
         },
         {
           id: 'system',
@@ -1376,6 +1388,13 @@ export function App() {
           shortLabel: 'Tổng Quan',
           icon: <LayoutDashboard className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-amber-500 text-slate-950 shadow-amber-500/20'
+        },
+        {
+          id: 'customer_crm',
+          label: '👥 Khách Hàng 360',
+          shortLabel: 'Khách Hàng',
+          icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
         },
         {
           id: 'hr_hub',
@@ -1453,6 +1472,13 @@ export function App() {
           activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
         },
         {
+          id: 'customer_crm',
+          label: '👥 Khách Hàng 360',
+          shortLabel: 'Khách Hàng',
+          icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
+        },
+        {
           id: 'training',
           label: '🎓 Học Viện 88',
           shortLabel: 'Học Viện',
@@ -1478,6 +1504,13 @@ export function App() {
           shortLabel: 'Quầy POS',
           icon: <ShoppingBag className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
+        },
+        {
+          id: 'customer_crm',
+          label: '👥 Khách Hàng 360',
+          shortLabel: 'Khách Hàng',
+          icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
         },
         {
           id: 'training',
@@ -1513,6 +1546,13 @@ export function App() {
         activeColor: 'bg-emerald-500 text-slate-950 shadow-emerald-500/20'
       },
       {
+        id: 'customer_crm',
+        label: '👥 Khách Hàng 360',
+        shortLabel: 'Khách Hàng',
+        icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
+        activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
+      },
+      {
         id: 'training',
         label: '🎓 Học Viện 88',
         shortLabel: 'Học Viện',
@@ -1521,6 +1561,18 @@ export function App() {
       }
     ];
   };
+
+  // Nếu đang ở trang Chatbot tư vấn khách hàng công khai (/tu-van hoặc ?tab=tu-van)
+  if (activeTab === 'customer_chat' || isCustomerChatModeFromUrl()) {
+    return (
+      <PublicCustomerChatView
+        branches={branches}
+        onBackToApp={() => {
+          handleNavigateTab(currentUser ? (currentUser.role === 'hr' || currentUser.role === 'admin' ? 'admin' : 'attendance') : 'attendance');
+        }}
+      />
+    );
+  }
 
   // Nếu đang ở trang tuyển dụng công khai (/tuyen-dung hoặc ?tab=tuyen-dung)
   if (activeTab === 'recruitment') {
@@ -1549,6 +1601,9 @@ export function App() {
           }}
           onRecruitmentApply={() => {
             handleNavigateTab('recruitment');
+          }}
+          onCustomerChat={() => {
+            handleNavigateTab('customer_chat');
           }}
         />
       )}
@@ -1579,7 +1634,19 @@ export function App() {
         />
       )}
 
-
+      {/* Customer Leads CRM Modal */}
+      <CustomerLeadsCRMModal
+        isOpen={showLeadsModal || activeTab === 'leads'}
+        onClose={() => {
+          setShowLeadsModal(false);
+          if (activeTab === 'leads') {
+            handleNavigateTab(getDefaultTabForRole(currentUser?.role));
+          }
+        }}
+        branches={branches}
+        currentUser={currentUser}
+        defaultBranchId={selectedBranch?.id}
+      />
 
       {/* Main Header Navbar */}
       <header className="border-b border-slate-800 bg-slate-900/80 backdrop-blur-md px-4 py-3 sticky top-0 z-30 shadow-md">
@@ -1619,6 +1686,19 @@ export function App() {
                 >
                   <Clock className="w-3.5 h-3.5 text-emerald-400 animate-pulse" />
                   <span className="inline">Chấm Công</span>
+                </button>
+              )}
+
+              {/* Nút Khách Hàng Chờ Chốt Đơn (Telesales CRM) */}
+              {currentUser && !isCustomerMode && (
+                <button
+                  onClick={() => setShowLeadsModal(true)}
+                  className="px-2.5 sm:px-3 py-1.5 bg-gradient-to-r from-rose-500/20 to-amber-500/20 hover:from-rose-500/30 hover:to-amber-500/30 text-amber-300 font-bold rounded-xl text-xs flex items-center gap-1.5 border border-amber-500/30 shadow-sm transition-all cursor-pointer"
+                  title="Xem danh sách khách hàng để lại SĐT từ Chatbot Bé 8"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+                  <span className="hidden sm:inline">Khách Chốt Đơn</span>
+                  <span className="sm:hidden">Khách</span>
                 </button>
               )}
 
@@ -1759,6 +1839,16 @@ export function App() {
                 <Briefcase className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400" />
                 <span className="text-[11px] font-semibold">Tuyển Dụng</span>
               </button>
+
+              {/* Nút xem trang Chatbot Bé 8 Tư Vấn Công Khai */}
+              <button
+                onClick={() => handleNavigateTab('customer_chat')}
+                className="px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-xl text-xs font-black border border-cyan-500/40 bg-gradient-to-r from-cyan-500/20 to-emerald-500/20 text-cyan-300 hover:from-cyan-500/30 hover:to-emerald-500/30 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer shrink-0 shadow-sm"
+                title="Cổng Chatbot Bé 8 tư vấn bán hàng & tặng voucher công khai"
+              >
+                <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+                <span className="text-[11px] font-bold">Chatbot Bé 8</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1891,7 +1981,14 @@ export function App() {
               </>
             )}
 
-
+            {/* 4.5. Khách Hàng 360 & CSKH (Customer CRM) */}
+            {activeTab === 'customer_crm' && currentUser && (
+              <CustomerCRMView
+                branches={branches}
+                currentUser={currentUser}
+                onOpenLeadsModal={() => setShowLeadsModal(true)}
+              />
+            )}
 
             {/* 5. Quản Lý Cửa Hàng (Manager) */}
             {(activeTab === 'shop_management' || activeTab === 'staff_directory') && currentUser && (
@@ -2004,7 +2101,7 @@ export function App() {
 
         return (
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md pb-safe shadow-2xl">
-            <div className={`grid ${visibleNavTabs.length === 3 ? 'grid-cols-3' : visibleNavTabs.length === 5 ? 'grid-cols-5' : 'grid-cols-4'} py-1.5 px-2 gap-1`}>
+            <div className={`grid ${visibleNavTabs.length === 3 ? 'grid-cols-3' : visibleNavTabs.length === 5 ? 'grid-cols-5' : visibleNavTabs.length === 6 ? 'grid-cols-6' : visibleNavTabs.length >= 7 ? 'grid-cols-7' : 'grid-cols-4'} py-1.5 px-1 gap-0.5`}>
               {visibleNavTabs.map(tab => {
                 const isTabActive = activeTab === tab.id || 
                   (tab.id === 'counter' && (activeTab === 'pos' || activeTab === 'tickets')) ||

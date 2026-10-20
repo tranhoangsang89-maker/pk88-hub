@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 20/10/2026 (Nâng cấp UX Hồ Sơ Nhân Sự Bảng Giám Sát Quân Số: React Portal giải phóng bẫy backdrop-filter, Mobile Bottom Sheet, Bố cục Desktop 2 cột & Thời gian làm việc Realtime)*
+*Ngày cập nhật mới nhất: 20/10/2026 (Ra mắt Phân Hệ Chatbot CSKH Độc Lập Bé 8 AI, Trang Tư Vấn Công Khai /tu-van, E-Voucher Giảm 10% & Bảng Điều Phối Khách Hàng Tiềm Năng Telesales CRM)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,14 +7,37 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, và Báo cáo vệ sinh cửa hàng bằng hình ảnh nén kèm cơ chế tự động dọn dẹp lưu trữ 14 ngày.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, Báo cáo vệ sinh cửa hàng bằng hình ảnh nén, và **Phân hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) kèm Bảng Điều Phối Khách Hàng Chốt Đơn Telesales CRM**.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`), Progressive Web App (PWA).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
-- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/`
+- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/` | `http://localhost:3000/?tab=tu-van`
 
 ---
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 20/10/2026) - QUAN TRỌNG
+
+### P. Phân Hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) & Bảng Điều Phối Chốt Đơn Telesales (HOÀN THÀNH 20/10/2026)
+1. **Trang Chatbot Công Khai Độc Lập (`PublicCustomerChatView.tsx` - `/tu-van` hoặc `?tab=tu-van`):**
+   - Hoạt động độc lập không yêu cầu đăng nhập, thiết kế chuẩn Mobile-First cực kỳ nhẹ và tải nhanh.
+   - Sử dụng ảnh đại diện nhận diện chính thức `/be8-avatar.jpg` từ thư mục `public/`.
+   - Kết nối "Bộ não" Gemini AI (`gemini-flash-lite-latest`) với kho tri thức 521 sản phẩm cleaned (`products.json`), dịch vụ sửa chữa ép kính lấy liền, thay pin bảo hành 12 tháng, cùng địa chỉ chính xác của 7 chi nhánh PK88.
+   - Khách có thể chọn chi nhánh phục vụ gần nhất hoặc gọi điện trực tiếp qua Hotline `0919.982.861`.
+   - Nút chia sẻ link 1 chạm để nhân viên / marketing dễ dàng sao chép đăng lên Facebook, TikTok Bio, Zalo OA hoặc tạo mã QR tại cửa hàng.
+
+2. **Chiến Lược Lấy Số Điện Thoại & E-Voucher Điện Tử (Lead Capture):**
+   - AI Bé 8 tự động tư vấn nhiệt tình rồi khuyên khách để lại Tên + SĐT để giữ hàng và kích hoạt mã giảm giá.
+   - Nhận diện tự động số điện thoại gửi trong khung chat hoặc qua Popup E-Voucher.
+   - Tự động sinh mã voucher độc quyền chuẩn chuỗi `PK88-VIPxxxx` (giảm 10% hóa đơn) hiển thị trực tiếp cho khách.
+
+3. **Cơ Sở Dữ Liệu Supabase Cloud Bảng `leads` (SSOT):**
+   - Lưu trữ tức thì vào bảng `leads` trên Supabase Cloud kèm lưu trữ dự phòng `localStorage`.
+   - Cấu hình phân quyền Row Level Security (RLS) cho phép khách nộp ẩn danh (`anon INSERT`) và nhân viên cập nhật trạng thái (`anon/auth UPDATE, SELECT`).
+
+4. **Bảng Điều Phối Chốt Đơn Telesales CRM (`CustomerLeadsCRMModal.tsx`):**
+   - Tích hợp nút **`[✨ Khách Chốt Đơn]`** ngay trên thanh Header cho toàn bộ nhân sự, quản lý và lãnh đạo.
+   - Thẻ thông tin khách: Họ tên, Số điện thoại, Chi nhánh ghé, Nhu cầu, Mã voucher, thời gian tạo realtime.
+   - Nút **[📞 GỌI ĐIỆN]** và **[💬 CHAT ZALO]** 1-chạm kết nối thẳng đến khách hàng.
+   - Cập nhật tiến độ xử lý: `MỚI CHƯA GỌI` ➔ `ĐÃ GỌI / TƯ VẤN` ➔ `HẸN GHÉ SHOP` ➔ `ĐÃ MUA THÀNH CÔNG` ➔ `HỦY`.
 
 ### O. Khung Giám Sát Vệ Sinh & Xem Lại Ảnh Báo Cáo Phê Duyệt Cho Nhân Viên Tại Cửa Hàng (HOÀN THÀNH 20/10/2026)
 1. **Phản hồi 2 chiều minh bạch cho nhân viên về kết quả phê duyệt ảnh vệ sinh:**
@@ -667,6 +690,27 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      - Trong từng chi nhánh, nhân sự được sắp xếp theo cấp bậc (`ROLE_PRIORITY`: Founder/Admin ➔ Quản lý CHT ➔ Kỹ thuật ➔ Bán hàng) và trạng thái trực ca (`WORKING` lên đầu).
      - Khi xem chế độ Toàn Chuỗi, hệ thống tự động phân tách theo từng cụm chi nhánh với thanh Header hiển thị tên shop và tỷ lệ trực chiến riêng biệt (`x/y trực chiến`), giúp Ban Điều Hành giám sát bao quát toàn chuỗi khoa học, dễ nhìn.
 
+### H. Hệ Thống Chatbot Bé 8 Tư Vấn Công Khai & Customer 360 CRM & CSKH Thông Minh (NEW - 20/10)
+1. **Trang Chatbot Tư Vấn Bán Hàng & Chăm Sóc Khách Hàng Công Khai (`PublicCustomerChatView.tsx`):**
+   - **Đường dẫn độc lập:** `/tu-van`, `?tab=tu-van` hoặc `/chat`. Có thể copy link gửi trực tiếp cho khách hàng, gắn bio TikTok, Fanpage hoặc mã QR tại bàn shop.
+   - **Avatar & Nhận Diện Thương Hiệu:** Ảnh đại diện chính thức `public/be8-avatar.jpg` với hiệu ứng vòng tròn phát sáng xanh lá trực tuyến 24/7.
+   - **Tích Hợp AI Gemini Flash:** Sử dụng model `gemini-flash-lite-latest` được nạp sẵn toàn bộ 521 sản phẩm từ `products.json` và bảng giá dịch vụ thay pin, ép kính của 7 chi nhánh PK88.
+   - **Thu Thập SĐT & Sinh E-Voucher:** AI tự động gợi ý tặng voucher giảm giá độc quyền (`PK88-VIPxxxx`). Khi khách để lại SĐT và chọn chi nhánh gần nhất, dữ liệu được ghi tức thời vào bảng `leads` trên Supabase Cloud kèm theo toàn bộ lịch sử đoạn chat (`activity_log`) và tóm tắt nhu cầu (`conversation_summary`).
+2. **Khung Telesales Chốt Đơn Hỏa Tốc (`CustomerLeadsCRMModal.tsx`):**
+   - Nút nổi bật `[✨ Khách Chốt Đơn]` ngay trên thanh Header cho Founder, Admin, Cửa Hàng Trưởng và Nhân viên bán hàng.
+   - Tự động chuyển trạng thái từ `NEW` (Mới) sang `CONTACTED` (Đang gọi) ngay khi nhân viên bấm `[📞 GỌI ĐIỆN]` hoặc `[💬 CHAT ZALO]`.
+   - Các nút chip 1 chạm đổi trạng thái: `🗓️ Hẹn ghé shop`, `✅ Đã mua`, `❌ Hủy`.
+   - Xem toàn bộ cuộc hội thoại đối thoại giữa khách hàng và Bé 8 để nhân viên nắm bắt tâm lý khách trước khi nhấc máy.
+3. **Tab Khách Hàng 360 & CSKH Độc Lập (`CustomerCRMView.tsx` - `/khach-hang`):**
+   - **Hợp Nhất Dữ Liệu Theo Số Điện Thoại (`normalizePhone`):** Tự động liên kết 3 nguồn dữ liệu: Đơn hàng bán lẻ POS (`pk88_pos_orders`), Phiếu sửa chữa (`repair_tickets`) và Khách tiềm năng Chatbot (`leads`).
+   - **Hạng Thành Viên Tự Động (Tier):** Phân hạng `DIAMOND` (≥ 5 triệu), `GOLD` (≥ 2 triệu), `SILVER` (≥ 500k), `NEW` (Khách mới).
+   - **AI Care Triggers (Nhắc Nhở CSKH Định Kỳ):**
+     - Nhắc dán lại cường lực chống trầy sau 60-90 ngày.
+     - Nhắc bảo dưỡng và đo độ chai pin sau 90-180 ngày kể từ ngày thay pin.
+     - Nhắc chăm sóc và tri ân khách VIP sau 45-60 ngày chưa quay lại shop.
+   - **Drawer Hồ Sơ 360:** Xem chi tiết 4 tab nghiệp vụ (Đơn hàng POS, Phiếu sửa chữa, Chatbot Bé 8, Nhật ký CSKH).
+   - **Đồng Bộ Hai Chiều Supabase Cloud:** Bảng `customer_profiles` và `customer_care_logs` lưu trữ mọi cập nhật hồ sơ, ghi chú và nhật ký cuộc gọi theo thời gian thực.
+
 ---
 
 ## 3. QUY TRÌNH DEPLOY GITHUB & VERCEL (IMPORTANT)
@@ -681,8 +725,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 - **`branches`**: Danh sách chi nhánh (id, code, name, lat, lng...)
 - **`staff`**: Danh sách nhân sự (id, branch_id, full_name, phone, role, is_active, avatar_url, birth_date)
 - **`attendance`**: Nhật ký chấm công (id, staff_id, branch_id, check_in, check_out, work_hours...)
-- **`leave_requests`**: Quản lý đơn xin nghỉ phép (id, staff_id, staff_name, phone, branch_id, role, start_date, end_date, reason, type, status, approved_by, rejected_by, replacement_staff_name, ai_risk_assessment, created_at) - Đã đồng bộ 2 chiều với Chị 8 AI HR & Quản lý duyệt.
+- **`leave_requests`**: Quản lý đơn xin nghỉ phép.
 - **`repair_tickets`**: Phiếu tiếp nhận & sửa chữa thiết bị khách hàng.
+- **`leads`**: Khách hàng tiềm năng để lại SĐT từ Chatbot Bé 8 kèm voucher và bản ghi chat.
+- **`customer_profiles`**: Hồ sơ khách hàng chuẩn hóa, hạng hội viên, dòng máy và chi nhánh quen.
+- **`customer_care_logs`**: Nhật ký các lần gọi điện, nhắn tin Zalo chăm sóc khách hàng của nhân sự.
 - **`courses`, `lessons`, `quizzes`, `staff_progress`:** CSDL hệ thống đào tạo LMS 60 ngày.
 
 ---

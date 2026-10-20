@@ -11,9 +11,12 @@ export type AppTab =
   | 'dashboard'        // 📊 Tổng Quan Executive Hub (tong-quan)
   | 'hr_hub'           // 👥 Vận Hành Nhân Lực HR Hub (nhan-su)
   | 'marketing'        // 📢 Marketing & CSKH (marketing)
+  | 'customer_crm'     // 👥 Hồ Sơ Khách Hàng & CSKH 360 (khach-hang, crm)
   | 'system'           // ⚙️ Cài Đặt Hệ Thống (he-thong)
   // 4. Công khai
   | 'recruitment'      // Tuyển dụng công khai (tuyen-dung)
+  | 'customer_chat'    // 💬 Chatbot tư vấn khách hàng công khai (tu-van, chat)
+  | 'leads'            // 📞 Quản lý khách hàng tiềm năng & Chốt đơn (chot-don, leads)
   // Backward compatibility alias tabs
   | 'admin'
   | 'shifts'
@@ -96,6 +99,28 @@ const SLUG_TO_TAB: Record<string, AppTab> = {
   'recruitment': 'recruitment',
   'jobs': 'recruitment',
   'ung-tuyen': 'recruitment',
+
+  // Chatbot tư vấn khách hàng công khai
+  'tu-van': 'customer_chat',
+  'tuvan': 'customer_chat',
+  'chat': 'customer_chat',
+  'be-8': 'customer_chat',
+  'be8': 'customer_chat',
+  'tro-ly-ao': 'customer_chat',
+
+  // Quản lý khách hàng tiềm năng & Chốt đơn (Leads CRM)
+  'chot-don': 'leads',
+  'chotdon': 'leads',
+  'leads': 'leads',
+  'khach-tiem-nang': 'leads',
+
+  // Hồ Sơ Khách Hàng 360 & CSKH Nội Bộ
+  'khach-hang': 'customer_crm',
+  'khachhang': 'customer_crm',
+  'crm': 'customer_crm',
+  'cskh': 'customer_crm',
+  'cskh-360': 'customer_crm',
+  'customer_crm': 'customer_crm',
 };
 
 // Bảng ánh xạ AppTab sang slug hiển thị trên thanh địa chỉ URL
@@ -107,8 +132,11 @@ const TAB_TO_SLUG: Record<AppTab, string> = {
   dashboard: 'tong-quan',
   hr_hub: 'nhan-su',
   marketing: 'marketing',
+  customer_crm: 'khach-hang',
   system: 'he-thong',
   recruitment: 'tuyen-dung',
+  customer_chat: 'tu-van',
+  leads: 'chot-don',
   // Backward compatibility alias
   admin: 'he-thong',
   shifts: 'nhan-su',
@@ -123,14 +151,29 @@ const TAB_TO_SLUG: Record<AppTab, string> = {
 export function getTabFromUrl(): AppTab | null {
   if (typeof window === 'undefined') return null;
   
-  // 1. Kiểm tra pathname trực tiếp (ví dụ /tuyen-dung, /tuyendung)
+  // 1. Kiểm tra pathname trực tiếp (ví dụ /tuyen-dung, /tuyendung, /tu-van)
   const path = window.location.pathname.toLowerCase().replace(/^\/+|\/+$/g, '');
   if (path && SLUG_TO_TAB[path]) {
     return SLUG_TO_TAB[path];
   }
 
-  // 2. Kiểm tra query parameters (?tab=... hoặc ?module=...)
   const params = new URLSearchParams(window.location.search);
+
+  // 2. Kiểm tra query param độc lập dạng cờ (?tu-van, ?chat, ?be8, ?tuyen-dung, ?khach-hang)
+  if (params.has('tu-van') || params.has('tuvan') || params.has('chat') || params.has('be8') || params.has('be-8')) {
+    return 'customer_chat';
+  }
+  if (params.has('tuyen-dung') || params.has('tuyendung') || params.has('jobs')) {
+    return 'recruitment';
+  }
+  if (params.has('chot-don') || params.has('leads')) {
+    return 'leads';
+  }
+  if (params.has('khach-hang') || params.has('crm')) {
+    return 'customer_crm';
+  }
+
+  // 3. Kiểm tra query parameters (?tab=... hoặc ?module=...)
   const rawTab = params.get('tab')?.toLowerCase() || params.get('module')?.toLowerCase();
   if (!rawTab) return null;
   return SLUG_TO_TAB[rawTab] || null;
@@ -152,11 +195,43 @@ export function isCustomerModeFromUrl(): boolean {
 export function isRecruitmentModeFromUrl(): boolean {
   if (typeof window === 'undefined') return false;
   const path = window.location.pathname.toLowerCase();
-  if (path.includes('/tuyen-dung') || path.includes('/tuyendung') || path.includes('/jobs')) {
+  const params = new URLSearchParams(window.location.search);
+  if (
+    path.includes('/tuyen-dung') || 
+    path.includes('/tuyendung') || 
+    path.includes('/jobs') ||
+    params.has('tuyen-dung') ||
+    params.has('tuyendung')
+  ) {
     return true;
   }
   const tab = getTabFromUrl();
   return tab === 'recruitment';
+}
+
+/**
+ * Kiểm tra xem URL có đang ở trang Chatbot tư vấn khách hàng công khai hay không
+ */
+export function isCustomerChatModeFromUrl(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = window.location.pathname.toLowerCase();
+  const params = new URLSearchParams(window.location.search);
+  if (
+    path.includes('/tu-van') || 
+    path.includes('/tuvan') || 
+    path.includes('/chat') || 
+    path.includes('/be-8') || 
+    path.includes('/be8') ||
+    params.has('tu-van') ||
+    params.has('tuvan') ||
+    params.has('chat') ||
+    params.has('be8') ||
+    params.has('be-8')
+  ) {
+    return true;
+  }
+  const tab = getTabFromUrl();
+  return tab === 'customer_chat';
 }
 
 /**
@@ -174,10 +249,14 @@ export function getDefaultTabForRole(role?: UserRole): AppTab {
  * Kiểm tra quyền truy cập tab theo role của nhân viên
  */
 export function canAccessTab(tab: AppTab, role?: UserRole): boolean {
-  if (tab === 'recruitment') return true; // Công khai cho tất cả mọi người
+  if (tab === 'recruitment' || tab === 'customer_chat') return true; // Công khai cho tất cả mọi người
   if (!role) return false;
   
   const isLeadership = role === 'admin' || role === 'founder' || role === 'hr' || role === 'sales_head';
+
+  if (tab === 'customer_crm' || tab === 'leads') {
+    return isLeadership || role === 'manager' || role === 'sales' || role === 'marketing' || role === 'technician';
+  }
 
   if (tab === 'marketing') {
     return isLeadership || role === 'marketing' || role === 'media';
@@ -210,8 +289,13 @@ export function syncTabToUrl(tab: AppTab, isCustomer: boolean = false, replace: 
   if (isCustomer) {
     url.searchParams.set('mode', 'tra-cuu');
     url.searchParams.delete('tab');
+    url.searchParams.delete('tu-van');
   } else {
     url.searchParams.delete('mode');
+    url.searchParams.delete('tu-van');
+    url.searchParams.delete('tuvan');
+    url.searchParams.delete('chat');
+    url.searchParams.delete('be8');
     const slug = TAB_TO_SLUG[tab] || tab;
     url.searchParams.set('tab', slug);
   }
