@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 19/10/2026 (Triển khai Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày, Nén ảnh WebP client-side, Cơ chế tự động dọn dẹp ảnh 14 ngày bảo vệ Supabase)*
+*Ngày cập nhật mới nhất: 20/10/2026 (Nâng cấp UX Hồ Sơ Nhân Sự Bảng Giám Sát Quân Số: React Portal giải phóng bẫy backdrop-filter, Mobile Bottom Sheet, Bố cục Desktop 2 cột & Thời gian làm việc Realtime)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -14,7 +14,27 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 19/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 20/10/2026) - QUAN TRỌNG
+
+### N. Nâng Cấp Toàn Diện UX Hồ Sơ Nhân Sự Bảng Giám Sát Quân Số Toàn Chuỗi (HOÀN THÀNH 20/10/2026)
+1. **Khắc phục triệt để lỗi kẹt khung & cuộn trang do bẫy `backdrop-filter`:**
+   - **Vấn đề:** Khung Bảng Giám Sát sử dụng `.glass-card` có `backdrop-filter: blur(12px)` tạo ra Containing Block mới, giam lỏng popup `ExecutiveStaffQuickModal` bên trong thẻ cha ở nửa dưới trang. Trên mobile, người dùng phải cuộn trang xuống tận đáy mới thấy popup và bị thanh menu đáy đè che mất nút gọi điện/Zalo. Trên máy tính, popup bị kéo xuống đáy để lại khoảng đen trống trải mênh mông xung quanh.
+   - **Giải pháp:** Sử dụng `createPortal(modalContent, document.body)` với `z-[9999]`. Popup bung ra toàn màn hình chuẩn xác, xuất hiện ngay chính giữa khung hình trước mắt người dùng tại bất kỳ vị trí cuộn trang nào.
+   - **Khóa cuộn trang nền:** Tự động set `document.body.style.overflow = 'hidden'` khi mở popup, bảo đảm trải nghiệm vuốt cảm ứng mượt mà.
+
+2. **Thiết kế Bottom Sheet sang trọng trên Mobile (Thumb-Friendly):**
+   - Có thanh nắm vuốt (Drag Handle) ở đỉnh, bo tròn `rounded-t-3xl`, viền phát sáng cyan tinh tế.
+   - Tràn đều mép ngang (`w-full`), tận dụng 95% màn hình, không còn viền đen trống hoác.
+   - Thanh 2 nút hành động lớn **[📞 Gọi Điện]** & **[💬 Nhắn Zalo]** gắn cố định ở chân popup, thuận tiện cho Ban Lãnh Đạo bấm liên hệ chỉ bằng 1 chạm ngón cái.
+
+3. **Bố cục 2 Cột Đẳng Cấp trên Desktop (max-w-2xl):**
+   - **Cột Trái (w-60):** Ảnh thẻ chân dung 3:4 sắc nét viền neon, mã NV, huy hiệu sinh nhật (nếu đúng ngày), badge trạng thái Realtime và 2 nút Gọi & Zalo.
+   - **Cột Phải (flex-1):** Thông tin nhân sự, Khối vận hành hôm nay (Shop trực, Lịch ca, Vị trí GPS chuẩn shop <35m hay lệch shop, Đơn nghỉ phép) và Thông tin hồ sơ (Email, Ngày vào làm, Ngày sinh, Sao chép SĐT 1 chạm).
+   - Triệt tiêu hoàn toàn cảm giác trống trải xung quanh trên màn hình lớn.
+
+4. **Chuẩn hóa thông số "Thời gian làm việc hôm nay" (Thay thế "Giờ tích lũy: 0h"):**
+   - Đổi tên nhãn từ *"Giờ tích lũy"* thành **"Thời gian làm:"**.
+   - Tự động đo thời gian trực chiến Realtime kể từ khi bấm Check-in: hiển thị `🟢 ~42 phút (Đang trực)` hoặc `~1h 30p (Đang trực)` thay vì con số `0h` đơ cứng khi chưa chốt tan ca. Khi nhân viên đã tan ca, hiển thị giờ công chốt `🏁 8.0h (Đã chốt ca)`.
 
 ### L. Báo Cáo & Giám Sát Vệ Sinh Cửa Hàng Hàng Ngày, Xử Lý Ảnh Lỗi & Ghi Nhận Số Ca Đạt Chuẩn (HOÀN THÀNH TOÀN DIỆN 19/10/2026)
 1. **Yêu cầu từ Founder:**
