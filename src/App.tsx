@@ -20,10 +20,11 @@ import { StaffDetailModal } from './components/StaffDetailModal';
 import { CounterServiceView } from './components/CounterServiceView';
 import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
+import { StoreCleanlinessStaffView } from './components/StoreCleanlinessStaffView';
 import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { fetchStaffAuthMetadataFromCloud } from './lib/staffAuthService';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings, MapPin, Sparkles } from 'lucide-react';
 import { MarketingPost, MarketingPlatform, MarketingPostStatus } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
 
@@ -89,6 +90,7 @@ export function App() {
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showMarketingStudio, setShowMarketingStudio] = useState<boolean>(false);
   const [showPersonalShiftsModal, setShowPersonalShiftsModal] = useState<boolean>(false);
+  const [attendanceSubTab, setAttendanceSubTab] = useState<'gps' | 'cleanliness'>('gps');
 
   // Tự động điều hướng nếu tab hiện tại không thuộc quyền hạn của vai trò hiện tại
   useEffect(() => {
@@ -1898,20 +1900,62 @@ export function App() {
               />
             )}
 
-            {/* 6. Ca & Chấm Công GPS */}
+            {/* 6. Ca & Chấm Công GPS / Vệ Sinh Cửa Hàng */}
             {activeTab === 'attendance' && currentUser && (
-              <div className="max-w-xl mx-auto">
-                <AttendanceCard
-                  currentBranch={selectedBranch}
-                  currentStaff={currentUser}
-                  onCheckInSuccess={handleCheckInSuccess}
-                  onDisputeSubmit={handleAttendanceDisputeSubmit}
-                  attendanceHistory={attendanceHistory}
-                  leaveRequests={leaveRequests}
-                  onOpenMyShiftsModal={() => setShowPersonalShiftsModal(true)}
-                  onOpenLeaveModal={handleOpenAIHRModal}
-                  onOpenProfileModal={() => setShowProfileModal(true)}
-                />
+              <div className="space-y-4">
+                {/* Segmented Sub-Tab Switcher */}
+                <div className="flex justify-center">
+                  <div className="inline-flex p-1 bg-slate-900/90 border border-slate-800 rounded-2xl shadow-xl backdrop-blur-md">
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceSubTab('gps')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        attendanceSubTab === 'gps'
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <MapPin className="w-4 h-4" />
+                      <span>📍 Chấm Công Định Vị GPS</span>
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setAttendanceSubTab('cleanliness')}
+                      className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
+                        attendanceSubTab === 'cleanliness'
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20'
+                          : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/50'
+                      }`}
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      <span>✨ Báo Cáo Vệ Sinh Shop</span>
+                    </button>
+                  </div>
+                </div>
+
+                {attendanceSubTab === 'gps' ? (
+                  <div className="max-w-xl mx-auto">
+                    <AttendanceCard
+                      currentBranch={selectedBranch}
+                      currentStaff={currentUser}
+                      onCheckInSuccess={handleCheckInSuccess}
+                      onDisputeSubmit={handleAttendanceDisputeSubmit}
+                      attendanceHistory={attendanceHistory}
+                      leaveRequests={leaveRequests}
+                      onOpenMyShiftsModal={() => setShowPersonalShiftsModal(true)}
+                      onOpenLeaveModal={handleOpenAIHRModal}
+                      onOpenProfileModal={() => setShowProfileModal(true)}
+                      onOpenCleanlinessTab={() => setAttendanceSubTab('cleanliness')}
+                    />
+                  </div>
+                ) : (
+                  <StoreCleanlinessStaffView
+                    currentBranch={selectedBranch}
+                    currentStaff={currentUser}
+                    onNavigateToAttendance={() => setAttendanceSubTab('gps')}
+                  />
+                )}
               </div>
             )}
 

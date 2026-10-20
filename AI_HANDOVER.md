@@ -32,6 +32,14 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Lightbox Phóng To Toàn Màn Hình (Full HD Lightbox):** Chạm vào bất kỳ ảnh nào để mở cửa sổ phóng to độ phân giải cao bằng `createPortal(..., document.body)` với `z-[10000]`, xem trọn vẹn từng chi tiết góc chụp, giờ nộp, người chụp và nhận xét của Cấp Trên.
    - **Nút Nộp Ảnh Nhanh Theo Ca:** Với các ca chưa gửi, nhân viên chỉ cần bấm `[+ Gửi Ảnh Ca]` là hệ thống tự động chọn đúng ca để nộp nhanh.
 
+3. **Tách biệt hoàn toàn khỏi Chấm Công GPS thành 2 Sub-Tab Độc Lập ([App.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/App.tsx) & [StoreCleanlinessStaffView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/StoreCleanlinessStaffView.tsx)):**
+   - **Vấn đề giải quyết:** Trước đó khung Báo cáo vệ sinh nằm chung trong thẻ Chấm công, chiếm quá nhiều chiều dọc màn hình và đẩy nút bấm Check-in/Check-out GPS xuống dưới, gây bất tiện khi nhân viên vào ca/tan ca vội.
+   - **Thanh Segmented Control 2 Sub-Tab:**
+     + **Tab 1: `[📍 Chấm Công Định Vị GPS]`:** Chuyên trách 100% cho Chấm công, Bản đồ GPS, Geofence, Đồng hồ trực ca và Nút Vào ca/Tan ca tức thì.
+     + **Tab 2: `[✨ Báo Cáo Vệ Sinh Shop]`:** Tách thành view riêng ([StoreCleanlinessStaffView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/StoreCleanlinessStaffView.tsx)), hiển thị thanh tiến độ nộp ảnh 3 ca của shop, thư viện ảnh thumbnail, trạng thái duyệt Đạt chuẩn/Làm lại, Lightbox và nộp bổ sung.
+   - **Chuyển tab 1 chạm mượt mà:** Nút `[Báo Cáo Vệ Sinh Ca]` trên thẻ Chấm công có badge đếm số ca hôm nay `(X/3)` và khi bấm vào sẽ tự động chuyển thẳng sang Sub-tab Vệ Sinh Shop. Nếu có ca bị yêu cầu làm lại, banner cảnh báo đỏ cũng có nút chuyển nhanh sang nộp lại.
+
+
 
 ### N. Nâng Cấp Toàn Diện UX Hồ Sơ Nhân Sự Bảng Giám Sát Quân Số Toàn Chuỗi (HOÀN THÀNH 20/10/2026)
 1. **Khắc phục triệt để lỗi kẹt khung & cuộn trang do bẫy `backdrop-filter`:**
