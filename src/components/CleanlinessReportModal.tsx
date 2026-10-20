@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { Branch, Staff, CleanlinessShiftType } from '../types';
 import { 
   X, 
@@ -21,6 +22,7 @@ interface CleanlinessReportModalProps {
   onClose: () => void;
   currentUser: Staff;
   currentBranch: Branch;
+  initialShiftType?: CleanlinessShiftType;
   onSubmitted?: () => void;
 }
 
@@ -29,17 +31,25 @@ export const CleanlinessReportModal: React.FC<CleanlinessReportModalProps> = ({
   onClose,
   currentUser,
   currentBranch,
+  initialShiftType,
   onSubmitted
 }) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const [shiftType, setShiftType] = useState<CleanlinessShiftType>(() => {
+    if (initialShiftType) return initialShiftType;
     const hour = new Date().getHours();
     if (hour < 12) return 'MORNING';
     if (hour < 18) return 'AFTERNOON';
     return 'CLOSING';
   });
+
+  useEffect(() => {
+    if (initialShiftType) {
+      setShiftType(initialShiftType);
+    }
+  }, [initialShiftType]);
 
   const [images, setImages] = useState<string[]>([]);
   const [notes, setNotes] = useState<string>('');
@@ -48,7 +58,18 @@ export const CleanlinessReportModal: React.FC<CleanlinessReportModalProps> = ({
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  // Khóa cuộn trang nền khi mở modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const orig = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = orig;
+    };
+  }, [isOpen]);
+
   if (!isOpen) return null;
+  if (typeof document === 'undefined') return null;
 
   const quickNotes = [
     '✨ Đã lau kính tủ phụ kiện & quầy thu ngân',
@@ -143,8 +164,8 @@ export const CleanlinessReportModal: React.FC<CleanlinessReportModalProps> = ({
     }
   };
 
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in select-none">
+  const modalContent = (
+    <div className="fixed inset-0 z-[9999] bg-slate-950/85 backdrop-blur-md flex items-center justify-center p-3 sm:p-4 overflow-y-auto animate-fade-in select-none">
       <div 
         className="relative w-full max-w-lg bg-gradient-to-b from-slate-900 via-slate-900 to-slate-950 border border-emerald-500/40 rounded-2xl sm:rounded-3xl shadow-2xl overflow-hidden my-auto border-t-2 border-t-emerald-400"
         onClick={(e) => e.stopPropagation()}
@@ -390,4 +411,6 @@ export const CleanlinessReportModal: React.FC<CleanlinessReportModalProps> = ({
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };

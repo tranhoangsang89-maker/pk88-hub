@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Branch, AttendanceRecord, Staff, ShiftType, LeaveRequest, CleanlinessReport } from '../types';
+import { createPortal } from 'react-dom';
+import { Branch, AttendanceRecord, Staff, ShiftType, LeaveRequest, CleanlinessReport, CleanlinessShiftType } from '../types';
 import { getDistanceMeters, formatDistance } from '../lib/geoUtils';
 import { supabase } from '../lib/supabase';
 import L from 'leaflet';
@@ -30,7 +31,12 @@ import {
   Compass,
   Coffee,
   UtensilsCrossed,
-  KeyRound
+  KeyRound,
+  Eye,
+  Maximize2,
+  ChevronDown,
+  ChevronUp,
+  X
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
 import { getAllAssignments } from '../lib/shiftService';
@@ -79,26 +85,67 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
   const [disputeInitialType, setDisputeInitialType] = useState<any>('OUTSIDE_GEOFENCE');
   const [disputeExistingRecord, setDisputeExistingRecord] = useState<AttendanceRecord | null>(null);
 
-  // Cleanliness Report Modal State
+  // Cleanliness Report Modal & Today's Branch Reports State
   const [showCleanlinessModal, setShowCleanlinessModal] = useState<boolean>(false);
+  const [selectedCleanlinessShift, setSelectedCleanlinessShift] = useState<CleanlinessShiftType | undefined>(undefined);
   const [todayRedoReport, setTodayRedoReport] = useState<CleanlinessReport | null>(null);
+  const [todayBranchReports, setTodayBranchReports] = useState<CleanlinessReport[]>([]);
+  const [isCleanlinessSectionOpen, setIsCleanlinessSectionOpen] = useState<boolean>(true);
   const [myMonthlyCleanlinessStats, setMyMonthlyCleanlinessStats] = useState<{ approvedCount: number; totalSubmitted: number }>({ approvedCount: 0, totalSubmitted: 0 });
 
-  // Lắng nghe và kiểm tra xem hôm nay có báo cáo vệ sinh bị yêu cầu Làm Lại hay không
+  // Lightbox xem ảnh vệ sinh phóng to toàn màn hình
+  const [previewCleanlinessPhoto, setPreviewCleanlinessPhoto] = useState<{
+    url: string;
+    shiftName: string;
+    staffName: string;
+    time: string;
+    status: string;
+    notes?: string;
+    reviewedBy?: string;
+    reviewNote?: string;
+  } | null>(null);
+
+  // Helper so khớp báo cáo vệ sinh với chi nhánh hiện tại
+  const isReportForCurrentBranch = (report: CleanlinessReport, branch: Branch): boolean => {
+    if (report.branchId && branch.id && report.branchId === branch.id) {
+      return true;
+    }
+    if (report.branchName && branch.name) {
+      const cleanR = report.branchName.toLowerCase().replace(/phụ kiện 88\s*-\s*/i, '').trim();
+      const cleanB = branch.name.toLowerCase().replace(/phụ kiện 88\s*-\s*/i, '').trim();
+      if (cleanR === cleanB) return true;
+      if (cleanR && cleanB && (cleanR.includes(cleanB) || cleanB.includes(cleanR))) return true;
+    }
+    return false;
+  };
+
+  // Mở modal nộp báo cáo vệ sinh với ca được chọn trước
+  const handleOpenCleanlinessModal = (shift?: CleanlinessShiftType) => {
+    setSelectedCleanlinessShift(shift);
+    setShowCleanlinessModal(true);
+  };
+
+  // Lắng nghe và kiểm tra dữ liệu vệ sinh ca trực hôm nay & số ca đạt chuẩn của nhân viên
   useEffect(() => {
     let isMounted = true;
-    const checkRedo = async () => {
+    const checkCleanlinessData = async () => {
       try {
         const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
         const reports = await fetchCleanlinessReports(todayStr);
         if (!isMounted) return;
-        const redo = reports.find(r => 
+
+        // Lọc tất cả báo cáo của chi nhánh hiện tại trong ngày hôm nay
+        const branchReports = reports.filter(r => isReportForCurrentBranch(r, currentBranch));
+        setTodayBranchReports(branchReports);
+
+        // Kiểm tra xem có ca nào bị yêu cầu Làm Lại hay không
+        const redo = branchReports.find(r => 
           (r.status === 'NEEDS_REDO' || r.status === 'REDO_REQUESTED') &&
           (r.staffId === currentStaff.id || (r.staffPhone && currentStaff.phone && r.staffPhone === currentStaff.phone) || r.branchId === currentBranch.id)
         );
         setTodayRedoReport(redo || null);
       } catch (err) {
-        console.warn('Check redo cleanliness report error:', err);
+        console.warn('Check cleanliness report error:', err);
       }
     };
 
@@ -119,18 +166,32 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       }
     };
 
-    checkRedo();
+    checkCleanlinessData();
     loadMyMonthlyStats();
 
     const handleUpdate = () => {
-      checkRedo();
+      checkCleanlinessData();
       loadMyMonthlyStats();
     };
     window.addEventListener('pk88_cleanliness_updated', handleUpdate);
 
+    // Kênh realtime Supabase cập nhật tức thì khi Cấp Trên phê duyệt / yêu cầu làm lại
+    const channel = supabase
+      .channel(`cleanliness_staff_${currentBranch.id || 'all'}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cleanliness_reports' },
+        () => {
+          checkCleanlinessData();
+          loadMyMonthlyStats();
+        }
+      )
+      .subscribe();
+
     return () => {
       isMounted = false;
       window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
+      supabase.removeChannel(channel);
     };
   }, [currentStaff.id, currentStaff.phone, currentStaff.fullName, currentBranch.id]);
 
@@ -1039,7 +1100,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </button>
         <button
           type="button"
-          onClick={() => setShowCleanlinessModal(true)}
+          onClick={() => handleOpenCleanlinessModal()}
           className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
           title="Báo cáo ảnh vệ sinh ca trực gửi Founder & Cửa Hàng Trưởng"
         >
@@ -1048,20 +1109,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </button>
       </div>
 
-      {/* THỐNG KÊ SỐ CA ĐẠT CHUẨN TRONG THÁNG CỦA NHÂN VIÊN */}
-      {myMonthlyCleanlinessStats.approvedCount > 0 && (
-        <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-950/50 border border-emerald-500/30 text-xs">
-          <span className="text-emerald-300 font-bold flex items-center gap-1.5 text-[11px]">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Vệ sinh tháng này:</span>
-          </span>
-          <span className="text-white font-extrabold text-[11px] bg-emerald-500/20 px-2 py-0.5 rounded-md border border-emerald-500/40 font-mono">
-            {myMonthlyCleanlinessStats.approvedCount} ca Đạt Chuẩn
-          </span>
-        </div>
-      )}
-
-      {/* CẢNH BÁO YÊU CẦU LÀM LẠI VỆ SINH CA TRỰC */}
+      {/* CẢNH BÁO YÊU CẦU LÀM LẠI VỆ SINH CA TRỰC (Ưu tiên cảnh báo đầu bảng) */}
       {todayRedoReport && (
         <div className="bg-gradient-to-r from-rose-950/90 via-slate-900 to-rose-950/90 border-2 border-rose-500/60 rounded-2xl p-4 text-center space-y-2.5 shadow-2xl relative overflow-hidden animate-in fade-in">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-rose-500 via-amber-400 to-rose-500 animate-pulse" />
@@ -1077,7 +1125,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
           <button
             type="button"
-            onClick={() => setShowCleanlinessModal(true)}
+            onClick={() => handleOpenCleanlinessModal(todayRedoReport.shiftType)}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs shadow-lg shadow-rose-950/40 cursor-pointer active:scale-95 transition-all"
           >
             <Camera className="w-3.5 h-3.5" />
@@ -1085,6 +1133,228 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
           </button>
         </div>
       )}
+
+      {/* KHUNG THEO DÕI & XEM ẢNH BÁO CÁO VỆ SINH CỦA CỬA HÀNG HÔM NAY */}
+      <div className="rounded-2xl border border-emerald-500/30 bg-gradient-to-b from-slate-900/90 via-slate-900/80 to-slate-950/90 shadow-xl overflow-hidden transition-all">
+        {/* Header Bar */}
+        <div 
+          onClick={() => setIsCleanlinessSectionOpen(!isCleanlinessSectionOpen)}
+          className="p-3.5 sm:p-4 flex items-center justify-between cursor-pointer select-none bg-slate-900/70 hover:bg-slate-900 transition-colors border-b border-slate-800/80"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0">
+              <Sparkles className="w-4 h-4 animate-pulse" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h4 className="text-xs sm:text-sm font-extrabold text-slate-100 flex items-center gap-1.5">
+                  <span>Ảnh Báo Cáo Vệ Sinh Cửa Hàng</span>
+                </h4>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 font-bold">
+                  {todayBranchReports.length}/3 Ca Đã Nộp
+                </span>
+              </div>
+              <p className="text-[10.5px] text-slate-400 mt-0.5">
+                Xem ảnh thực tế & kết quả phê duyệt của Cấp Trên hôm nay
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleOpenCleanlinessModal();
+              }}
+              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/40 text-xs font-bold transition-all cursor-pointer shadow-sm active:scale-95"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              <span>+ Nộp Ảnh</span>
+            </button>
+            <div className="w-7 h-7 rounded-lg bg-slate-800/80 text-slate-400 flex items-center justify-center">
+              {isCleanlinessSectionOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </div>
+          </div>
+        </div>
+
+        {/* Content Body */}
+        {isCleanlinessSectionOpen && (
+          <div className="p-3 sm:p-4 space-y-3">
+            {/* Thống kê tích lũy cá nhân trong tháng */}
+            {myMonthlyCleanlinessStats.approvedCount > 0 && (
+              <div className="flex items-center justify-between px-3 py-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs">
+                <span className="text-emerald-300 font-bold flex items-center gap-1.5 text-[11px]">
+                  <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Thành tích cá nhân tháng này:</span>
+                </span>
+                <span className="text-white font-extrabold text-[11px] bg-emerald-500/20 px-2.5 py-0.5 rounded-md border border-emerald-500/40 font-mono">
+                  {myMonthlyCleanlinessStats.approvedCount} ca Đạt Chuẩn
+                </span>
+              </div>
+            )}
+
+            {/* Danh sách 3 ca trong ngày (Ca Sáng, Ca Chiều, Ca Tối) */}
+            <div className="space-y-2.5">
+              {[
+                { type: 'MORNING' as CleanlinessShiftType, name: 'Ca Sáng (Mở Cửa)', time: '07:30 - 12:00', icon: '🌅' },
+                { type: 'AFTERNOON' as CleanlinessShiftType, name: 'Ca Chiều', time: '12:00 - 17:30', icon: '☀️' },
+                { type: 'CLOSING' as CleanlinessShiftType, name: 'Ca Tối (Giao Ca)', time: '17:30 - 22:00', icon: '🌙' },
+              ].map((shiftInfo) => {
+                const rep = todayBranchReports.find(r => r.shiftType === shiftInfo.type);
+
+                return (
+                  <div 
+                    key={shiftInfo.type}
+                    className={`rounded-xl border p-3 transition-all ${
+                      rep 
+                        ? rep.status === 'APPROVED'
+                          ? 'bg-slate-950/60 border-emerald-500/30'
+                          : (rep.status === 'NEEDS_REDO' || rep.status === 'REDO_REQUESTED')
+                            ? 'bg-rose-950/30 border-rose-500/50 shadow-lg shadow-rose-950/20'
+                            : 'bg-slate-950/60 border-amber-500/30'
+                        : 'bg-slate-950/30 border-slate-800/80'
+                    }`}
+                  >
+                    {/* Header ca */}
+                    <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-base">{shiftInfo.icon}</span>
+                        <div>
+                          <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                            <span>{shiftInfo.name}</span>
+                            <span className="text-[10px] text-slate-500 font-mono font-normal">({shiftInfo.time})</span>
+                          </div>
+                          {rep && (
+                            <div className="text-[10.5px] text-slate-400 mt-0.5">
+                              Nộp lúc <strong className="text-slate-200">{new Date(rep.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</strong> bởi <span className="text-emerald-300 font-semibold">{rep.staffName}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Trạng thái duyệt */}
+                      <div>
+                        {rep ? (
+                          rep.status === 'APPROVED' ? (
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                              <span>ĐẠT CHUẨN</span>
+                            </span>
+                          ) : (rep.status === 'NEEDS_REDO' || rep.status === 'REDO_REQUESTED') ? (
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-500/25 text-rose-300 border border-rose-500/50 flex items-center gap-1 shadow-sm animate-pulse">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                              <span>YÊU CẦU LÀM LẠI</span>
+                            </span>
+                          ) : (
+                            <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                              <Clock className="w-3.5 h-3.5 text-amber-400" />
+                              <span>ĐÃ GỬI • CHỜ DUYỆT</span>
+                            </span>
+                          )
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => handleOpenCleanlinessModal(shiftInfo.type)}
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 text-xs font-bold flex items-center gap-1 cursor-pointer transition-all active:scale-95"
+                          >
+                            <Camera className="w-3 h-3 text-emerald-400" />
+                            <span>+ Gửi Ảnh Ca</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Phản hồi của cấp trên nếu có */}
+                    {rep && (
+                      <div className="space-y-2 mt-2">
+                        {rep.status === 'APPROVED' && rep.reviewedBy && (
+                          <div className="px-2.5 py-1.5 rounded-lg bg-emerald-950/40 border border-emerald-500/30 text-[11px] text-emerald-200 flex items-center gap-1.5">
+                            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            <span>Đã được phê duyệt bởi <strong className="text-white">{rep.reviewedBy}</strong></span>
+                            {rep.reviewNote && <span className="italic text-emerald-300 font-medium">— "{rep.reviewNote}"</span>}
+                          </div>
+                        )}
+
+                        {(rep.status === 'NEEDS_REDO' || rep.status === 'REDO_REQUESTED') && (
+                          <div className="p-2.5 rounded-xl bg-rose-950/60 border border-rose-500/50 text-xs text-rose-200 space-y-1.5">
+                            <div className="flex items-center gap-1.5 font-bold text-rose-300">
+                              <AlertCircle className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
+                              <span>Ý kiến phê bình từ {rep.reviewedBy || 'Cấp Trên'}:</span>
+                            </div>
+                            <p className="italic text-rose-100 bg-slate-950/50 p-2 rounded-lg border border-rose-900/50">
+                              "{rep.reviewNote || 'Ảnh chưa đạt chuẩn, vui lòng dọn dẹp lại quầy kệ và chụp lại ảnh bổ sung.'}"
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCleanlinessModal(shiftInfo.type)}
+                              className="w-full py-2 px-3 rounded-lg bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-extrabold text-xs flex items-center justify-center gap-1.5 shadow-md shadow-rose-950/40 cursor-pointer active:scale-95 transition-all"
+                            >
+                              <Camera className="w-3.5 h-3.5" />
+                              <span>Chụp Lại & Nộp Bổ Sung Cho {shiftInfo.name}</span>
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Ghi chú khi nộp */}
+                        {rep.notes && (
+                          <div className="text-[11px] text-slate-300 bg-slate-950/60 px-2.5 py-1.5 rounded-lg border border-slate-800/80 flex items-start gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0 mt-0.5" />
+                            <span className="italic">{rep.notes}</span>
+                          </div>
+                        )}
+
+                        {/* Danh sách ảnh đã gửi */}
+                        {rep.images && rep.images.length > 0 && (
+                          <div className="space-y-1 pt-1">
+                            <div className="flex items-center justify-between text-[10px] text-slate-400">
+                              <span className="font-bold">Ảnh thực tế đã nộp ({rep.images.length} ảnh):</span>
+                              <span className="text-cyan-400 flex items-center gap-1">
+                                <Eye className="w-3 h-3" />
+                                <span>Chạm để xem ảnh to</span>
+                              </span>
+                            </div>
+
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                              {rep.images.map((imgUrl, imgIdx) => (
+                                <div
+                                  key={imgIdx}
+                                  onClick={() => setPreviewCleanlinessPhoto({
+                                    url: imgUrl,
+                                    shiftName: shiftInfo.name,
+                                    staffName: rep.staffName,
+                                    time: new Date(rep.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                                    status: rep.status,
+                                    notes: rep.notes,
+                                    reviewedBy: rep.reviewedBy,
+                                    reviewNote: rep.reviewNote
+                                  })}
+                                  className="relative group aspect-video rounded-xl overflow-hidden border border-slate-700 hover:border-emerald-500/80 bg-slate-950 cursor-pointer shadow transition-all hover:scale-[1.02] active:scale-95"
+                                >
+                                  <img 
+                                    src={imgUrl} 
+                                    alt={`Ảnh vệ sinh ${shiftInfo.name}`} 
+                                    className="w-full h-full object-cover" 
+                                    loading="lazy"
+                                  />
+                                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end justify-between p-1.5 text-white">
+                                    <span className="text-[10px] font-bold">Ảnh #{imgIdx + 1}</span>
+                                    <Maximize2 className="w-3.5 h-3.5 text-emerald-400" />
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
 
       {/* APPROVED LEAVE STATUS BANNER (From AI HR Sync) */}
       {todayApprovedLeave && (
@@ -1942,7 +2212,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                 </span>
                 <button
                   type="button"
-                  onClick={() => setShowCleanlinessModal(true)}
+                  onClick={() => handleOpenCleanlinessModal()}
                   className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[10.5px] font-bold border border-emerald-500/30 transition-all cursor-pointer flex items-center gap-1 active:scale-95"
                 >
                   <Camera className="w-3 h-3" />
@@ -1995,7 +2265,109 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         onClose={() => setShowCleanlinessModal(false)}
         currentUser={currentStaff}
         currentBranch={currentBranch}
+        initialShiftType={selectedCleanlinessShift}
       />
+
+      {/* LIGHTBOX PHÓNG TO XEM ẢNH BÁO CÁO VỆ SINH THỰC TẾ */}
+      {previewCleanlinessPhoto && typeof document !== 'undefined' && createPortal(
+        <div 
+          className="fixed inset-0 z-[10000] bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-3 sm:p-6 animate-fade-in select-none"
+          onClick={() => setPreviewCleanlinessPhoto(null)}
+        >
+          {/* Top Bar */}
+          <div 
+            className="flex items-center justify-between max-w-4xl w-full mx-auto pb-3 border-b border-slate-800"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                <Sparkles className="w-4 h-4" />
+              </div>
+              <div>
+                <h4 className="text-xs sm:text-sm font-extrabold text-white flex items-center gap-2">
+                  <span>{previewCleanlinessPhoto.shiftName}</span>
+                  <span>•</span>
+                  <span className="text-emerald-400">{currentBranch.name.replace('Phụ Kiện 88 - ', '')}</span>
+                </h4>
+                <p className="text-[10px] text-slate-400">
+                  Chụp bởi: <strong className="text-slate-200">{previewCleanlinessPhoto.staffName}</strong> lúc {previewCleanlinessPhoto.time}
+                </p>
+              </div>
+            </div>
+
+            <button 
+              type="button"
+              onClick={() => setPreviewCleanlinessPhoto(null)}
+              className="w-9 h-9 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center cursor-pointer transition-all active:scale-95"
+              title="Đóng (Esc)"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Ảnh trung tâm (Full resolution) */}
+          <div 
+            className="flex-1 flex items-center justify-center my-auto p-2"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <img 
+              src={previewCleanlinessPhoto.url} 
+              alt="Ảnh báo cáo vệ sinh thực tế phóng to" 
+              className="max-h-[70vh] sm:max-h-[75vh] max-w-full rounded-2xl shadow-2xl object-contain border border-slate-700/80 bg-slate-900/50" 
+            />
+          </div>
+
+          {/* Footer thông tin phê duyệt & ghi chú */}
+          <div 
+            className="max-w-4xl w-full mx-auto p-3 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs text-slate-200 space-y-2 shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] uppercase font-bold text-slate-400">Trạng thái duyệt:</span>
+                {previewCleanlinessPhoto.status === 'APPROVED' ? (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 flex items-center gap-1 shadow-sm">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>ĐẠT CHUẨN {previewCleanlinessPhoto.reviewedBy ? `(Duyệt bởi ${previewCleanlinessPhoto.reviewedBy})` : ''}</span>
+                  </span>
+                ) : (previewCleanlinessPhoto.status === 'NEEDS_REDO' || previewCleanlinessPhoto.status === 'REDO_REQUESTED') ? (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-rose-500/25 text-rose-300 border border-rose-500/50 flex items-center gap-1 shadow-sm animate-pulse">
+                    <AlertCircle className="w-3.5 h-3.5 text-rose-400" />
+                    <span>YÊU CẦU LÀM LẠI</span>
+                  </span>
+                ) : (
+                  <span className="px-2.5 py-1 rounded-full text-[11px] font-black bg-amber-500/20 text-amber-300 border border-amber-500/40 flex items-center gap-1 shadow-sm">
+                    <Clock className="w-3.5 h-3.5 text-amber-400" />
+                    <span>ĐÃ GỬI LÊN HỆ THỐNG • CHỜ CẤP TRÊN KIỂM TRA</span>
+                  </span>
+                )}
+              </div>
+
+              <button 
+                type="button"
+                onClick={() => setPreviewCleanlinessPhoto(null)} 
+                className="text-xs text-cyan-400 hover:text-cyan-300 hover:underline font-bold cursor-pointer"
+              >
+                ✕ Đóng cửa sổ xem ảnh
+              </button>
+            </div>
+
+            {previewCleanlinessPhoto.reviewNote && (
+              <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-amber-200">
+                <strong className="text-amber-400">Ý kiến từ {previewCleanlinessPhoto.reviewedBy || 'Cấp Trên'}:</strong> "{previewCleanlinessPhoto.reviewNote}"
+              </div>
+            )}
+
+            {previewCleanlinessPhoto.notes && (
+              <div className="text-[11px] text-slate-400 flex items-start gap-1.5">
+                <FileText className="w-3.5 h-3.5 text-slate-500 mt-0.5 flex-shrink-0" />
+                <span><strong>Ghi chú của nhân viên:</strong> {previewCleanlinessPhoto.notes}</span>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 };

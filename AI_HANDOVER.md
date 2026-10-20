@@ -16,6 +16,23 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 20/10/2026) - QUAN TRỌNG
 
+### O. Khung Giám Sát Vệ Sinh & Xem Lại Ảnh Báo Cáo Phê Duyệt Cho Nhân Viên Tại Cửa Hàng (HOÀN THÀNH 20/10/2026)
+1. **Phản hồi 2 chiều minh bạch cho nhân viên về kết quả phê duyệt ảnh vệ sinh:**
+   - **Khi Cấp Trên phê duyệt "Đạt Chuẩn":**
+     + Huy hiệu ca trực lập tức đổi sang `✅ ĐẠT CHUẨN (Duyệt bởi [Tên Cấp Trên])` kèm lời khen/ghi chú.
+     + Bộ đếm `Thành tích cá nhân tháng này` tự động cộng dồn (`X ca Đạt Chuẩn`), đồng bộ vào hồ sơ KPI 5 chiều.
+   - **Khi Cấp Trên phê bình "Yêu Cầu Làm Lại":**
+     + Hiển thị **Banner Cảnh Báo Đỏ Phát Sáng** ngay đỉnh giao diện chấm công với lời nhắc nhở cụ thể: *"Yêu cầu từ Cấp Trên: [Lời nhận xét cụ thể]"*.
+     + Thẻ ca trực đổi sang `⚠️ YÊU CẦU LÀM LẠI`, có ngay nút `[📸 Chụp Lại & Nộp Bổ Sung Ngay]` để nhân viên chụp lại ảnh cho đúng ca đó.
+   - **Đồng bộ thời gian thực (Supabase Real-Time Channel & Event Dispatcher):** Ngay khi Ban Điều Hành bấm Duyệt hoặc Yêu cầu làm lại trên Executive Board, màn hình của nhân viên tại cửa hàng cập nhật tức thì 100% không cần tải lại trang.
+
+2. **Khung Xem Lại Ảnh Đã Gửi (Photo Gallery & Lightbox Viewer):**
+   - **Giao diện thẻ 3 ca trực trong ngày:** Liệt kê minh bạch Ca Sáng (07:30 - 12:00), Ca Chiều (12:00 - 17:30), Ca Tối (17:30 - 22:00).
+   - **Gallery Thumbnail:** Hiển thị toàn bộ các ảnh chụp thực tế mà nhân viên đã gửi lên hệ thống kèm số lượng ảnh.
+   - **Lightbox Phóng To Toàn Màn Hình (Full HD Lightbox):** Chạm vào bất kỳ ảnh nào để mở cửa sổ phóng to độ phân giải cao bằng `createPortal(..., document.body)` với `z-[10000]`, xem trọn vẹn từng chi tiết góc chụp, giờ nộp, người chụp và nhận xét của Cấp Trên.
+   - **Nút Nộp Ảnh Nhanh Theo Ca:** Với các ca chưa gửi, nhân viên chỉ cần bấm `[+ Gửi Ảnh Ca]` là hệ thống tự động chọn đúng ca để nộp nhanh.
+
+
 ### N. Nâng Cấp Toàn Diện UX Hồ Sơ Nhân Sự Bảng Giám Sát Quân Số Toàn Chuỗi (HOÀN THÀNH 20/10/2026)
 1. **Khắc phục triệt để lỗi kẹt khung & cuộn trang do bẫy `backdrop-filter`:**
    - **Vấn đề:** Khung Bảng Giám Sát sử dụng `.glass-card` có `backdrop-filter: blur(12px)` tạo ra Containing Block mới, giam lỏng popup `ExecutiveStaffQuickModal` bên trong thẻ cha ở nửa dưới trang. Trên mobile, người dùng phải cuộn trang xuống tận đáy mới thấy popup và bị thanh menu đáy đè che mất nút gọi điện/Zalo. Trên máy tính, popup bị kéo xuống đáy để lại khoảng đen trống trải mênh mông xung quanh.
