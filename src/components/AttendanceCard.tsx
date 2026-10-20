@@ -1081,12 +1081,12 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         </div>
       </div>
 
-      {/* Quick Action Buttons for Shift Schedule, Leave Request & Cleanliness Report */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {/* Quick Action Buttons for Shift Schedule & Leave Request */}
+      <div className="grid grid-cols-2 gap-2.5">
         <button
           type="button"
           onClick={onOpenMyShiftsModal}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-extrabold bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
         >
           <Calendar className="w-3.5 h-3.5 text-cyan-400" />
           <span>Lịch Chia Ca 15 Ngày</span>
@@ -1094,24 +1094,10 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
         <button
           type="button"
           onClick={onOpenLeaveModal}
-          className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
+          className="flex items-center justify-center gap-1.5 px-3 py-2.5 rounded-xl text-xs font-extrabold bg-pink-500/10 hover:bg-pink-500/20 text-pink-300 border border-pink-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
         >
           <Sparkles className="w-3.5 h-3.5 text-pink-400" />
           <span>Xin Nghỉ Phép (AI Chị 8)</span>
-        </button>
-        <button
-          type="button"
-          onClick={onOpenCleanlinessTab ? onOpenCleanlinessTab : () => handleOpenCleanlinessModal()}
-          className="col-span-2 sm:col-span-1 flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-xs font-extrabold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 transition-all cursor-pointer shadow-sm active:scale-95"
-          title="Chuyển sang Tab Báo Cáo Vệ Sinh Cửa Hàng"
-        >
-          <Camera className="w-3.5 h-3.5 text-emerald-400" />
-          <span>Báo Cáo Vệ Sinh Ca</span>
-          {todayBranchReports.length > 0 && (
-            <span className="px-1.5 py-0.2 rounded-full text-[9.5px] bg-emerald-500/20 text-emerald-300 font-mono font-bold">
-              {todayBranchReports.length}/3
-            </span>
-          )}
         </button>
       </div>
 
