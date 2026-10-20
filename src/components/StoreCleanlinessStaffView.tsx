@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Branch, Staff, CleanlinessReport, CleanlinessShiftType } from '../types';
 import { supabase } from '../lib/supabase';
@@ -16,7 +16,11 @@ import {
   FileText, 
   ShieldCheck, 
   ArrowLeft,
-  RotateCw
+  RotateCw,
+  ChevronLeft,
+  ChevronRight,
+  History,
+  Info
 } from 'lucide-react';
 import { fetchCleanlinessReports, fetchMonthlyCleanlinessStats } from '../lib/cleanlinessService';
 import { CleanlinessReportModal } from './CleanlinessReportModal';
@@ -32,6 +36,11 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
   currentStaff,
   onNavigateToAttendance
 }) => {
+  // Ngày được chọn để xem báo cáo (Mặc định là Hôm nay)
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  });
+
   const [reports, setReports] = useState<CleanlinessReport[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -50,6 +59,51 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
     reviewNote?: string;
   } | null>(null);
 
+  // Helper tính ngày
+  const todayStr = useMemo(() => {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
+  }, []);
+
+  const yesterdayStr = useMemo(() => {
+    const y = new Date();
+    y.setDate(y.getDate() - 1);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(y);
+  }, []);
+
+  const isToday = selectedDate === todayStr;
+  const isYesterday = selectedDate === yesterdayStr;
+
+  const handlePrevDay = () => {
+    const parts = selectedDate.split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() - 1);
+    const prevStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    setSelectedDate(prevStr);
+  };
+
+  const handleNextDay = () => {
+    if (isToday) return;
+    const parts = selectedDate.split('-');
+    const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+    d.setDate(d.getDate() + 1);
+    const nextStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    setSelectedDate(nextStr);
+  };
+
+  const formattedSelectedDate = useMemo(() => {
+    const parts = selectedDate.split('-');
+    if (parts.length === 3) {
+      const d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+      return new Intl.DateTimeFormat('vi-VN', {
+        weekday: 'long',
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      }).format(d);
+    }
+    return selectedDate;
+  }, [selectedDate]);
+
   // Helper so khớp chi nhánh
   const isReportForBranch = (report: CleanlinessReport, branch: Branch): boolean => {
     if (report.branchId && branch.id && report.branchId === branch.id) return true;
@@ -62,12 +116,11 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
     return false;
   };
 
-  const loadData = async () => {
+  const loadData = async (dateToFetch = selectedDate) => {
     try {
       setLoading(true);
-      const todayStr = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Ho_Chi_Minh' }).format(new Date());
-      const allToday = await fetchCleanlinessReports(todayStr);
-      const branchReports = allToday.filter(r => isReportForBranch(r, currentBranch));
+      const allReports = await fetchCleanlinessReports(dateToFetch);
+      const branchReports = allReports.filter(r => isReportForBranch(r, currentBranch));
       setReports(branchReports);
 
       const stats = await fetchMonthlyCleanlinessStats();
@@ -87,21 +140,21 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
   };
 
   useEffect(() => {
-    loadData();
+    loadData(selectedDate);
 
     const handleUpdate = () => {
-      loadData();
+      loadData(selectedDate);
     };
     window.addEventListener('pk88_cleanliness_updated', handleUpdate);
 
     // Kênh realtime Supabase
     const channel = supabase
-      .channel(`store_cleanliness_staff_${currentBranch.id || 'all'}`)
+      .channel(`store_cleanliness_staff_${currentBranch.id || 'all'}_${selectedDate}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'cleanliness_reports' },
         () => {
-          loadData();
+          loadData(selectedDate);
         }
       )
       .subscribe();
@@ -110,7 +163,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
       window.removeEventListener('pk88_cleanliness_updated', handleUpdate);
       supabase.removeChannel(channel);
     };
-  }, [currentBranch.id, currentStaff.id, currentStaff.fullName]);
+  }, [selectedDate, currentBranch.id, currentStaff.id, currentStaff.fullName]);
 
   const handleOpenModal = (shift?: CleanlinessShiftType) => {
     setSelectedShift(shift);
@@ -125,13 +178,6 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
 
   const submittedCount = reports.length;
   const progressPercent = Math.round((submittedCount / 3) * 100);
-
-  const formattedDate = new Intl.DateTimeFormat('vi-VN', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  }).format(new Date());
 
   return (
     <div className="space-y-4 max-w-3xl mx-auto animate-fade-in pb-10">
@@ -160,15 +206,20 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                   BÁO CÁO VỆ SINH CỬA HÀNG
                 </h3>
                 <span className="text-[10.5px] font-mono px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
-                  {submittedCount}/3 Ca Hôm Nay
+                  {submittedCount}/3 Ca {isToday ? 'Hôm Nay' : 'Đã Nộp'}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5">
+              <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 flex-wrap">
                 <Building2 className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="font-semibold text-slate-200">{currentBranch.name}</span>
                 <span>•</span>
                 <Calendar className="w-3.5 h-3.5 text-slate-500" />
-                <span className="capitalize">{formattedDate}</span>
+                <span className="capitalize font-medium text-slate-300">{formattedSelectedDate}</span>
+                {!isToday && (
+                  <span className="px-2 py-0.2 rounded-full text-[10px] bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold font-mono">
+                    Lịch Sử Quá Khứ
+                  </span>
+                )}
               </p>
             </div>
           </div>
@@ -176,35 +227,37 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
           <div className="flex items-center gap-2 self-end sm:self-center">
             <button
               type="button"
-              onClick={() => loadData()}
+              onClick={() => loadData(selectedDate)}
               disabled={loading}
               className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white transition-all cursor-pointer disabled:opacity-50"
-              title="Làm mới dữ liệu"
+              title="Làm mới dữ liệu ngày này"
             >
               <RotateCw className={`w-4 h-4 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
             </button>
 
-            <button
-              type="button"
-              onClick={() => handleOpenModal()}
-              className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 cursor-pointer active:scale-95 transition-all"
-            >
-              <Camera className="w-4 h-4" />
-              <span>+ Gửi Báo Cáo Ca</span>
-            </button>
+            {isToday && (
+              <button
+                type="button"
+                onClick={() => handleOpenModal()}
+                className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-xs flex items-center gap-1.5 shadow-lg shadow-emerald-950/40 cursor-pointer active:scale-95 transition-all"
+              >
+                <Camera className="w-4 h-4" />
+                <span>+ Gửi Báo Cáo Ca</span>
+              </button>
+            )}
           </div>
         </div>
 
-        {/* Thanh tiến độ nộp ảnh của shop hôm nay */}
+        {/* Thanh tiến độ nộp ảnh của shop */}
         <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-xs">
+          <div className="flex items-center justify-between text-xs flex-wrap gap-1">
             <span className="text-slate-300 font-bold flex items-center gap-1.5">
-              <span>Tiến độ nộp ảnh sạch sẽ 3 ca hôm nay:</span>
+              <span>Tiến độ ảnh 3 ca ngày {isToday ? 'hôm nay' : 'này'}:</span>
               <strong className="text-emerald-400 font-mono">{submittedCount} / 3 ca ({progressPercent}%)</strong>
             </span>
             {myMonthlyStats.approvedCount > 0 && (
               <span className="text-[11px] font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/30">
-                Tháng này: <strong>{myMonthlyStats.approvedCount}</strong> ca Đạt Chuẩn
+                Thành tích cá nhân: <strong>{myMonthlyStats.approvedCount}</strong> ca Đạt Chuẩn
               </span>
             )}
           </div>
@@ -215,9 +268,96 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
             />
           </div>
         </div>
+
+        {/* 2. Thanh Điều Hướng & Chọn Ngày Xem Lại Lịch Sử Ảnh Báo Cáo */}
+        <div className="pt-2 border-t border-slate-800/80 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-xs font-bold text-slate-400 flex items-center gap-1 mr-1">
+              <Calendar className="w-3.5 h-3.5 text-cyan-400" />
+              <span>Xem ngày:</span>
+            </span>
+
+            <button
+              type="button"
+              onClick={() => setSelectedDate(todayStr)}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 active:scale-95 ${
+                isToday
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-black shadow-md shadow-cyan-500/25'
+                  : 'bg-slate-950/80 text-slate-400 border border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              <span>⚡ Hôm Nay</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setSelectedDate(yesterdayStr)}
+              className={`px-3 py-1.5 rounded-xl font-bold text-xs transition-all cursor-pointer flex items-center gap-1 active:scale-95 ${
+                isYesterday
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-slate-950 font-black shadow-md shadow-cyan-500/25'
+                  : 'bg-slate-950/80 text-slate-400 border border-slate-800 hover:bg-slate-800'
+              }`}
+            >
+              <span>Hôm Qua</span>
+            </button>
+
+            {/* Ô chọn ngày tùy chọn */}
+            <input
+              type="date"
+              value={selectedDate}
+              max={todayStr}
+              onChange={(e) => {
+                if (e.target.value) setSelectedDate(e.target.value);
+              }}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-950 border border-slate-800 text-xs font-mono font-bold text-slate-200 focus:outline-none focus:border-cyan-500 cursor-pointer"
+              title="Chọn ngày muốn xem lại ảnh"
+            />
+          </div>
+
+          {/* Nút Lùi / Tiến Ngày */}
+          <div className="flex items-center gap-1.5 self-end sm:self-center">
+            <button
+              type="button"
+              onClick={handlePrevDay}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95"
+              title="Xem ngày trước đó"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+              <span>Ngày trước</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleNextDay}
+              disabled={isToday}
+              className="px-2.5 py-1.5 rounded-xl bg-slate-950/80 hover:bg-slate-800 text-slate-300 hover:text-white border border-slate-800 text-xs font-bold transition-all cursor-pointer flex items-center gap-1 active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
+              title="Xem ngày tiếp theo"
+            >
+              <span>Ngày sau</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+
+        {/* Thông báo chế độ xem quá khứ */}
+        {!isToday && (
+          <div className="p-2.5 rounded-xl bg-cyan-950/40 border border-cyan-500/30 text-xs text-cyan-200 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <History className="w-4 h-4 text-cyan-400 shrink-0" />
+              <span>Đang xem lại ảnh vệ sinh ngày <strong>{formattedSelectedDate}</strong> ({submittedCount}/3 ca). Toàn bộ ảnh được lưu trữ luân chuyển trong vòng 14 ngày.</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setSelectedDate(todayStr)}
+              className="px-2.5 py-1 rounded-lg bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 font-bold text-[11px] border border-cyan-500/40 shrink-0 cursor-pointer transition-all"
+            >
+              Về Hôm Nay
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* 2. Danh sách 3 Ca Làm Việc (Ca Sáng, Ca Chiều, Ca Tối) */}
+      {/* 3. Danh sách 3 Ca Làm Việc (Ca Sáng, Ca Chiều, Ca Tối) */}
       <div className="space-y-3">
         {shiftConfigs.map((s) => {
           const rep = reports.find(r => r.shiftType === s.type);
@@ -250,7 +390,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                       </p>
                     ) : (
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        Chưa có báo cáo hình ảnh cho ca trực này
+                        {isToday ? 'Chưa có báo cáo hình ảnh cho ca trực này' : 'Ca trực này không gửi ảnh báo cáo'}
                       </p>
                     )}
                   </div>
@@ -275,7 +415,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                         <span>ĐÃ GỬI • CHỜ DUYỆT</span>
                       </span>
                     )
-                  ) : (
+                  ) : isToday ? (
                     <button
                       type="button"
                       onClick={() => handleOpenModal(s.type)}
@@ -284,6 +424,10 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                       <Camera className="w-3.5 h-3.5 text-emerald-400" />
                       <span>+ Gửi Ảnh Ca</span>
                     </button>
+                  ) : (
+                    <span className="px-2.5 py-1 rounded-lg bg-slate-950/60 border border-slate-800 text-[10.5px] text-slate-500 font-semibold font-mono">
+                      Chưa Nộp
+                    </span>
                   )}
                 </div>
               </div>
@@ -312,14 +456,16 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                       <p className="italic text-rose-100 bg-slate-950/60 p-2.5 rounded-lg border border-rose-900/60">
                         "{rep.reviewNote || 'Ảnh chụp chưa đạt chuẩn vệ sinh hoặc góc chụp chưa rõ, vui lòng dọn dẹp lại quầy kệ và chụp bổ sung.'}"
                       </p>
-                      <button
-                        type="button"
-                        onClick={() => handleOpenModal(s.type)}
-                        className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-950/40 cursor-pointer active:scale-95 transition-all"
-                      >
-                        <Camera className="w-4 h-4" />
-                        <span>CHỤP LẠI & NỘP BỔ SUNG CHO {s.name.toUpperCase()}</span>
-                      </button>
+                      {isToday && (
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(s.type)}
+                          className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-rose-600 to-amber-600 hover:from-rose-500 hover:to-amber-500 text-white font-black text-xs flex items-center justify-center gap-2 shadow-lg shadow-rose-950/40 cursor-pointer active:scale-95 transition-all"
+                        >
+                          <Camera className="w-4 h-4" />
+                          <span>CHỤP LẠI & NỘP BỔ SUNG CHO {s.name.toUpperCase()}</span>
+                        </button>
+                      )}
                     </div>
                   )}
 
@@ -332,7 +478,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                   )}
 
                   {/* Bộ sưu tập ảnh thực tế đã gửi */}
-                  {rep.images && rep.images.length > 0 && (
+                  {rep.images && rep.images.length > 0 ? (
                     <div className="space-y-1.5 pt-1">
                       <div className="flex items-center justify-between text-xs text-slate-400">
                         <span className="font-bold text-slate-300">Ảnh thực tế đã nộp ({rep.images.length} ảnh):</span>
@@ -350,7 +496,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                               url: imgUrl,
                               shiftName: s.name,
                               staffName: rep.staffName,
-                              time: new Date(rep.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                              time: `${new Date(rep.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} • ${formattedSelectedDate}`,
                               status: rep.status,
                               notes: rep.notes,
                               reviewedBy: rep.reviewedBy,
@@ -372,6 +518,11 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                         ))}
                       </div>
                     </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl bg-slate-950/50 border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+                      <Info className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                      <span>Ảnh báo cáo ca này đã được dọn dẹp sau 14 ngày lưu trữ luân chuyển để tối ưu bộ nhớ. Lịch sử ca trực và kết quả duyệt vẫn được bảo lưu vĩnh viễn.</span>
+                    </div>
                   )}
                 </div>
               )}
@@ -388,7 +539,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
         currentBranch={currentBranch}
         initialShiftType={selectedShift}
         onSubmitted={() => {
-          loadData();
+          loadData(selectedDate);
         }}
       />
 
@@ -414,7 +565,7 @@ export const StoreCleanlinessStaffView: React.FC<StoreCleanlinessStaffViewProps>
                   <span className="text-emerald-400">{currentBranch.name.replace('Phụ Kiện 88 - ', '')}</span>
                 </h4>
                 <p className="text-[10px] text-slate-400">
-                  Chụp bởi: <strong className="text-slate-200">{previewPhoto.staffName}</strong> lúc {previewPhoto.time}
+                  Chụp bởi: <strong className="text-slate-200">{previewPhoto.staffName}</strong> • {previewPhoto.time}
                 </p>
               </div>
             </div>
