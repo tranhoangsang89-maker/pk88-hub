@@ -1706,10 +1706,12 @@ export function App() {
               {currentUser && !isCustomerMode && (
                 <button
                   onClick={handleOpenMarketingModal}
-                  className="hidden md:flex px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs items-center gap-1.5 shadow-md shadow-blue-500/20 transition-colors animate-pulse hover:animate-none"
+                  className="px-2 sm:px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white font-bold rounded-xl text-xs flex items-center gap-1 sm:gap-1.5 shadow-md shadow-blue-500/20 transition-colors shrink-0 animate-pulse hover:animate-none cursor-pointer"
+                  title="Nộp link bài đăng Marketing (5s)"
                 >
-                  <Send className="w-3.5 h-3.5" />
-                  + Nộp Link (5s)
+                  <Send className="w-3.5 h-3.5 shrink-0" />
+                  <span className="hidden sm:inline">+ Nộp Link (5s)</span>
+                  <span className="sm:hidden">Nộp Link</span>
                 </button>
               )}
 
