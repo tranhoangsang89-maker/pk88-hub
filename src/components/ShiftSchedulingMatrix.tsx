@@ -235,6 +235,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
   }, [attendanceLogs]);
 
   // Form State for Manual Attendance Compensation (Chấm Bù Công 1 Chạm)
+  const [compensateMode, setCompensateMode] = useState<'CHECK_IN_ONLY' | 'FULL_SHIFT'>('CHECK_IN_ONLY');
   const [compensateCheckIn, setCompensateCheckIn] = useState<string>('07:30');
   const [compensateCheckOut, setCompensateCheckOut] = useState<string>('15:30');
   const [compensateReason, setCompensateReason] = useState<string>('Quên bấm máy chấm công');
@@ -858,8 +859,10 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     setIsAddingSecondShift(false);
 
     const isPastOrToday = dateStr <= todayStr;
+    const isToday = dateStr === todayStr;
     if (canManageSchedule && isPastOrToday) {
       setCellModalTab('compensate');
+      setCompensateMode(isToday ? 'CHECK_IN_ONLY' : 'FULL_SHIFT');
     } else {
       setCellModalTab('shifts');
     }
@@ -873,7 +876,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
     if (existing.length > 0) {
       setSelectedCellAssignment(existing[0]);
       setCompensateCheckIn(existing[0].startTime || '07:30');
-      setCompensateCheckOut(existing[0].endTime || '15:30');
+      setCompensateCheckOut(existing[0].endTime || '17:30');
     } else if (canManageSchedule) {
       // Create draft assignment (chỉ Cửa hàng trưởng hoặc HR/Admin mới được tạo)
       const def = shiftDefs[0];
@@ -1055,19 +1058,26 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       const timeAuditStr = `${nowTimestamp.toLocaleTimeString('vi-VN')} ${nowTimestamp.toLocaleDateString('vi-VN')}`;
 
       const checkInDate = new Date(`${dateStr}T${compensateCheckIn}:00+07:00`);
-      const checkOutDate = new Date(`${dateStr}T${compensateCheckOut}:00+07:00`);
-      if (checkOutDate.getTime() < checkInDate.getTime()) {
-        checkOutDate.setDate(checkOutDate.getDate() + 1);
-      }
       const checkInIso = checkInDate.toISOString();
-      const checkOutIso = checkOutDate.toISOString();
 
-      const diffMs = checkOutDate.getTime() - checkInDate.getTime();
-      const calculatedHours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+      const isCheckInOnly = compensateMode === 'CHECK_IN_ONLY';
+      let checkOutIso: string | undefined = undefined;
+      let calculatedHours = 0;
+
+      if (!isCheckInOnly) {
+        const checkOutDate = new Date(`${dateStr}T${compensateCheckOut}:00+07:00`);
+        if (checkOutDate.getTime() < checkInDate.getTime()) {
+          checkOutDate.setDate(checkOutDate.getDate() + 1);
+        }
+        checkOutIso = checkOutDate.toISOString();
+        const diffMs = checkOutDate.getTime() - checkInDate.getTime();
+        calculatedHours = Math.max(0, Math.round((diffMs / (1000 * 60 * 60)) * 10) / 10);
+      }
 
       const shiftType = selectedCellAssignment?.shiftCode || 'HANH_CHINH';
-      const reasonText = compensateReason.trim() || 'Nhân viên đi làm đầy đủ nhưng quên bấm công';
-      const fullNote = `${staff.fullName} (${staff.phone || staff.code || ''}) - [CHẤM BÙ BỞI ${approverName} (${approverRole}) lúc ${timeAuditStr}]: ${reasonText}`;
+      const reasonText = compensateReason.trim() || (isCheckInOnly ? 'Nhân viên đi làm đúng giờ nhưng quên bấm check-in' : 'Nhân viên đi làm đầy đủ nhưng quên bấm công');
+      const auditPrefix = isCheckInOnly ? 'CHECK-IN BÙ (ĐANG LÀM VIỆC)' : 'CHẤM BÙ TRỌN VẸN';
+      const fullNote = `${staff.fullName} (${staff.phone || staff.code || ''}) - [${auditPrefix} BỞI ${approverName} (${approverRole}) lúc ${timeAuditStr}]: ${reasonText}`;
 
       // Resolve db staff id & branch id
       let dbStaffId = staff.id;
@@ -1121,7 +1131,7 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
           staff_id: dbStaffId,
           branch_id: dbBranchId,
           check_in: checkInIso,
-          check_out: checkOutIso,
+          check_out: isCheckInOnly ? null : checkOutIso,
           shift_type: shiftType,
           work_hours: calculatedHours,
           lat: currentBranch.lat || 10.7769,
@@ -1143,7 +1153,11 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
       // 3. Notify parent to refresh attendance records
       onRefreshAttendance?.();
 
-      showToast(`⚡ Đã chấm bù ${calculatedHours}h công ngày ${dateStr} cho ${staff.fullName} (Lưu Audit Trail)!`);
+      if (isCheckInOnly) {
+        showToast(`🟢 Đã Check-in bù vào ca lúc ${compensateCheckIn} cho ${staff.fullName} (Đang làm việc, chờ tan ca)!`);
+      } else {
+        showToast(`⚡ Đã chấm bù trọn vẹn ${calculatedHours}h công ngày ${dateStr} cho ${staff.fullName} (Lưu Audit Trail)!`);
+      }
       closeCellModal();
     } catch (e: any) {
       console.error('Lỗi khi chấm bù:', e);
@@ -2908,27 +2922,78 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                       </span>
                     </div>
 
-                    {/* Inputs giờ vào / ra */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ vào (Check-in):</label>
-                        <input
-                          type="time"
-                          value={compensateCheckIn}
-                          onChange={(e) => setCompensateCheckIn(e.target.value)}
-                          className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
-                      <div>
-                        <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ ra (Check-out):</label>
-                        <input
-                          type="time"
-                          value={compensateCheckOut}
-                          onChange={(e) => setCompensateCheckOut(e.target.value)}
-                          className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
-                        />
-                      </div>
+                    {/* Bộ Chọn Chế Độ Chấm Bù */}
+                    <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-900/90 rounded-xl border border-slate-800">
+                      <button
+                        type="button"
+                        onClick={() => setCompensateMode('CHECK_IN_ONLY')}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          compensateMode === 'CHECK_IN_ONLY'
+                            ? 'bg-emerald-500/20 border border-emerald-500/60 text-emerald-300 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>Check-in bù (Đang làm)</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setCompensateMode('FULL_SHIFT')}
+                        className={`py-1.5 px-2 rounded-lg text-[11px] font-black flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                          compensateMode === 'FULL_SHIFT'
+                            ? 'bg-amber-500/20 border border-amber-500/60 text-amber-300 shadow-sm'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <span>🏁 Cả ca (Đã tan ca)</span>
+                      </button>
                     </div>
+
+                    {/* Inputs giờ vào / ra theo chế độ */}
+                    {compensateMode === 'CHECK_IN_ONLY' ? (
+                      <div className="space-y-2">
+                        <div>
+                          <label className="text-[10px] font-bold text-emerald-300 block mb-1">
+                            Giờ vào ca thực tế sáng nay (Check-in):
+                          </label>
+                          <input
+                            type="time"
+                            value={compensateCheckIn}
+                            onChange={(e) => setCompensateCheckIn(e.target.value)}
+                            className="w-full bg-slate-900 border border-emerald-500/40 rounded-xl px-3 py-2 text-sm text-emerald-200 font-mono font-black focus:outline-none focus:border-emerald-400"
+                          />
+                        </div>
+                        <div className="p-2 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-[10.5px] text-emerald-200/90 leading-relaxed">
+                          💡 <strong>Nhân viên đang trong ca trực:</strong> Hệ thống mở ca từ <strong>{compensateCheckIn}</strong> và hiển thị <span className="font-bold text-emerald-300">🟢 Đang làm việc</span>. Đồng hồ realtime trên máy nhân viên sẽ chạy tiếp tục từ mốc giờ này. Đến khi hết ca, nhân viên tự bấm <strong>Check-out GPS</strong> tan ca bình thường.
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid grid-cols-2 gap-2">
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ vào (Check-in):</label>
+                            <input
+                              type="time"
+                              value={compensateCheckIn}
+                              onChange={(e) => setCompensateCheckIn(e.target.value)}
+                              className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-[10px] font-bold text-slate-300 block mb-1">Giờ ra (Check-out):</label>
+                            <input
+                              type="time"
+                              value={compensateCheckOut}
+                              onChange={(e) => setCompensateCheckOut(e.target.value)}
+                              className="w-full bg-slate-900 border border-amber-500/30 rounded-xl px-2.5 py-1.5 text-xs text-amber-200 font-mono font-bold focus:outline-none focus:border-amber-400"
+                            />
+                          </div>
+                        </div>
+                        <div className="p-2 rounded-xl bg-slate-900/60 border border-slate-800 text-[10px] text-slate-400 leading-relaxed">
+                          💡 Chốt đủ giờ công trọn vẹn cả ca (đã tan ca). Thích hợp khi chấm bù cho ngày hôm qua hoặc ca làm việc đã kết thúc từ trước.
+                        </div>
+                      </div>
+                    )}
 
                     {/* Lý do chấm bù */}
                     <div className="space-y-1.5">
@@ -2974,14 +3039,23 @@ export const ShiftSchedulingMatrix: React.FC<ShiftSchedulingMatrixProps> = ({
                       type="button"
                       onClick={handleConfirmAttendanceCompensation}
                       disabled={isSubmittingCompensation}
-                      className="w-full py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-xl text-xs shadow-lg shadow-amber-500/20 transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50"
+                      className={`w-full py-2.5 font-black rounded-xl text-xs shadow-lg transition-all cursor-pointer flex items-center justify-center gap-1.5 disabled:opacity-50 ${
+                        compensateMode === 'CHECK_IN_ONLY'
+                          ? 'bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 shadow-emerald-500/20'
+                          : 'bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 shadow-amber-500/20'
+                      }`}
                     >
                       {isSubmittingCompensation ? (
                         <span>⏳ Đang ghi nhận Audit Trail...</span>
+                      ) : compensateMode === 'CHECK_IN_ONLY' ? (
+                        <>
+                          <CheckCircle2 className="w-4 h-4 fill-current" />
+                          <span>Xác Nhận Check-In Bù (Mở Ca Đang Làm)</span>
+                        </>
                       ) : (
                         <>
                           <Zap className="w-4 h-4 fill-current" />
-                          <span>Xác Nhận Chấm Bù 1 Chạm</span>
+                          <span>Xác Nhận Chấm Bù Trọn Vẹn Ca</span>
                         </>
                       )}
                     </button>
