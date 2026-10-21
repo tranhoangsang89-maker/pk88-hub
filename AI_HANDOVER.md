@@ -39,6 +39,18 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - Nút **[📞 GỌI ĐIỆN]** và **[💬 CHAT ZALO]** 1-chạm kết nối thẳng đến khách hàng.
    - Cập nhật tiến độ xử lý: `MỚI CHƯA GỌI` ➔ `ĐÃ GỌI / TƯ VẤN` ➔ `HẸN GHÉ SHOP` ➔ `ĐÃ MUA THÀNH CÔNG` ➔ `HỦY`.
 
+5. **Đồng Bộ Nhận Thức Thời Gian Thực & RAG Tồn Kho Thực Tế (HOÀN THÀNH 21/10/2026):**
+   - **Xóa bỏ triệt để tình trạng kẹt kiến thức quá khứ:** Gỡ bỏ các dòng chữ hardcode hạn chế dòng máy cũ (như *"từ iPhone 7 đến 16 Pro Max"*).
+   - **Định vị mốc thời gian thực tế hệ thống:** Tự động lấy ngày giờ Việt Nam hiện tại (`new Date()`, Thứ, Ngày/Tháng/Năm 2026) nhúng vào System Prompt.
+   - **Định hướng công nghệ chính xác năm 2026:** Nhận diện đúng các dòng máy hiện hành (iPhone 16 Series, iPhone 17 Series gồm iPhone 17, 17 Air, 17 Pro, 17 Pro Max; iPhone 18 Series & iPhone Duo; Samsung Galaxy S24, S25 Series, Z Fold6/Flip6...).
+   - **Động cơ tìm kiếm sản phẩm thông minh (Real-time Inventory RAG):** Khi khách hỏi bất kỳ món đồ nào, thuật toán tự động bóc tách từ khóa, quét kho 521 sản phẩm thật (`products.json`), trích xuất đúng tên sản phẩm, hãng và giá niêm yết chính xác từng đồng để AI phản hồi chuyên nghiệp, chuẩn xác 100%.
+
+6. **Bộ Tạo Link Đa Kênh & Trình Xuất Mã QR HD Tải Xuống (HOÀN THÀNH 21/10/2026):**
+   - **Component chuyên dụng [`LeadLinkGeneratorModal.tsx`](file:///c:/PK88%20AA/src/components/LeadLinkGeneratorModal.tsx):** Cho phép tạo link chatbot gắn thẻ nguồn 1 chạm cho 7 nền tảng: `Facebook`, `TikTok`, `Zalo`, `Website`, `QR Bàn Shop`, `YouTube` và `Tùy chỉnh campaign`.
+   - **Trình xuất Mã QR HD Offline 100%:** Sử dụng thư viện `qrcode` vẽ trực tiếp lên HTML5 `<canvas>` kích thước 800×800 px siêu sắc nét, có huy hiệu logo PK88 ở tâm. Tích hợp nút **`[TẢI XUỐNG ẢNH MÃ QR (PNG)]`** phục vụ in ấn standee, dán quầy thu ngân hoặc đăng lên mạng xã hội.
+   - **Hiển thị & Bộ lọc kênh nguồn trên Bảng CRM (`CustomerLeadsCRMModal.tsx`):** Thẻ khách hiển thị huy hiệu nguồn đa màu với SVG Vector chuẩn nhận diện thương hiệu thực tế (Facebook, TikTok 3D, Zalo OA, QR Standee...), kèm bộ lọc đa kênh giúp Ban Giám Đốc và Marketing đo lường ROI từng nền tảng tức thì.
+   - **Bộ Icon SVG Nhận Diện Thương Hiệu Thực Tế (`PlatformBrandIcon`):** Thay thế toàn bộ emoji thô sơ bằng vector chuẩn thương hiệu độ nét cao cho Facebook (#1877F2), TikTok (nốt nhạc 3D Chromatic), Zalo (#0068FF), YouTube (#FF0000), Website PK88, QR Standee và Tùy chỉnh.
+
 ### O. Khung Giám Sát Vệ Sinh & Xem Lại Ảnh Báo Cáo Phê Duyệt Cho Nhân Viên Tại Cửa Hàng (HOÀN THÀNH 20/10/2026)
 1. **Phản hồi 2 chiều minh bạch cho nhân viên về kết quả phê duyệt ảnh vệ sinh:**
    - **Khi Cấp Trên phê duyệt "Đạt Chuẩn":**

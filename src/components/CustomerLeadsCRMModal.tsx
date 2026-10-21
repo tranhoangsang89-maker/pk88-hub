@@ -22,8 +22,11 @@ import {
   Tag,
   Gift,
   Building2,
-  Share2
+  Share2,
+  Globe,
+  QrCode
 } from 'lucide-react';
+import { LeadLinkGeneratorModal, PlatformBrandIcon } from './LeadLinkGeneratorModal';
 
 interface CustomerLeadsCRMModalProps {
   isOpen: boolean;
@@ -44,8 +47,10 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [selectedBranchFilter, setSelectedBranchFilter] = useState<string>('ALL');
   const [selectedStatusFilter, setSelectedStatusFilter] = useState<string>('ALL');
+  const [selectedSourceFilter, setSelectedSourceFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [showLinkGenModal, setShowLinkGenModal] = useState<boolean>(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(null);
   const [expandedChatLeadId, setExpandedChatLeadId] = useState<string | number | null>(null);
 
@@ -95,14 +100,23 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
       }
     }
 
-    // 3. Tìm kiếm theo tên hoặc SĐT
+    // 3. Lọc kênh nguồn
+    if (selectedSourceFilter !== 'ALL') {
+      const src = (lead.source || '').toLowerCase();
+      if (!src.includes(selectedSourceFilter.toLowerCase())) {
+        return false;
+      }
+    }
+
+    // 4. Tìm kiếm theo tên hoặc SĐT
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
       const matchName = lead.customer_name?.toLowerCase().includes(q);
       const matchPhone = lead.phone?.includes(q);
       const matchNeed = lead.need?.toLowerCase().includes(q);
       const matchVoucher = lead.voucher_code?.toLowerCase().includes(q);
-      if (!matchName && !matchPhone && !matchNeed && !matchVoucher) {
+      const matchSource = lead.source?.toLowerCase().includes(q);
+      if (!matchName && !matchPhone && !matchNeed && !matchVoucher && !matchSource) {
         return false;
       }
     }
@@ -241,6 +255,15 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
 
             <button
               type="button"
+              onClick={() => setShowLinkGenModal(true)}
+              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>Tạo Link & Mã QR</span>
+            </button>
+
+            <button
+              type="button"
               onClick={onClose}
               className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
             >
@@ -333,6 +356,24 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                 <option value="CANCELLED">❌ Đã hủy</option>
               </select>
             </div>
+
+            {/* Lọc kênh nguồn */}
+            <div className="flex items-center gap-1.5 text-xs text-slate-400">
+              <Globe className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
+              <select
+                value={selectedSourceFilter}
+                onChange={(e) => setSelectedSourceFilter(e.target.value)}
+                className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-rose-500 cursor-pointer"
+              >
+                <option value="ALL">Mọi kênh nguồn</option>
+                <option value="facebook">Facebook</option>
+                <option value="tiktok">TikTok</option>
+                <option value="zalo">Zalo</option>
+                <option value="qr">QR Bàn Shop</option>
+                <option value="website">Website PK88</option>
+                <option value="youtube">YouTube</option>
+              </select>
+            </div>
           </div>
         </div>
 
@@ -387,6 +428,52 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                             {lead.phone}
                           </span>
                           {getStatusBadge(lead.status)}
+                          {/* Huy hiệu Nguồn */}
+                          {(() => {
+                            const src = (lead.source || '').toLowerCase();
+                            let platId = '';
+                            let label = lead.source || '';
+                            let badgeStyle = 'bg-slate-800 text-slate-300 border-slate-700';
+
+                            if (src.includes('facebook') || src.includes('fb')) {
+                              platId = 'facebook';
+                              label = 'Facebook';
+                              badgeStyle = 'bg-blue-600/15 text-blue-300 border-blue-500/30';
+                            } else if (src.includes('tiktok')) {
+                              platId = 'tiktok';
+                              label = 'TikTok';
+                              badgeStyle = 'bg-pink-600/15 text-pink-300 border-pink-500/30';
+                            } else if (src.includes('zalo')) {
+                              platId = 'zalo';
+                              label = 'Zalo';
+                              badgeStyle = 'bg-sky-600/15 text-sky-300 border-sky-500/30';
+                            } else if (src.includes('youtube')) {
+                              platId = 'youtube';
+                              label = 'YouTube';
+                              badgeStyle = 'bg-rose-600/15 text-rose-300 border-rose-500/30';
+                            } else if (src.includes('qr')) {
+                              platId = 'qr_table';
+                              label = 'QR Bàn Shop';
+                              badgeStyle = 'bg-amber-600/15 text-amber-300 border-amber-500/30';
+                            } else if (src.includes('website') || src.includes('web')) {
+                              platId = 'website';
+                              label = 'Website';
+                              badgeStyle = 'bg-emerald-600/15 text-emerald-300 border-emerald-500/30';
+                            }
+
+                            if (!src) return null;
+
+                            return (
+                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+                                {platId ? (
+                                  <PlatformBrandIcon platformId={platId} className="w-3.5 h-3.5 shrink-0 rounded-[3px]" />
+                                ) : (
+                                  <span className="text-[11px]">🎯</span>
+                                )}
+                                <span>{label}</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
                           <span className="flex items-center gap-1">
@@ -615,6 +702,13 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* MODAL TẠO LINK & MÃ QR ĐA KÊNH */}
+      <LeadLinkGeneratorModal
+        isOpen={showLinkGenModal}
+        onClose={() => setShowLinkGenModal(false)}
+        branches={branches}
+      />
     </div>
   );
 };

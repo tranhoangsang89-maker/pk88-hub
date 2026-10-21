@@ -1,4 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Branch } from '../types';
 import { submitCustomerLead, generateVoucherCode } from '../lib/leadService';
 import productsData from '../lib/products.json';
@@ -21,7 +23,8 @@ import {
   ChevronRight,
   AlertCircle,
   HelpCircle,
-  Share2
+  Share2,
+  QrCode
 } from 'lucide-react';
 
 interface PublicCustomerChatViewProps {
@@ -46,14 +49,33 @@ const QUICK_ACTIONS = [
   { icon: 'Gift', text: 'Nhận E-Voucher giảm giá 10% hôm nay' }
 ];
 
+import { LeadLinkGeneratorModal } from './LeadLinkGeneratorModal';
+
 export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
   branches,
   onBackToApp
 }) => {
   const activeBranches = branches.filter(b => b.isActive !== false);
 
-  // Chọn chi nhánh ưu tiên (mặc định Phú Khương hoặc Bến Tre)
+  // Đọc nguồn chiến dịch (src / utm_source) từ URL
+  const [trackingSource] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      return p.get('src') || p.get('utm_source') || 'web_chatbot';
+    }
+    return 'web_chatbot';
+  });
+
+  // Chọn chi nhánh ưu tiên (tự nhận diện từ URL nếu có param branch)
   const [selectedBranch, setSelectedBranch] = useState<Branch>(() => {
+    if (typeof window !== 'undefined') {
+      const p = new URLSearchParams(window.location.search);
+      const bCode = p.get('branch') || p.get('branch_code');
+      if (bCode) {
+        const found = activeBranches.find(b => b.code?.toLowerCase() === bCode.toLowerCase());
+        if (found) return found;
+      }
+    }
     return activeBranches.find(b => b.code === 'PK88_PHUKHUONG') || activeBranches[0] || {
       id: 'default',
       code: 'PK88_PHUKHUONG',
@@ -68,6 +90,7 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
+  const [showLinkGenModal, setShowLinkGenModal] = useState<boolean>(false);
 
   // Form thu thập SĐT & Tên khách hàng (Lead Capture)
   const [showLeadModal, setShowLeadModal] = useState<boolean>(false);
@@ -101,18 +124,90 @@ Cứ nhắn cho Bé 8, em tư vấn chi tiết và tặng mình **E-Voucher gi�
     scrollToBottom();
   }, [messages, isLoading]);
 
-  // Xây dựng kho tri thức cho System Prompt của Gemini AI
-  const buildSystemPrompt = () => {
+  // Thuật toán tìm kiếm thông minh từ kho 521 sản phẩm thực tế của Phụ Kiện 88 (Real-time Inventory RAG)
+  const searchRelevantProducts = (query: string) => {
+    if (!query || !productsData || !Array.isArray(productsData)) return [];
+    
+    const cleanQ = query.toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .trim();
+
+    const words = cleanQ.split(/\s+/).filter(w => w.length > 1);
+    if (words.length === 0) return [];
+
+    const scored = (productsData as any[]).map(p => {
+      const rawName = (p.name || '').toLowerCase();
+      const cleanName = rawName.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const cleanCat = (p.category || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const cleanBrand = (p.brand || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+
+      let score = 0;
+      
+      // Khớp nguyên cụm từ khóa
+      if (cleanName.includes(cleanQ)) score += 40;
+
+      // Khớp từng từ
+      words.forEach(w => {
+        if (cleanName.includes(w)) score += 10;
+        if (cleanCat.includes(w)) score += 6;
+        if (cleanBrand.includes(w)) score += 4;
+      });
+
+      // Trọng số dòng máy iPhone đặc biệt
+      if (cleanQ.includes('18') && cleanName.includes('18')) score += 20;
+      if (cleanQ.includes('duo') && cleanName.includes('duo')) score += 20;
+      if (cleanQ.includes('17') && cleanName.includes('17')) score += 20;
+      if (cleanQ.includes('16') && cleanName.includes('16')) score += 20;
+      if (cleanQ.includes('15') && cleanName.includes('15')) score += 15;
+      if ((cleanQ.includes('s24') || cleanQ.includes('s 24')) && cleanName.includes('s24')) score += 20;
+      if ((cleanQ.includes('s25') || cleanQ.includes('s 25')) && cleanName.includes('s25')) score += 20;
+      if (cleanQ.includes('pin') && (cleanCat.includes('pin') || cleanName.includes('pin'))) score += 25;
+      if ((cleanQ.includes('cuong luc') || cleanQ.includes('kinh')) && cleanCat.includes('kinh')) score += 25;
+      if ((cleanQ.includes('op') || cleanQ.includes('case')) && cleanCat.includes('op')) score += 25;
+      if (cleanQ.includes('lens') && cleanCat.includes('lens')) score += 25;
+
+      return { product: p, score };
+    });
+
+    return scored
+      .filter(item => item.score > 8)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 8)
+      .map(item => item.product);
+  };
+
+  // Xây dựng kho tri thức thời gian thực cho System Prompt của Gemini AI
+  const buildSystemPrompt = (userQueryText?: string) => {
     const branchListStr = activeBranches
       .map(b => `- ${b.name}: ${b.address}`)
       .join('\n');
 
-    // Lấy mẫu các sản phẩm tiêu biểu theo danh mục
+    // Lấy mốc thời gian thực tại Việt Nam
+    const now = new Date();
+    const dayNames = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+    const currentDayName = dayNames[now.getDay()];
+    const currentDateStr = `${currentDayName}, ngày ${now.getDate().toString().padStart(2, '0')}/${(now.getMonth() + 1).toString().padStart(2, '0')}/${now.getFullYear()}`;
+    const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+    const currentYear = now.getFullYear();
+
+    // Tìm kiếm các sản phẩm khớp trực tiếp trong kho thực tế theo câu hỏi của khách
+    const matchedProducts = userQueryText ? searchRelevantProducts(userQueryText) : [];
+    let realTimeProductContext = '';
+    if (matchedProducts.length > 0) {
+      realTimeProductContext = `
+5. DỮ LIỆU TỒN KHO THỰC TẾ KHỚP TRỰC TIẾP VỚI YÊU CẦU CỦA KHÁCH (HÃY DÙNG TÊN VÀ GIÁ NIÊM YẾT CHÍNH XÁC NÀY ĐỂ BÁO KHÁCH):
+${matchedProducts.map(p => `- ${p.name} | Danh mục: ${p.category} | Hãng: ${p.brand || 'Chính hãng'} | Giá niêm yết: ${Number(p.price).toLocaleString('vi-VN')}đ`).join('\n')}
+(Nếu khách cần, cam kết shop luôn có sẵn tại quầy và hỗ trợ dán/thay máy miễn phí công)`;
+    }
+
+    // Các sản phẩm tiêu biểu đa dạng
     const sampleProducts = [
-      'Cường lực KingKong / Anank / URR chống va đập, chống nhìn trộm (giá từ 60k - 180k)',
-      'Lens Camera URR Sapphire bảo vệ mắt kính camera (giá 60k - 300k)',
-      'Ốp lưng Chống sốc, Magsafe, viền xi, chống ố vàng cho mọi dòng iPhone từ iP7 đến 16 Pro Max (giá từ 45k - 250k)',
-      'Củ sạc nhanh 20W, 35W, 65W GaN sạc siêu tốc chuẩn Power Delivery bảo hành 1 đổi 1 12 tháng',
+      'Cường lực KingKong / Anank / URR / Wiwu chống va đập, chống nhìn trộm (giá từ 60k - 180k)',
+      'Lens Camera URR Sapphire bảo vệ mắt kính camera siêu cứng (giá 45k - 300k)',
+      'Ốp lưng Chống sốc, Magsafe, viền xi, chống ố vàng cho đầy đủ các dòng iPhone (từ iPhone 7 đến iPhone 17 và iPhone 18 Series, iPhone Duo siêu hot vừa ra mắt) và Samsung, Xiaomi (giá từ 45k - 250k)',
+      'Củ sạc nhanh 20W, 30W, 35W, 65W GaN sạc siêu tốc chuẩn Power Delivery bảo hành 1 đổi 1 trong 12 tháng',
       'Cáp sạc bọc dù siêu bền Type-C, Lightning, 3-in-1 chống gãy đứt',
       'Tai nghe Bluetooth TWS pin trâu 6-8 tiếng, bass ấm (giá từ 180k - 450k)',
       'Pin dung lượng cao cho iPhone chính hãng Pisen / Deji bảo hành 12 tháng (giá từ 250k - 650k tùy dòng máy)',
@@ -120,6 +215,26 @@ Cứ nhắn cho Bé 8, em tư vấn chi tiết và tặng mình **E-Voucher gi�
     ].join('\n');
 
     return `BẠN LÀ "BÉ 8" - CHUYÊN VIÊN TƯ VẤN KHÁCH HÀNG AI DUYÊN DÁNG, NHIỆT TÌNH CỦA CHUỖI CỬA HÀNG PHỤ KIỆN 88 (HỆ THỐNG BÁN LẺ & SỬA CHỮA ĐIỆN THOẠI UY TÍN TẠI MIỀN TÂY & TP.HCM).
+
+==============================
+MỐC THỜI GIAN THỰC TẾ HỆ THỐNG:
+- Thời điểm trò chuyện: ${currentDateStr} lúc ${currentTimeStr} (Múi giờ Việt Nam GMT+7).
+- Năm hiện tại: NĂM ${currentYear}.
+
+NHẬN THỨC THỜI GIAN THỰC & ĐỊNH HƯỚNG DÒNG MÁY SMARTPHONE NĂM ${currentYear}:
+- Bạn LUÔN NHẬN THỨC RÕ hiện tại đang là tháng 10 năm ${currentYear}.
+- Về các dòng máy Apple iPhone mới nhất:
+  + Siêu phẩm ĐÌNH ĐÁM VỪA RA MẮT: Apple đã chính thức ra mắt thế hệ **iPhone 18 Series (iPhone 18, 18 Air/Slim, 18 Pro, 18 Pro Max)** và mẫu điện thoại màn hình gập đột phá **iPhone Duo**!
+  + Tình hình hàng hóa tại Phụ Kiện 88: Chuỗi Phụ Kiện 88 đã và đang liên tục về các lô ốp lưng Magsafe cao cấp, cường lực KingKong/URR, dán PPF full body và lens bảo vệ camera riêng cho iPhone 18 Series và iPhone Duo.
+  + Kịch bản tư vấn khi khách hỏi iPhone 18 hoặc iPhone Duo: 
+    * Hãy chúc mừng khách với giọng điệu hào hứng, phấn khởi vì khách sở hữu/quan tâm dòng máy đỉnh cao mới nhất của Apple.
+    * Xác nhận shop đang có sẵn hoặc các lô hàng ốp lưng/cường lực mới nhất đang liên tục cập bến 7 chi nhánh với giá ưu đãi cực tốt (khoảng 65k - 250k tùy dòng ốp chống sốc/Magsafe/viền xi).
+    * Khuyên khách để lại **Tên + Số Điện Thoại Zalo** để nhân viên quầy gửi ảnh mẫu thực tế các mẫu ốp ưng ý nhất và giữ hàng kích hoạt E-Voucher giảm 10% ngay cho mình!
+  + Với các dòng máy iPhone 17 Series, 16 Series, 15 Series... trở về trước: Shop luôn có sẵn kho 521 phụ kiện đầy đủ mọi mẫu mã tại quầy.
+- Về các dòng máy Samsung & Android:
+  + Các thế hệ hot nhất: Galaxy S24, S25 Series (S24/S25 Ultra, Plus), Galaxy Z Fold6, Z Flip6, Z Fold7...
+  + Shop có sẵn cường lực, ốp chống sốc, củ sạc siêu nhanh 25W/45W/65W GaN.
+==============================
 
 1. TÔN CHỈ PHỤC VỤ & PHONG CÁCH:
 - Luôn xưng "Bé 8" hoặc "em", gọi khách là "Anh/Chị" (hoặc "bạn").
@@ -137,12 +252,19 @@ ${sampleProducts}
 - Tổng kho có hơn 521 phụ kiện có sẵn tại quầy.
 - Miễn phí công dán cường lực & vệ sinh máy tại chỗ.
 - Bảo hành 1 đổi 1 trong 12 tháng với củ sạc, cáp sạc, tai nghe lỗi do nhà sản xuất.
+${realTimeProductContext}
 
 4. NHIỆM VỤ CHỐT SALE & XIN SỐ ĐIỆN THOẠI KHÉO LÉO (LEAD CAPTURE):
 - Khi khách hỏi giá, hỏi dòng máy, hoặc cần mua: Sau khi tư vấn sản phẩm phù hợp, hãy khuyên khách:
   "Dạ chi nhánh bên em đang có sẵn hàng, Anh/Chị cho em xin Tên và Số Điện Thoại Zalo để em gửi ảnh mẫu thực tế và kích hoạt mã giảm giá 10% giữ hàng cho mình trước nhé ạ!"
 - Nếu khách gửi số điện thoại trong tin nhắn (dạng 10 số 03x, 05x, 07x, 08x, 09x):
-  HÃY CẢM ƠN NỒNG NHIỆT, xác nhận đã tiếp nhận thông tin và hứa hẹn chi nhánh gần nhất sẽ gọi điện / nhắn Zalo hỗ trợ trong 3-5 phút tới!`;
+  HÃY CẢM ƠN NỒNG NHIỆT, xác nhận đã tiếp nhận thông tin và hứa hẹn chi nhánh gần nhất sẽ gọi điện / nhắn Zalo hỗ trợ trong 3-5 phút tới!
+
+5. QUY TẮC ĐỊNH DẠNG TIN NHẮN (THẨM MỸ & THÂN THIỆN):
+- TUYỆT ĐỐI HẠN CHẾ lạm dụng dấu sao (**). Không in đậm tràn lan từng chữ, từng dòng!
+- Chỉ in đậm tối đa 1-2 từ khóa then chốt (như Tên sản phẩm chính, Giá tiền hoặc Mã voucher).
+- TUYỆT ĐỐI KHÔNG dùng 3 dấu sao (***) hoặc bọc dấu sao quanh dấu gạch đầu dòng, dấu hai chấm.
+- Trình bày thông thoáng, tự nhiên, câu từ mạch lạc như một bạn chuyên viên quầy nhắn tin Zalo thân mật, không mang tính khuôn mẫu robot.`;
   };
 
   // Gửi tin nhắn đến Gemini AI
@@ -165,7 +287,7 @@ ${sampleProducts}
     const phoneMatch = text.match(/(0[3|5|7|8|9][0-9]{8})/);
     if (phoneMatch) {
       const extractedPhone = phoneMatch[1];
-      // Tự động lưu lead vào hệ thống kèm toàn bộ lịch sử tin nhắn
+      // Tự động lưu lead vào hệ thống kèm toàn bộ lịch sử tin nhắn và nguồn tracking
       submitCustomerLead({
         customerName: 'Khách hàng Web Chat',
         phone: extractedPhone,
@@ -173,7 +295,7 @@ ${sampleProducts}
         branchName: selectedBranch.name,
         branchId: selectedBranch.id,
         conversationSummary: `Khách cung cấp SĐT trong chat: "${text}"`,
-        source: 'web_chatbot_inline',
+        source: trackingSource || 'web_chatbot',
         chatMessages: [...messages, userMsgObj]
       });
     }
@@ -189,7 +311,7 @@ ${sampleProducts}
       `${m.sender === 'user' ? 'Khách hàng' : 'Bé 8'}: ${m.text}`
     ).join('\n\n');
 
-    const prompt = `${buildSystemPrompt()}
+    const prompt = `${buildSystemPrompt(text)}
 
 LỊCH SỬ CHAT TRƯỚC ĐÓ:
 ${chatHistory}
@@ -272,7 +394,7 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn c
       branchId: selectedBranch.id,
       voucherCode: voucher,
       conversationSummary: `Khách đăng ký qua Form E-Voucher. Nhu cầu: "${customerNeed || 'Chưa ghi chú'}"`,
-      source: 'web_voucher_modal',
+      source: trackingSource ? `${trackingSource}_voucher` : 'web_voucher_modal',
       chatMessages: messages
     });
 
@@ -352,9 +474,20 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
+              onClick={() => setShowLinkGenModal(true)}
+              title="Tạo Link & Mã QR Đa Kênh (Facebook, TikTok, Zalo, Bàn Shop)"
+              className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/20 to-rose-500/20 hover:from-amber-500/30 hover:to-rose-500/30 text-xs font-bold text-amber-300 border border-amber-500/40 transition-all cursor-pointer shadow-md shadow-amber-500/10"
+            >
+              <QrCode className="w-3.5 h-3.5 text-amber-400" />
+              <span className="hidden sm:inline">Tạo Link & QR</span>
+              <span className="sm:hidden">Tạo QR</span>
+            </button>
+
+            <button
+              type="button"
               onClick={handleCopyShareLink}
               title="Sao chép link chia sẻ Chatbot"
-              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 transition-all cursor-pointer"
+              className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 hover:text-white border border-slate-700 transition-all cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
               <span className="hidden sm:inline">{copiedLink ? 'Đã chép link' : 'Copy link'}</span>
@@ -455,8 +588,25 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
                     ? 'bg-slate-900 border border-slate-800 text-slate-100 rounded-tl-sm'
                     : 'bg-gradient-to-r from-rose-600 to-amber-600 text-white rounded-tr-sm font-medium'
                 }`}>
-                  <div className="whitespace-pre-line">
-                    {msg.text}
+                  <div className="chat-markdown leading-relaxed text-xs sm:text-sm">
+                    <ReactMarkdown
+                      remarkPlugins={[remarkGfm]}
+                      components={{
+                        p: ({ node, ...props }) => <p className="mb-2 last:mb-0 leading-relaxed" {...props} />,
+                        strong: ({ node, ...props }) => (
+                          <strong
+                            className={`font-bold ${isBe8 ? 'text-amber-300' : 'text-white'}`}
+                            {...props}
+                          />
+                        ),
+                        ul: ({ node, ...props }) => <ul className="space-y-1 my-1.5 pl-3 list-disc list-outside" {...props} />,
+                        ol: ({ node, ...props }) => <ol className="space-y-1 my-1.5 pl-3 list-decimal list-outside" {...props} />,
+                        li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
+                        a: ({ node, ...props }) => <a className="text-amber-300 underline font-semibold" target="_blank" rel="noreferrer" {...props} />
+                      }}
+                    >
+                      {msg.text}
+                    </ReactMarkdown>
                   </div>
 
                   {/* Nút hành động đính kèm nếu có voucher */}
@@ -690,6 +840,14 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
           </div>
         </div>
       )}
+
+      {/* 5. MODAL TẠO LINK & MÃ QR ĐA KÊNH */}
+      <LeadLinkGeneratorModal
+        isOpen={showLinkGenModal}
+        onClose={() => setShowLinkGenModal(false)}
+        branches={branches}
+        defaultBranchCode={selectedBranch.code}
+      />
     </div>
   );
 };
