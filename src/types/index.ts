@@ -197,6 +197,8 @@ export interface MarketingPost {
   created_at: string;
   views?: number;
   likes?: number;
+  comments?: number;
+  shares?: number;
   // --- Các trường mới từ update-mkt.md ---
   status?: MarketingPostStatus; // Mặc định 'approved' - bài lịch sử không bị ảnh hưởng
   reviewer_feedback?: string;

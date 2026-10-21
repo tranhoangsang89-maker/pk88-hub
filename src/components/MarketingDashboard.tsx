@@ -4,7 +4,7 @@ import {
   TrendingUp, Award, AlertTriangle, ExternalLink, Facebook, Youtube, 
   MessageCircle, Link as LinkIcon, Sparkles, Megaphone, Target, 
   Building2, Filter, RotateCcw, Eye, Heart, Edit3, Zap, Check, 
-  Camera, Upload, Loader2, X, RefreshCw, Calendar, Trash2
+  Camera, Upload, Loader2, X, RefreshCw, Calendar, Trash2, Share2
 } from 'lucide-react';
 import { AIContentStudioModal } from './AIContentStudioModal';
 import { detectPlatformFromUrl } from './MarketingModal';
@@ -20,7 +20,12 @@ interface MarketingDashboardProps {
     postId: string, 
     views: number, 
     likes: number, 
-    extra?: { post_url?: string; platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo' }
+    extra?: { 
+      post_url?: string; 
+      platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo';
+      comments?: number;
+      shares?: number;
+    }
   ) => Promise<void>;
   onDeletePost?: (postId: string) => Promise<void>;
 }
@@ -44,6 +49,8 @@ export function MarketingDashboard({
   const [editingPost, setEditingPost] = useState<MarketingPost | null>(null);
   const [editViews, setEditViews] = useState<number>(0);
   const [editLikes, setEditLikes] = useState<number>(0);
+  const [editComments, setEditComments] = useState<number>(0);
+  const [editShares, setEditShares] = useState<number>(0);
   const [editUrl, setEditUrl] = useState<string>('');
   const [editPlatform, setEditPlatform] = useState<'facebook' | 'tiktok' | 'youtube' | 'zalo'>('facebook');
   const [isSavingEdit, setIsSavingEdit] = useState<boolean>(false);
@@ -53,7 +60,13 @@ export function MarketingDashboard({
   const [showScannerModal, setShowScannerModal] = useState<boolean>(false);
   const [scanMode, setScanMode] = useState<'link' | 'image'>('link');
   const [isScanning, setIsScanning] = useState<boolean>(false);
-  const [scanResult, setScanResult] = useState<{ views: number; likes: number; note?: string } | null>(null);
+  const [scanResult, setScanResult] = useState<{ 
+    views: number; 
+    likes: number; 
+    comments?: number; 
+    shares?: number; 
+    note?: string 
+  } | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [scanStatusMsg, setScanStatusMsg] = useState<string>('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -97,6 +110,9 @@ export function MarketingDashboard({
   const totalPostsToday = dateFilteredPosts.length;
   const totalViewsToday = dateFilteredPosts.reduce((acc, p) => acc + (p.views || 0), 0);
   const totalLikesToday = dateFilteredPosts.reduce((acc, p) => acc + (p.likes || 0), 0);
+  const totalCommentsToday = dateFilteredPosts.reduce((acc, p) => acc + (p.comments || 0), 0);
+  const totalSharesToday = dateFilteredPosts.reduce((acc, p) => acc + (p.shares || 0), 0);
+  const totalEngagementToday = totalLikesToday + totalCommentsToday + totalSharesToday;
   
   // Platform stats
   const platformCounts = dateFilteredPosts.reduce((acc, post) => {
@@ -138,6 +154,8 @@ export function MarketingDashboard({
     setEditingPost(post);
     setEditViews(post.views || 0);
     setEditLikes(post.likes || 0);
+    setEditComments(post.comments || 0);
+    setEditShares(post.shares || 0);
     setEditUrl(post.post_url || '');
     setEditPlatform((post.platform as any) || 'facebook');
   };
@@ -159,7 +177,12 @@ export function MarketingDashboard({
         editingPost.id, 
         Math.max(0, Number(editViews) || 0), 
         Math.max(0, Number(editLikes) || 0),
-        { post_url: cleanUrl, platform: finalPlatform }
+        { 
+          post_url: cleanUrl, 
+          platform: finalPlatform,
+          comments: Math.max(0, Number(editComments) || 0),
+          shares: Math.max(0, Number(editShares) || 0)
+        }
       );
       setEditingPost(null);
     } catch (err) {
@@ -218,13 +241,14 @@ export function MarketingDashboard({
                 text: `Bạn là trợ lý AI đọc ảnh chụp màn hình bài viết mạng xã hội cho chuỗi Phụ Kiện 88.
 Hãy quan sát thật kỹ ảnh chụp màn hình bài viết (${scanningPost.platform}):
 1. Tìm khu vực tương tác (thường ở góc dưới bên trái hoặc dưới bài viết):
-   - Đọc chính xác số lượt thích / thả tim (likes / reactions) hiển thị cạnh biểu tượng ngón tay 👍 hoặc trái tim ❤️.
-   - Đọc số bình luận và chia sẻ nếu có.
+   - Đọc chính xác số lượt thích / thả tim (likes / reactions) cạnh 👍 hoặc ❤️.
+   - Đọc chính xác số bình luận (comments) cạnh biểu tượng bong bóng chat 💬.
+   - Đọc chính xác số lượt chia sẻ (shares) cạnh biểu tượng mũi tên ↗️ hoặc 🔄.
 2. Số lượt xem (views):
-   - Nếu là video/Reels: đọc số view hiển thị.
-   - Nếu là bài viết ảnh (Facebook thường không hiện số view công khai): hãy tính views ước lượng = (số likes * 15) đến (số likes * 25).
+   - Nếu là video/Reels/TikTok: đọc số view hiển thị.
+   - Nếu là bài viết ảnh (Facebook thường không hiện số view công khai): hãy tính views ước lượng = Math.max((likes + comments + shares) * 12, likes * 10).
 Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác ngoài JSON:
-{"views": <số_nguyên>, "likes": <số_nguyên>, "note": "<ghi_chú_ngắn_về_số_đọc_được>"}`
+{"views": <số_nguyên>, "likes": <số_nguyên>, "comments": <số_nguyên>, "shares": <số_nguyên>, "note": "<ghi_chú_ngắn_về_số_đọc_được>"}`
               },
               {
                 inline_data: {
@@ -266,6 +290,8 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
           setScanResult({
             views: Math.max(0, Number(parsed.views) || 0),
             likes: Math.max(0, Number(parsed.likes) || 0),
+            comments: Math.max(0, Number(parsed.comments) || 0),
+            shares: Math.max(0, Number(parsed.shares) || 0),
             note: parsed.note || 'AI đã nhận diện thành công từ ảnh chụp thực tế'
           });
           setScanStatusMsg('✅ Đã quét xong từ ảnh chụp!');
@@ -274,6 +300,8 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
           setScanResult({
             views: 0,
             likes: 0,
+            comments: 0,
+            shares: 0,
             note: '⚠️ Không nhận diện rõ số tương tác trong ảnh chụp. Vui lòng chụp rõ khu vực lượt thích/lượt xem hoặc nhập tay số liệu!'
           });
           setScanStatusMsg('⚠️ Không đọc được ảnh. Vui lòng thử lại hoặc gõ tay!');
@@ -305,6 +333,8 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
           setScanResult({
             views: Number(scrapedData.views) || 0,
             likes: Number(scrapedData.likes) || 0,
+            comments: Number(scrapedData.comments) || 0,
+            shares: Number(scrapedData.shares) || 0,
             note: isFacebookPhoto
               ? `Bóc tách chuẩn xác Facebook: ${extraInfo}. (Lưu ý: Facebook không hiện lượt xem bài ảnh, số view là ước lượng reach - bạn có thể chỉnh tay số nếu cần)`
               : `Bóc tách chuẩn xác từ link ${scanningPost.platform.toUpperCase()} (${extraInfo}) - Nguồn: ${scrapedData.source}`
@@ -321,6 +351,8 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
           setScanResult({
             views: 0,
             likes: 0,
+            comments: 0,
+            shares: 0,
             note: `⚠️ ${platformName} đang chặn bảo mật link này. Vui lòng dùng tab [📷 Quét từ Ảnh chụp] hoặc tự gõ số tay!`
           });
           setScanStatusMsg(`⚠️ ${platformName} chặn cào link. Vui lòng quét bằng ảnh chụp!`);
@@ -338,9 +370,18 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
   const handleApplyScanResult = async () => {
     if (!scanningPost || !scanResult || !onUpdatePost) return;
     try {
-      await onUpdatePost(scanningPost.id, scanResult.views, scanResult.likes);
+      await onUpdatePost(
+        scanningPost.id, 
+        scanResult.views, 
+        scanResult.likes,
+        {
+          comments: scanResult.comments || 0,
+          shares: scanResult.shares || 0
+        }
+      );
       setShowScannerModal(false);
       setScanResult(null);
+      setImagePreview(null);
     } catch (err) {
       console.error('Apply scan result error:', err);
     }
@@ -499,15 +540,24 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
             </div>
           </div>
 
-          {/* Card 3: TỔNG TƯƠNG TÁC (LIKES) */}
+          {/* Card 3: TỔNG TƯƠNG TÁC (LIKES + COMMENTS + SHARES) */}
           <div className="bg-gradient-to-br from-rose-950/60 to-slate-900 border border-rose-500/40 rounded-2xl p-4 flex flex-col justify-between shadow-lg shadow-rose-950/30">
-            <div className="flex items-center justify-between text-rose-300 mb-2">
+            <div className="flex items-center justify-between text-rose-300 mb-1">
               <span className="text-xs font-bold">Tổng Tương Tác</span>
               <Heart className="w-4 h-4 text-rose-400 fill-rose-500/20" />
             </div>
-            <div className="text-2xl font-black text-rose-300 tracking-tight">
-              {totalLikesToday.toLocaleString('vi-VN')}
-              <span className="text-[11px] text-rose-400/80 font-normal ml-1">lượt</span>
+            <div>
+              <div className="text-2xl font-black text-rose-300 tracking-tight">
+                {totalEngagementToday.toLocaleString('vi-VN')}
+                <span className="text-[11px] text-rose-400/80 font-normal ml-1">tương tác</span>
+              </div>
+              <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-1 font-mono flex-wrap">
+                <span className="text-rose-300" title="Lượt Thích">{totalLikesToday.toLocaleString('vi-VN')} 👍</span>
+                <span>•</span>
+                <span className="text-sky-300" title="Bình Luận">{totalCommentsToday.toLocaleString('vi-VN')} 💬</span>
+                <span>•</span>
+                <span className="text-emerald-300" title="Chia Sẻ">{totalSharesToday.toLocaleString('vi-VN')} ↗️</span>
+              </div>
             </div>
           </div>
 
@@ -566,17 +616,34 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
             </div>
           </div>
 
-          <div className="bg-slate-900 border border-rose-800/40 rounded-2xl p-4 flex items-center gap-3">
-            <div className="w-10 h-10 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center border border-rose-500/30 shrink-0">
-              <Heart className="w-5 h-5" />
-            </div>
-            <div>
-              <div className="text-xs text-slate-400">Tương Tác Của Shop</div>
-              <div className="text-lg font-bold text-rose-300">
-                {dateFilteredPosts.filter(p => p.branch_id === currentBranch.id).reduce((s, p) => s + (p.likes || 0), 0).toLocaleString('vi-VN')} lượt
+          {(() => {
+            const myBranchPosts = dateFilteredPosts.filter(p => p.branch_id === currentBranch.id);
+            const myLikes = myBranchPosts.reduce((s, p) => s + (p.likes || 0), 0);
+            const myComments = myBranchPosts.reduce((s, p) => s + (p.comments || 0), 0);
+            const myShares = myBranchPosts.reduce((s, p) => s + (p.shares || 0), 0);
+            const myEngagement = myLikes + myComments + myShares;
+
+            return (
+              <div className="bg-slate-900 border border-rose-800/40 rounded-2xl p-4 flex items-center gap-3">
+                <div className="w-10 h-10 bg-rose-500/20 text-rose-400 rounded-xl flex items-center justify-center border border-rose-500/30 shrink-0">
+                  <Heart className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="text-xs text-slate-400">Tương Tác Của Shop</div>
+                  <div className="text-lg font-bold text-rose-300">
+                    {myEngagement.toLocaleString('vi-VN')} <span className="text-xs font-normal text-slate-400">lượt</span>
+                  </div>
+                  <div className="text-[10px] text-slate-400 flex items-center gap-1 font-mono mt-0.5">
+                    <span className="text-rose-300">{myLikes} 👍</span>
+                    <span>•</span>
+                    <span className="text-sky-300">{myComments} 💬</span>
+                    <span>•</span>
+                    <span className="text-emerald-300">{myShares} ↗️</span>
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
+            );
+          })()}
         </div>
       )}
 
@@ -601,6 +668,7 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                     <th className="px-3 py-3 font-medium text-center">YouTube</th>
                     <th className="px-3 py-3 font-medium text-center">Tổng bài</th>
                     <th className="px-3 py-3 font-medium text-center">Tổng View</th>
+                    <th className="px-3 py-3 font-medium text-center">Tương tác</th>
                     <th className="px-3 py-3 font-medium text-center">Trạng thái</th>
                   </tr>
                 </thead>
@@ -613,6 +681,10 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                     const ytCount = branchPosts.filter(p => p.platform === 'youtube').length;
                     const total = branchPosts.length;
                     const branchViews = branchPosts.reduce((s, p) => s + (p.views || 0), 0);
+                    const branchLikes = branchPosts.reduce((s, p) => s + (p.likes || 0), 0);
+                    const branchComments = branchPosts.reduce((s, p) => s + (p.comments || 0), 0);
+                    const branchShares = branchPosts.reduce((s, p) => s + (p.shares || 0), 0);
+                    const branchEngagement = branchLikes + branchComments + branchShares;
                     
                     const isZero = total === 0;
                     const isReached = total >= 2;
@@ -636,6 +708,20 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                           <span className="text-xs font-semibold text-cyan-300">
                             {branchViews > 0 ? branchViews.toLocaleString('vi-VN') : '-'}
                           </span>
+                        </td>
+                        <td className="px-3 py-3 text-center">
+                          {branchEngagement > 0 ? (
+                            <div className="flex flex-col items-center">
+                              <span className="text-xs font-bold text-rose-300">
+                                {branchEngagement.toLocaleString('vi-VN')}
+                              </span>
+                              <span className="text-[10px] text-slate-400 font-mono whitespace-nowrap">
+                                {branchLikes}👍 {branchComments}💬 {branchShares}↗️
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-600">-</span>
+                          )}
                         </td>
                         <td className="px-3 py-3 text-center">
                           {isReached ? (
@@ -802,15 +888,23 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                     )}
                   </div>
 
-                  {/* HUY HIỆU ĐO LƯỜNG VIEW VÀ LIKE & TRẠNG THÁI DUYỆT */}
+                  {/* HUY HIỆU ĐO LƯỜNG VIEW, LIKE, CMT, SHARE & TRẠNG THÁI DUYỆT */}
                   <div className="flex items-center gap-1.5 my-2 flex-wrap">
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-[11px] font-semibold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 text-[11px] font-semibold" title="Lượt xem bài viết">
                       <Eye className="w-3 h-3 text-cyan-400" />
                       {(post.views || 0).toLocaleString('vi-VN')} views
                     </span>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-950/80 border border-rose-800/60 text-rose-300 text-[11px] font-semibold">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-rose-950/80 border border-rose-800/60 text-rose-300 text-[11px] font-semibold" title="Lượt thích / bày tỏ cảm xúc">
                       <Heart className="w-3 h-3 text-rose-400" />
                       {(post.likes || 0).toLocaleString('vi-VN')} thích
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-sky-950/80 border border-sky-800/60 text-sky-300 text-[11px] font-semibold" title="Lượt bình luận">
+                      <MessageCircle className="w-3 h-3 text-sky-400" />
+                      {(post.comments || 0).toLocaleString('vi-VN')} cmt
+                    </span>
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-emerald-950/80 border border-emerald-800/60 text-emerald-300 text-[11px] font-semibold" title="Lượt chia sẻ">
+                      <Share2 className="w-3 h-3 text-emerald-400" />
+                      {(post.shares || 0).toLocaleString('vi-VN')} share
                     </span>
                     {post.status === 'pending_review' && (
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 border border-amber-500/40 text-amber-300 text-[10px] font-semibold animate-pulse">
@@ -946,32 +1040,64 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-cyan-300 mb-1 flex items-center gap-1">
-                  <Eye className="w-3.5 h-3.5" /> Số Lượt Xem (Views)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editViews}
-                  onChange={(e) => setEditViews(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500 text-sm"
-                  placeholder="Ví dụ: 2500"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-cyan-300 mb-1 flex items-center gap-1">
+                    <Eye className="w-3.5 h-3.5" /> Lượt Xem (Views)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editViews}
+                    onChange={(e) => setEditViews(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-cyan-500 text-sm"
+                    placeholder="Ví dụ: 2500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-rose-300 mb-1 flex items-center gap-1">
+                    <Heart className="w-3.5 h-3.5" /> Thích (Likes)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editLikes}
+                    onChange={(e) => setEditLikes(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-rose-500 text-sm"
+                    placeholder="Ví dụ: 180"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-rose-300 mb-1 flex items-center gap-1">
-                  <Heart className="w-3.5 h-3.5" /> Số Lượt Tương Tác / Like
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  value={editLikes}
-                  onChange={(e) => setEditLikes(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-rose-500 text-sm"
-                  placeholder="Ví dụ: 180"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-medium text-sky-300 mb-1 flex items-center gap-1">
+                    <MessageCircle className="w-3.5 h-3.5" /> Bình Luận (Comments)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editComments}
+                    onChange={(e) => setEditComments(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-sky-500 text-sm"
+                    placeholder="Ví dụ: 25"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-emerald-300 mb-1 flex items-center gap-1">
+                    <Share2 className="w-3.5 h-3.5" /> Chia Sẻ (Shares)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    value={editShares}
+                    onChange={(e) => setEditShares(Number(e.target.value))}
+                    className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-slate-100 font-bold focus:outline-none focus:border-emerald-500 text-sm"
+                    placeholder="Ví dụ: 12"
+                  />
+                </div>
               </div>
             </div>
 
@@ -981,8 +1107,12 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
               onClick={() => {
                 const estViews = editingPost.platform === 'tiktok' ? 1800 : editingPost.platform === 'facebook' ? 650 : 420;
                 const estLikes = Math.round(estViews * 0.08);
+                const estCmt = Math.round(estViews * 0.015);
+                const estShr = Math.round(estViews * 0.005);
                 setEditViews(estViews);
                 setEditLikes(estLikes);
+                setEditComments(estCmt);
+                setEditShares(estShr);
               }}
               className="w-full py-1.5 px-3 bg-purple-950/40 hover:bg-purple-900/40 text-purple-300 border border-purple-800/50 rounded-xl text-xs flex items-center justify-center gap-1.5 transition-colors font-medium"
             >
@@ -1154,33 +1284,61 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
                   <span className="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Thành công</span>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 text-center">
-                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-cyan-800/50">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-center">
+                  <div className="bg-slate-900/80 p-2 rounded-xl border border-cyan-800/50">
                     <div className="text-[10px] text-cyan-400 flex items-center justify-center gap-1 mb-1 font-semibold">
-                      <Eye className="w-3 h-3" /> Lượt Xem (Views)
+                      <Eye className="w-3 h-3" /> Lượt Xem
                     </div>
                     <input
                       type="number"
                       min="0"
                       value={scanResult.views}
                       onChange={(e) => setScanResult({ ...scanResult, views: Math.max(0, Number(e.target.value)) })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-2 text-center text-cyan-300 font-black text-lg focus:outline-none focus:border-cyan-500 font-mono"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-1 text-center text-cyan-300 font-black text-base focus:outline-none focus:border-cyan-500 font-mono"
                     />
-                    <div className="text-[9px] text-slate-500 mt-1">Bấm để chỉnh số</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Sửa số</div>
                   </div>
 
-                  <div className="bg-slate-900/80 p-2.5 rounded-xl border border-rose-800/50">
+                  <div className="bg-slate-900/80 p-2 rounded-xl border border-rose-800/50">
                     <div className="text-[10px] text-rose-400 flex items-center justify-center gap-1 mb-1 font-semibold">
-                      <Heart className="w-3 h-3" /> Lượt Tương Tác (Likes)
+                      <Heart className="w-3 h-3" /> Thích
                     </div>
                     <input
                       type="number"
                       min="0"
                       value={scanResult.likes}
                       onChange={(e) => setScanResult({ ...scanResult, likes: Math.max(0, Number(e.target.value)) })}
-                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-2 text-center text-rose-300 font-black text-lg focus:outline-none focus:border-rose-500 font-mono"
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-1 text-center text-rose-300 font-black text-base focus:outline-none focus:border-rose-500 font-mono"
                     />
-                    <div className="text-[9px] text-slate-500 mt-1">Bấm để chỉnh số</div>
+                    <div className="text-[9px] text-slate-500 mt-0.5">Sửa số</div>
+                  </div>
+
+                  <div className="bg-slate-900/80 p-2 rounded-xl border border-sky-800/50">
+                    <div className="text-[10px] text-sky-400 flex items-center justify-center gap-1 mb-1 font-semibold">
+                      <MessageCircle className="w-3 h-3" /> Bình luận
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={scanResult.comments || 0}
+                      onChange={(e) => setScanResult({ ...scanResult, comments: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-1 text-center text-sky-300 font-black text-base focus:outline-none focus:border-sky-500 font-mono"
+                    />
+                    <div className="text-[9px] text-slate-500 mt-0.5">Sửa số</div>
+                  </div>
+
+                  <div className="bg-slate-900/80 p-2 rounded-xl border border-emerald-800/50">
+                    <div className="text-[10px] text-emerald-400 flex items-center justify-center gap-1 mb-1 font-semibold">
+                      <Share2 className="w-3 h-3" /> Chia sẻ
+                    </div>
+                    <input
+                      type="number"
+                      min="0"
+                      value={scanResult.shares || 0}
+                      onChange={(e) => setScanResult({ ...scanResult, shares: Math.max(0, Number(e.target.value)) })}
+                      className="w-full bg-slate-950 border border-slate-700 rounded-lg py-1 px-1 text-center text-emerald-300 font-black text-base focus:outline-none focus:border-emerald-500 font-mono"
+                    />
+                    <div className="text-[9px] text-slate-500 mt-0.5">Sửa số</div>
                   </div>
                 </div>
 

@@ -1119,10 +1119,17 @@ export function App() {
     postId: string, 
     views: number, 
     likes: number, 
-    extra?: { post_url?: string; platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo' }
+    extra?: { 
+      post_url?: string; 
+      platform?: 'facebook' | 'tiktok' | 'youtube' | 'zalo';
+      comments?: number;
+      shares?: number;
+    }
   ) => {
     try {
       const updateData: any = { views, likes };
+      if (extra?.comments !== undefined) updateData.comments = extra.comments;
+      if (extra?.shares !== undefined) updateData.shares = extra.shares;
       if (extra?.post_url) updateData.post_url = extra.post_url;
       if (extra?.platform) updateData.platform = extra.platform;
 
@@ -1133,7 +1140,7 @@ export function App() {
         return updated;
       });
 
-      // 2. Đồng bộ lên Supabase database
+      // 2. Đồng bộ lên Supabase database (có fallback an toàn tuyệt đối)
       const { error } = await supabase
         .from('marketing_posts')
         .update(updateData)
@@ -1141,6 +1148,13 @@ export function App() {
 
       if (error) {
         console.warn('Supabase update marketing post error:', error.message);
+        // Nếu DB Supabase chưa chạy migration cột comments/shares, tự động fallback chỉ update views và likes để không gián đoạn
+        if (error.message?.includes('column') || (error as any).code === 'PGRST204') {
+          const safeData: any = { views, likes };
+          if (extra?.post_url) safeData.post_url = extra.post_url;
+          if (extra?.platform) safeData.platform = extra.platform;
+          await supabase.from('marketing_posts').update(safeData).eq('id', postId);
+        }
       }
     } catch (err) {
       console.error('Update marketing post exception:', err);
