@@ -36,10 +36,11 @@ import {
   Maximize2,
   ChevronDown,
   ChevronUp,
-  X
+  X,
+  Lock
 } from 'lucide-react';
 import { AttendanceDisputeModal } from './AttendanceDisputeModal';
-import { getAllAssignments } from '../lib/shiftService';
+import { getAllAssignments, fetchShiftAssignmentsFromCloud } from '../lib/shiftService';
 import { CleanlinessReportModal } from './CleanlinessReportModal';
 import { fetchCleanlinessReports, fetchMonthlyCleanlinessStats } from '../lib/cleanlinessService';
 
@@ -204,11 +205,38 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     return `${year}-${month}-${day}`;
   }, []);
 
+  // Lịch phân ca (Tự động kéo từ Supabase Cloud và đồng bộ LocalStorage)
+  const [activeShiftAssignments, setActiveShiftAssignments] = useState<any[]>(() => getAllAssignments());
+
+  useEffect(() => {
+    // 1. Tải ngay lập tức từ LocalStorage
+    setActiveShiftAssignments(getAllAssignments());
+
+    // 2. Kéo bản cập nhật mới nhất từ Supabase Cloud
+    let isMounted = true;
+    fetchShiftAssignmentsFromCloud().then(cloudList => {
+      if (isMounted && cloudList && cloudList.length > 0) {
+        setActiveShiftAssignments(cloudList);
+      }
+    });
+
+    const handleShiftUpdated = () => {
+      setActiveShiftAssignments(getAllAssignments());
+    };
+    window.addEventListener('pk88_shift_assignments_updated', handleShiftUpdated);
+    window.addEventListener('storage', handleShiftUpdated);
+
+    return () => {
+      isMounted = false;
+      window.removeEventListener('pk88_shift_assignments_updated', handleShiftUpdated);
+      window.removeEventListener('storage', handleShiftUpdated);
+    };
+  }, [currentStaff.id, currentBranch.id]);
+
   // Tìm kiếm ca làm việc đã được xếp trước trên Ma Trận Chia Ca cho hôm nay
   const rawTodayAssignment = React.useMemo(() => {
     try {
-      const all = getAllAssignments();
-      return all.find(a => {
+      return activeShiftAssignments.find(a => {
         const matchId = a.staffId === currentStaff.id;
         const matchPhone = !!a.staffPhone && !!currentStaff.phone && a.staffPhone.trim() === currentStaff.phone.trim();
         const matchName = !!a.staffName && !!currentStaff.fullName && a.staffName.trim().toLowerCase() === currentStaff.fullName.trim().toLowerCase();
@@ -217,7 +245,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
     } catch (e) {
       return null;
     }
-  }, [currentStaff.id, currentStaff.phone, currentStaff.fullName, todayYmd]);
+  }, [activeShiftAssignments, currentStaff.id, currentStaff.phone, currentStaff.fullName, todayYmd]);
 
   const isTodayOff = rawTodayAssignment?.status === 'OFF';
   const todayAssignment = rawTodayAssignment && rawTodayAssignment.status !== 'OFF' ? rawTodayAssignment : null;
@@ -664,7 +692,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
 
     let targetMinutes = 0;
     // Ưu tiên 1: Lấy trực tiếp giờ bắt đầu của ca đã được sắp xếp từ trước
-    if (todayAssignment && !isOverrideShift && todayAssignment.startTime) {
+    if (todayAssignment && todayAssignment.startTime) {
       const [sH, sM] = todayAssignment.startTime.split(':').map(Number);
       targetMinutes = sH * 60 + sM;
     } else if (shift === 'CA_SANG') targetMinutes = 7 * 60; // 07:00
@@ -843,7 +871,7 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       // VAO CA (Check-in)
       const { isLate, lateMinutes } = checkLateArrival(selectedShift, now);
       const lateNote = isLate ? ` | Đi trễ ${lateMinutes} phút` : ' | Đúng giờ';
-      const shiftDisplayName = (todayAssignment && !isOverrideShift)
+      const shiftDisplayName = todayAssignment
         ? `${todayAssignment.shiftName} (${todayAssignment.startTime} - ${todayAssignment.endTime})`
         : selectedShift === 'TUY_CHINH'
         ? `Ca Tùy Chỉnh (${customStartTime} - ${customEndTime})`
@@ -1230,20 +1258,21 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
       {/* 1. KHU VỰC CA LÀM VIỆC CỦA BẠN (Ưu tiên ca đã được xếp lịch) */}
       {!isCurrentlyCheckedIn && (
         <div className="space-y-3">
-          {/* TRƯỜNG HỢP 1: CÓ CA ĐÃ ĐƯỢC XẾP TRƯỚC (SCHEDULED) VÀ CHƯA CHỌN ĐỔI CA */}
-          {todayAssignment && !isOverrideShift ? (
+          {/* TRƯỜNG HỢP 1: CÓ CA ĐÃ ĐƯỢC XẾP TRƯỚC (SCHEDULED) -> BẮT BUỘC 100% THEO LỊCH, KHÓA CỨNG */}
+          {todayAssignment ? (
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-extrabold text-cyan-300 uppercase tracking-wider flex items-center gap-1.5">
-                  <span className="w-2 h-2 rounded-full bg-cyan-400 animate-ping"></span>
-                  <span>1. CA LÀM VIỆC ĐÃ ĐƯỢC XẾP LỊCH HÔM NAY</span>
+                  <Lock className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>1. CA LÀM VIỆC ĐƯỢC PHÂN CÔNG (BẮT BUỘC THEO LỊCH)</span>
                 </label>
-                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold">
-                  ✓ ĐÃ LÊN LỊCH
+                <span className="text-[10px] font-mono px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1">
+                  <Lock className="w-3 h-3 text-cyan-400" />
+                  <span>LỊCH ĐÃ DUYỆT • KHÓA CỐ ĐỊNH</span>
                 </span>
               </div>
 
-              {/* Thẻ Ca VIP Đã Được Xếp Lịch */}
+              {/* Thẻ Ca Bắt Buộc Theo Lịch Đã Phân */}
               <div className="p-4 rounded-2xl bg-gradient-to-r from-cyan-950/80 via-slate-900 to-indigo-950/80 border-2 border-cyan-500/60 shadow-xl shadow-cyan-500/10 space-y-3">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -1273,25 +1302,19 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
                   <div className="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-2 sm:pt-0 border-slate-800">
                     <span className="text-xs font-black text-emerald-400 flex items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2.5 py-1 rounded-full shadow-sm">
                       <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>Đã tự động chọn</span>
+                      <span>Bắt buộc theo lịch</span>
                     </span>
                     <span className="text-[10px] text-slate-400 mt-1">Tính trễ sau {todayAssignment.startTime}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
-                  <span className="text-[11px] text-slate-400">Được quản lý đổi ca hoặc làm thêm ca khác?</span>
-                  <button
-                    type="button"
-                    onClick={() => setIsOverrideShift(true)}
-                    className="text-[11px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
-                  >
-                    ▼ Đổi ca khác / Tùy chỉnh
-                  </button>
+                <div className="p-2.5 rounded-xl bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>Ca làm việc đã được Quản lý / CHT phê duyệt cố định trên Ma Trận Chia Ca. Bạn bắt buộc chấm công đúng ca này theo quy định công ty.</span>
                 </div>
               </div>
             </div>
-          ) : isTodayOff && !isOverrideShift ? (
+          ) : isTodayOff ? (
             /* TRƯỜNG HỢP 2: LỊCH HÔM NAY LÀ NGÀY NGHỈ (OFF) */
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -1332,22 +1355,13 @@ export const AttendanceCard: React.FC<AttendanceCardProps> = ({
               </div>
             </div>
           ) : (
-            /* TRƯỜNG HỢP 3: CHƯA CÓ LỊCH HOẶC ĐANG CHỌN ĐỔI CA THỦ CÔNG */
+            /* TRƯỜNG HỢP 3: CHƯA CÓ LỊCH PHÂN TRÊN MA TRẬN */
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <label className="text-xs font-extrabold text-slate-300 uppercase tracking-wider block">
                   1. CHỌN CA LÀM VIỆC CỦA BẠN
                 </label>
                 <div className="flex items-center gap-2">
-                  {todayAssignment && isOverrideShift && (
-                    <button
-                      type="button"
-                      onClick={() => setIsOverrideShift(false)}
-                      className="text-[10px] font-bold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
-                    >
-                      ▲ Dùng lại ca được xếp ({todayAssignment.shiftName})
-                    </button>
-                  )}
                   <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-slate-800 text-slate-400 border border-slate-700/60">
                     {isOffice ? '🏢 Khối Văn Phòng' : '🏪 Khối Chi Nhánh'}
                   </span>
