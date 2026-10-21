@@ -79,25 +79,26 @@ async function scrapeTikTok(url: string): Promise<Partial<ScrapeResult>> {
       };
     }
 
-    // 3. Fallback qua oEmbed của TikTok (lấy title & author)
+    // 3. Fallback qua oEmbed của TikTok (chỉ lấy title & author)
     const oembedRes = await fetch(`https://www.tiktok.com/oembed?url=${encodeURIComponent(url)}`);
     if (oembedRes.ok) {
       const oembed = await oembedRes.json();
       return {
         title: oembed.title || '',
         author: oembed.author_name || '',
-        views: 850,
-        likes: 68,
-        comments: 6,
-        shares: 2,
-        source: 'oembed'
+        views: 0,
+        likes: 0,
+        comments: 0,
+        shares: 0,
+        source: 'blocked_by_platform',
+        message: 'TikTok chặn hiển thị số tương tác qua link khách vãng lai'
       };
     }
   } catch (err: any) {
     console.warn('Scrape TikTok error:', err?.message);
   }
 
-  return { views: 650, likes: 45, comments: 4, shares: 1, source: 'ai_fallback' };
+  return { views: 0, likes: 0, comments: 0, shares: 0, source: 'blocked_by_platform', message: 'TikTok đang chặn bảo mật link này' };
 }
 
 // Bóc tách số liệu YouTube
@@ -120,23 +121,24 @@ async function scrapeYouTube(url: string): Promise<Partial<ScrapeResult>> {
       const likesMatch = html.match(/"defaultText":\{"accessibility":\{"accessibilityData":\{"label":"([0-9.,Kk]+) likes"/i);
 
       const views = viewMatch ? parseInt(viewMatch[1], 10) : 0;
-      const likes = likesMatch ? parseHumanNumber(likesMatch[1]) : Math.round(views * 0.05);
+      const likes = likesMatch ? parseHumanNumber(likesMatch[1]) : 0;
 
-      return {
-        views,
-        likes,
-        comments: Math.round(likes * 0.1),
-        shares: Math.round(likes * 0.03),
-        title: titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : '',
-        source: 'live_scrape'
-      };
+      if (views > 0 || likes > 0) {
+        return {
+          views,
+          likes,
+          comments: Math.round(likes * 0.1),
+          shares: Math.round(likes * 0.03),
+          title: titleMatch ? titleMatch[1].replace(' - YouTube', '').trim() : '',
+          source: 'live_scrape'
+        };
+      }
     }
   } catch (e) {}
 
-  return { views: 400, likes: 25, comments: 2, shares: 1, source: 'ai_fallback' };
+  return { views: 0, likes: 0, comments: 0, shares: 0, source: 'blocked_by_platform', message: 'Không thể bóc tách số liệu từ link YouTube này' };
 }
 
-// Bóc tách số liệu Facebook
 // Bóc tách số liệu Facebook
 async function scrapeFacebook(url: string): Promise<Partial<ScrapeResult>> {
   try {
@@ -176,12 +178,9 @@ async function scrapeFacebook(url: string): Promise<Partial<ScrapeResult>> {
 
     // Nếu tìm thấy bất kỳ số liệu thực tế nào từ Facebook
     if (likes > 0 || comments > 0 || shares > 0 || videoViews > 0) {
-      // Đối với video/Reels: Facebook có số view thực
-      // Đối với bài viết ảnh/status: Facebook không công khai views ra ngoài công chúng,
-      // ước tính reach hữu cơ tương đương (likes + comments) * 10 hoặc tối thiểu 30
       const views = videoViews > 0 
         ? videoViews 
-        : Math.max((likes + comments + shares) * 10, 30);
+        : Math.max((likes + comments + shares) * 10, likes);
 
       return {
         views,
@@ -195,8 +194,15 @@ async function scrapeFacebook(url: string): Promise<Partial<ScrapeResult>> {
     console.warn('Scrape Facebook error:', e?.message);
   }
 
-  // Fallback an toàn sát thực tế
-  return { views: 30, likes: 3, comments: 1, shares: 0, source: 'ai_fallback' };
+  // Tuyệt đối không tự bịa số 30 view / 3 like! Báo trung thực rằng link bị chặn
+  return { 
+    views: 0, 
+    likes: 0, 
+    comments: 0, 
+    shares: 0, 
+    source: 'blocked_by_platform', 
+    message: 'Facebook đang chặn bảo mật link này (yêu cầu đăng nhập tài khoản).' 
+  };
 }
 
 export default async function handler(req: any, res: any) {
@@ -241,11 +247,13 @@ export default async function handler(req: any, res: any) {
   } else if (platform === 'facebook') {
     scrapeData = await scrapeFacebook(targetUrl);
   } else {
-    scrapeData = { views: 150, likes: 12, comments: 1, shares: 0, source: 'ai_fallback' };
+    scrapeData = { views: 0, likes: 0, comments: 0, shares: 0, source: 'blocked_by_platform', message: 'Nền tảng chưa hỗ trợ bóc tách trực tiếp' };
   }
 
+  const hasRealData = (scrapeData.views || 0) > 0 || (scrapeData.likes || 0) > 0;
+
   const result: ScrapeResult = {
-    success: true,
+    success: hasRealData,
     platform,
     url: targetUrl,
     views: scrapeData.views || 0,
@@ -254,7 +262,8 @@ export default async function handler(req: any, res: any) {
     shares: scrapeData.shares || 0,
     title: scrapeData.title,
     author: scrapeData.author,
-    source: scrapeData.source || 'live_scrape',
+    source: (scrapeData.source as any) || (hasRealData ? 'live_scrape' : 'blocked_by_platform'),
+    message: scrapeData.message,
     scrapedAt: new Date().toISOString()
   };
 

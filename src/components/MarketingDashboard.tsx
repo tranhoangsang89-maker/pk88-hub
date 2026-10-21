@@ -270,13 +270,13 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
           });
           setScanStatusMsg('✅ Đã quét xong từ ảnh chụp!');
         } else {
-          // Fallback
+          // Khi không đọc được ảnh: Báo trung thực, KHÔNG tự bịa số liệu
           setScanResult({
-            views: 150,
-            likes: 10,
-            note: 'Không nhận diện rõ ảnh, tạo số liệu ước tính'
+            views: 0,
+            likes: 0,
+            note: '⚠️ Không nhận diện rõ số tương tác trong ảnh chụp. Vui lòng chụp rõ khu vực lượt thích/lượt xem hoặc nhập tay số liệu!'
           });
-          setScanStatusMsg('⚠️ Hoàn tất phân tích.');
+          setScanStatusMsg('⚠️ Không đọc được ảnh. Vui lòng thử lại hoặc gõ tay!');
         }
 
       } else {
@@ -290,7 +290,7 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
             scrapedData = await apiRes.json();
           }
         } catch (e) {
-          console.warn('Scraper API fetch failed, falling back to Gemini:', e);
+          console.warn('Scraper API fetch failed:', e);
         }
 
         if (scrapedData && scrapedData.success && (scrapedData.views > 0 || scrapedData.likes > 0)) {
@@ -307,69 +307,23 @@ Chỉ trả về JSON định dạng duy nhất, không thêm chữ nào khác n
             likes: Number(scrapedData.likes) || 0,
             note: isFacebookPhoto
               ? `Bóc tách chuẩn xác Facebook: ${extraInfo}. (Lưu ý: Facebook không hiện lượt xem bài ảnh, số view là ước lượng reach - bạn có thể chỉnh tay số nếu cần)`
-              : `Bóc tách từ link ${scanningPost.platform.toUpperCase()} (${extraInfo}) - Nguồn: ${scrapedData.source}`
+              : `Bóc tách chuẩn xác từ link ${scanningPost.platform.toUpperCase()} (${extraInfo}) - Nguồn: ${scrapedData.source}`
           });
-          setScanStatusMsg('✅ Đã bóc tách số liệu từ link!');
+          setScanStatusMsg('✅ Đã bóc tách số liệu thật từ link!');
         } else {
-          // Fallback Gemini AI Reasoning
-          const payload = {
-            contents: [{
-              parts: [{
-                text: `Bạn là hệ thống AI phân tích bài viết cho chuỗi Phụ Kiện 88.
-Nền tảng: ${scanningPost.platform}
-Đường link bài viết: ${scanningPost.post_url}
-Người đăng: ${scanningPost.author_name}
-Thời điểm đăng: ${scanningPost.created_at}
-LƯU Ý: Bài viết bán lẻ phụ kiện của chi nhánh thường có 10-40 tương tác (likes) và 150-600 lượt tiếp cận (views).
-Chỉ trả về duy nhất chuỗi JSON:
-{"views": <số_view_ước_tính>, "likes": <số_like_ước_tính>, "note": "Ước lượng AI cho bài đăng ${scanningPost.platform}"}`
-              }]
-            }],
-            generationConfig: {
-              temperature: 0.3,
-              maxOutputTokens: 256
-            }
-          };
+          // Báo trung thực khi nền tảng chặn bot, TUYỆT ĐỐI KHÔNG tự bịa số liệu!
+          const platformName = scanningPost.platform === 'facebook' 
+            ? 'Facebook' 
+            : scanningPost.platform === 'tiktok' 
+              ? 'TikTok' 
+              : scanningPost.platform.toUpperCase();
 
-          let parsed: any = null;
-          for (const key of geminiKeys) {
-            try {
-              const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${key}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-              });
-              if (res.ok) {
-                const data = await res.json();
-                const txt = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-                const jsonMatch = txt.match(/\{[\s\S]*\}/);
-                if (jsonMatch) {
-                  parsed = JSON.parse(jsonMatch[0]);
-                  break;
-                }
-              }
-            } catch (e) {
-              console.warn('Gemini key attempt failed, trying next...');
-            }
-          }
-
-          if (parsed) {
-            setScanResult({
-              views: Number(parsed.views) || 0,
-              likes: Number(parsed.likes) || 0,
-              note: parsed.note || 'AI đã phân tích link bài đăng thành công'
-            });
-            setScanStatusMsg('✅ Đã phân tích xong bài viết!');
-          } else {
-            const baseViews = scanningPost.platform === 'tiktok' ? 350 : 150;
-            const baseLikes = Math.round(baseViews * 0.08);
-            setScanResult({
-              views: baseViews,
-              likes: baseLikes,
-              note: 'Ước lượng chuẩn theo quy mô chuỗi Phụ Kiện 88'
-            });
-            setScanStatusMsg('✅ Đã hoàn tất ước lượng.');
-          }
+          setScanResult({
+            views: 0,
+            likes: 0,
+            note: `⚠️ ${platformName} đang chặn bảo mật link này. Vui lòng dùng tab [📷 Quét từ Ảnh chụp] hoặc tự gõ số tay!`
+          });
+          setScanStatusMsg(`⚠️ ${platformName} chặn cào link. Vui lòng quét bằng ảnh chụp!`);
         }
       }
     } catch (err) {
