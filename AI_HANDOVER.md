@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 20/10/2026 (Ra mắt Phân Hệ Chatbot CSKH Độc Lập Bé 8 AI, Trang Tư Vấn Công Khai /tu-van, E-Voucher Giảm 10% & Bảng Điều Phối Khách Hàng Tiềm Năng Telesales CRM)*
+*Ngày cập nhật mới nhất: 21/10/2026 (Vá Lỗ Hổng Bảo Mật Phân Quyền RBAC & Cách Ly Dữ Liệu Chi Nhánh Chấm Công, Khóa Cứng Lịch Trực Phân Ca, Nâng Cấp Check-in Bù Realtime & Đồng Bộ Tương Tác Marketing 3 Chỉ Số)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -14,7 +14,44 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 20/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 21/10/2026) - QUAN TRỌNG
+
+### Q. Vá Lỗ Hổng Bảo Mật Phân Quyền RBAC, Khóa Cứng Lịch Trực Phân Ca & Nâng Cấp Vận Hành (HOÀN THÀNH 21/10/2026)
+
+1. **Khắc Phục Lỗ Hổng Bảo Mật Phân Quyền RBAC & Cách Ly Dữ Liệu Chi Nhánh ([AttendanceTimesheetView.tsx](file:///c:/PK88%20AA/src/components/AttendanceTimesheetView.tsx)):**
+   - **Vấn đề phát hiện:** Tài khoản Quản lý chi nhánh (Manager, ví dụ: Thùy Dương - Phú Khương) trước đó có thể chọn tùy chọn xem "🏢 Toàn Chuỗi (8 Chi Nhánh)" hoặc chuyển sang các chi nhánh khác, dẫn đến việc xem toàn bộ lịch chấm công của Khối Văn Phòng và chi nhánh khác. Nguy hiểm hơn, cột "Thao tác quản lý" cho phép Quản lý chi nhánh bấm nút "Chốt ca", "Chốt giờ ra" và nút xóa "🗑️" cho nhân viên Khối Văn Phòng và chi nhánh khác.
+   - **Giải pháp bảo mật toàn diện:**
+     + **Phân định thẩm quyền nghiêm ngặt:** Chỉ có Quản trị cấp cao (`founder`, `admin`, `hr`) mới được xem "Toàn Chuỗi" và thao tác chéo chi nhánh.
+     + **Khóa cứng bộ lọc Chi Nhánh đối với CHT:** Ẩn hoàn toàn tùy chọn "Toàn Chuỗi" và các chi nhánh khác với Manager. Thay vào đó hiển thị thẻ cố định có huy hiệu `🔒 Cố định CHT`, luôn tự động ghim về chi nhánh của Quản lý.
+     + **Cách ly dữ liệu cơ sở (`accessibleLogs`, `accessibleStaff`):** Dữ liệu nạp vào bảng và các chỉ số KPI (quân số, đi trễ hôm nay, cảnh báo ngoài GPS, tổng giờ công, giải trình chờ duyệt) của Quản lý chi nhánh chỉ giới hạn trong phạm vi chi nhánh phụ trách (không còn bị lộ thông tin của 36 nhân sự toàn chuỗi hay khối Văn Phòng).
+     + **Tường lửa thao tác `canManageRecord(record)`:**
+       * Nút "Chốt ca", "Chốt giờ ra", nút thùng rác "🗑️ Xóa bản ghi" và nút "Duyệt / Từ chối giải trình" chỉ hiển thị khi bản ghi thuộc đúng chi nhánh của Quản lý. Nếu là bản ghi ngoài thẩm quyền, giao diện chỉ hiển thị nhãn `Chỉ xem`.
+       * Bổ sung chốt chặn guard trực tiếp trong tất cả các hàm xử lý dữ liệu (`handleOpenCheckoutModal`, `handleConfirmCheckout`, `handleApproveDisputeAction`, `handleConfirmRejectDispute`, `handleDeleteRecordAction`) để chặn đứng mọi can thiệp trái phép.
+
+2. **Bắt Buộc Chấm Công Theo Lịch Trực Phân Ca Cố Định ([AttendanceCard.tsx](file:///c:/PK88%20AA/src/components/AttendanceCard.tsx)):**
+   - **Vấn đề:** Nhân sự khi vào ca thường bấm chọn ca tùy tiện, không tuân thủ lịch trực đã được Cửa Hàng Trưởng và Ban Điều Hành xếp trước trên Ma Trận Chia Ca.
+   - **Giải pháp:**
+     + Thẻ Chấm Công GPS tự động kéo lịch phân ca của nhân sự trong ngày (`todayAssignment`) từ Cloud về.
+     + Khi nhân sự đã có ca trực được duyệt trong ngày: Hệ thống **tự động khóa cứng ca làm việc theo đúng lịch trực**, đồng thời **ẩn hoàn toàn các nút tùy chọn đổi ca** (Ca sáng, Ca chiều, Ca hành chính, Ca tùy chỉnh...), buộc nhân sự phải check-in đúng ca quy định.
+
+3. **Bổ Sung Chế Độ "🟢 Check-in Bù (Đang Làm Việc)" Linh Hoạt ([ShiftSchedulingMatrix.tsx](file:///c:/PK88%20AA/src/components/ShiftSchedulingMatrix.tsx)):**
+   - **Vấn đề:** Khi nhân sự có đi làm đúng giờ nhưng quên mở app chấm công đầu ca, nếu Quản lý bấm "Chấm bù", hệ thống cũ lập tức gán cả giờ vào và giờ ra, khiến ca làm việc bị kết thúc sớm và tính đủ công dù chưa đến giờ tan ca thực tế.
+   - **Giải pháp:**
+     + Bổ sung thêm tùy chọn hành động **`🟢 Check-in bù (Đang làm việc)`** bên cạnh việc chốt bù đủ công.
+     + Khi bấm tùy chọn này: Hệ thống chỉ tạo mốc `check_in` (giờ bắt đầu ca) và **bỏ trống `check_out`**, ghi chú rõ `[CHẤM BÙ ĐẦU CA - ĐANG LÀM VIỆC]`.
+     + Thẻ Chấm Công của nhân viên lập tức nhận diện trạng thái "Đang làm việc", đồng hồ realtime tính giờ công trực tiếp tiếp tục chạy bình thường cho đến khi nhân viên tự bấm Chốt ca tan ca.
+
+4. **Chuẩn Hóa Bộ 3 Chỉ Số Tương Tác Marketing Đa Kênh ([MarketingDashboard.tsx](file:///c:/PK88%20AA/src/components/MarketingDashboard.tsx)):**
+   - Bổ sung hiển thị đầy đủ 3 chỉ số tương tác chuẩn: **Lượt thích (Likes)**, **Bình luận (Comments)** và **Lượt chia sẻ (Shares)** song song với Lượt xem (Views).
+   - Đồng bộ xuyên suốt từ: Bảng Live Feed bài đăng, Bảng Ma Trận bài viết, Modal Chỉnh sửa nhanh (Quick Edit) và Trình quét thông minh AI Scanner.
+   - Chạy migration cơ sở dữ liệu Supabase bổ sung 2 cột `comments` và `shares` vào bảng `marketing_posts`.
+
+5. **Đồng Bộ Nghỉ Phép Tự Động Từ Chị 8 AI HR Sang Lịch Làm Việc & Thẻ Chấm Công:**
+   - Cơ chế tự động liên kết khi đơn xin nghỉ phép được duyệt (`APPROVED`):
+     + **Trên Ma Trận Chia Ca ([ShiftSchedulingMatrix.tsx](file:///c:/PK88%20AA/src/components/ShiftSchedulingMatrix.tsx)):** Tự động đè lên ô ngày tương ứng bằng thẻ `🏖️ Nghỉ Phép` hoặc `💊 Nghỉ Ốm`, hiển thị người trực thay `Thế: [Tên nhân sự]` hoặc người duyệt, miễn trừ chấm công không bị tính là vắng mặt/chưa chấm công.
+     + **Trên Thẻ Chấm Công GPS ([AttendanceCard.tsx](file:///c:/PK88%20AA/src/components/AttendanceCard.tsx)):** Tự động hiển thị banner hồng trang trọng thông báo nhân sự đang trong kỳ nghỉ phép đã duyệt.
+
+---
 
 ### P. Phân Hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) & Bảng Điều Phối Chốt Đơn Telesales (HOÀN THÀNH 20/10/2026)
 1. **Trang Chatbot Công Khai Độc Lập (`PublicCustomerChatView.tsx` - `/tu-van` hoặc `?tab=tu-van`):**
