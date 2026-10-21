@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Branch, Staff, AttendanceRecord, ShiftType } from '../types';
 import { supabase } from '../lib/supabase';
 import { calculateAttendanceIsLate } from '../lib/shiftService';
@@ -62,11 +62,37 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   onRejectDispute,
   defaultBranchId
 }) => {
+  // Phân quyền RBAC & Cô lập dữ liệu chi nhánh (Data Isolation)
+  // 1. Quản trị cấp cao (Founder, Admin, HR): Có quyền xem toàn chuỗi và can thiệp tất cả chi nhánh
+  const isHQAdmin = ['founder', 'admin', 'hr'].includes(currentUser?.role?.toLowerCase() || '');
+  const isBranchManager = currentUser?.role?.toLowerCase() === 'manager';
+  const userBranchId = currentUser?.branchId || defaultBranchId;
+
+  // Quyền quản lý tổng quát
+  const canManage = isHQAdmin || isBranchManager;
+
+  // Kiểm tra quyền hạn can thiệp trên từng bản ghi chấm công cụ thể
+  const canManageRecord = (record: AttendanceRecord): boolean => {
+    if (isHQAdmin) return true;
+    if (isBranchManager && userBranchId && record.branchId === userBranchId) return true;
+    return false;
+  };
+
+  // Khởi tạo chi nhánh: CHT/Nhân viên bắt buộc khóa vào chi nhánh của mình
+  const initialBranch = (!isHQAdmin && userBranchId) ? userBranchId : (defaultBranchId || 'ALL');
+  const [selectedBranch, setSelectedBranch] = useState<string>(initialBranch);
+
+  // Đảm bảo Manager / Nhân viên luôn bị khóa cứng chi nhánh, không được phép chuyển sang 'ALL' hoặc chi nhánh khác
+  useEffect(() => {
+    if (!isHQAdmin && userBranchId && selectedBranch !== userBranchId) {
+      setSelectedBranch(userBranchId);
+    }
+  }, [isHQAdmin, userBranchId, selectedBranch]);
+
   // Default filter is strictly TODAY for real-time tracking
   const [datePreset, setDatePreset] = useState<'today' | 'yesterday' | '7days' | 'month' | 'all' | 'custom'>('today');
   const [startDate, setStartDate] = useState<string>(getLocalYMD());
   const [endDate, setEndDate] = useState<string>(getLocalYMD());
-  const [selectedBranch, setSelectedBranch] = useState<string>(defaultBranchId || 'ALL');
   const [selectedShift, setSelectedShift] = useState<string>('ALL');
   const [warningOnly, setWarningOnly] = useState<boolean>(false);
   const [disputeFilter, setDisputeFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
@@ -83,8 +109,6 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   const [manualTime, setManualTime] = useState<string>('17:30');
   const [manualNotes, setManualNotes] = useState<string>('');
   const [isUpdatingDb, setIsUpdatingDb] = useState<boolean>(false);
-
-  const canManage = ['founder', 'admin', 'hr', 'manager'].includes(currentUser?.role?.toLowerCase() || '');
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -122,6 +146,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   };
 
   const handleOpenCheckoutModal = (record: AttendanceRecord) => {
+    if (!canManageRecord(record)) {
+      showToast('⛔ Bạn chỉ có quyền chốt ca cho nhân sự thuộc chi nhánh mình phụ trách!');
+      return;
+    }
     setCheckoutTarget(record);
     let defTime = '17:30';
     if (record.shiftType === 'CA_SANG') defTime = '15:30';
@@ -137,6 +165,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
 
   const handleConfirmCheckout = async () => {
     if (!checkoutTarget) return;
+    if (!canManageRecord(checkoutTarget)) {
+      showToast('⛔ Bạn không có quyền thao tác trên nhân sự này!');
+      return;
+    }
     setIsUpdatingDb(true);
 
     try {
@@ -183,6 +215,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
 
   // Manager Approve Dispute Action
   const handleApproveDisputeAction = async (record: AttendanceRecord) => {
+    if (!canManageRecord(record)) {
+      showToast('⛔ Bạn không có quyền phê duyệt giải trình của chi nhánh khác hoặc khối Văn Phòng!');
+      return;
+    }
     setIsUpdatingDb(true);
     const handler = currentUser?.fullName || 'Quản lý Chi Nhánh';
 
@@ -231,6 +267,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   // Manager Reject Dispute Action
   const handleConfirmRejectDispute = async () => {
     if (!rejectingDispute) return;
+    if (!canManageRecord(rejectingDispute)) {
+      showToast('⛔ Bạn không có quyền từ chối giải trình của chi nhánh khác hoặc khối Văn Phòng!');
+      return;
+    }
     setIsUpdatingDb(true);
     const handler = currentUser?.fullName || 'Quản lý Chi Nhánh';
     const reason = rejectionReasonInput.trim() || 'Không đủ bằng chứng xác thực';
@@ -270,6 +310,10 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
   // Delete attendance record action (Founder, Admin, HR, CHT)
   const [recordToDelete, setRecordToDelete] = useState<AttendanceRecord | null>(null);
   const handleDeleteRecordAction = async (record: AttendanceRecord) => {
+    if (!canManageRecord(record)) {
+      showToast('⛔ Bạn không có quyền xóa bản ghi của chi nhánh khác hoặc khối Văn Phòng!');
+      return;
+    }
     setIsUpdatingDb(true);
     const staffName = getStaffInfo(record).name;
     try {
@@ -429,17 +473,39 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
     return { isOutside, isLate, lateMinutes, otHours, isCurrentlyWorking, isMissedCheckout };
   };
 
-  // Pending disputes count across all logs
+  // Data Isolation: Dữ liệu cơ sở có thể truy cập
+  // Nếu là HQ Admin (Founder, Admin, HR): Toàn bộ logs và staff toàn hệ thống
+  // Nếu là Cửa Hàng Trưởng / Quản lý: Chỉ được xem logs và staff thuộc đúng chi nhánh của mình
+  const accessibleLogs = useMemo(() => {
+    if (isHQAdmin) return attendanceLogs;
+    if (!userBranchId) return [];
+    return attendanceLogs.filter(r => r.branchId === userBranchId);
+  }, [attendanceLogs, isHQAdmin, userBranchId]);
+
+  const accessibleStaff = useMemo(() => {
+    if (isHQAdmin) return staffList;
+    if (!userBranchId) return [];
+    return staffList.filter(s => s.branchId === userBranchId);
+  }, [staffList, isHQAdmin, userBranchId]);
+
+  // Pending disputes count across accessible logs
   const pendingDisputesCount = useMemo(() => {
-    return attendanceLogs.filter(r => r.disputeStatus === 'PENDING').length;
-  }, [attendanceLogs]);
+    return accessibleLogs.filter(r => r.disputeStatus === 'PENDING').length;
+  }, [accessibleLogs]);
 
   // Filtered attendance records
   const filteredRecords = useMemo(() => {
-    return attendanceLogs.filter(record => {
+    return accessibleLogs.filter(record => {
       // 1. Branch filter
-      if (selectedBranch !== 'ALL' && record.branchId !== selectedBranch) {
-        return false;
+      if (isHQAdmin) {
+        if (selectedBranch !== 'ALL' && record.branchId !== selectedBranch) {
+          return false;
+        }
+      } else {
+        // Tường lửa bảo mật (RBAC): CHT tuyệt đối không thể xem bản ghi ngoài chi nhánh mình
+        if (userBranchId && record.branchId !== userBranchId) {
+          return false;
+        }
       }
 
       // 2. Shift filter
@@ -482,16 +548,16 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
 
       return true;
     });
-  }, [attendanceLogs, selectedBranch, selectedShift, startDate, endDate, warningOnly, disputeFilter, datePreset, searchTerm, staffMap, branchMap]);
+  }, [accessibleLogs, isHQAdmin, userBranchId, selectedBranch, selectedShift, startDate, endDate, warningOnly, disputeFilter, datePreset, searchTerm, staffMap, branchMap]);
 
-  // KPI Calculations
+  // KPI Calculations (Tính trên dữ liệu đã phân quyền của chi nhánh)
   const todayRecords = useMemo(() => {
     const todayStr = getLocalYMD();
-    return attendanceLogs.filter(r => {
+    return accessibleLogs.filter(r => {
       const d = getLocalYMD(new Date(r.checkIn));
       return d === todayStr;
     });
-  }, [attendanceLogs]);
+  }, [accessibleLogs]);
 
   const uniqueStaffToday = useMemo(() => {
     const ids = new Set<string>();
@@ -499,7 +565,7 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
     return ids.size;
   }, [todayRecords]);
 
-  const totalActiveStaff = staffList.filter(s => s.isActive).length || 1;
+  const totalActiveStaff = accessibleStaff.filter(s => s.isActive).length || 1;
   const attendanceRateToday = Math.min(100, Math.round((uniqueStaffToday / totalActiveStaff) * 100));
 
   const lateCountToday = useMemo(() => {
@@ -811,17 +877,34 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 text-xs">
           {/* Filter 1: Chi nhánh */}
           <div>
-            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">Chi Nhánh</label>
-            <select
-              value={selectedBranch}
-              onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
-            >
-              <option value="ALL">🏢 Toàn Chuỗi ({branches.length} Chi Nhánh)</option>
-              {branches.map(b => (
-                <option key={b.id} value={b.id}>{b.name.replace('Phụ Kiện 88 - ', '')}</option>
-              ))}
-            </select>
+            <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+              Chi Nhánh {!isHQAdmin && '(Cố định CHT)'}
+            </label>
+            {isHQAdmin ? (
+              <select
+                value={selectedBranch}
+                onChange={(e) => setSelectedBranch(e.target.value)}
+                className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-slate-200 font-semibold focus:outline-none focus:border-emerald-500"
+              >
+                <option value="ALL">🏢 Toàn Chuỗi ({branches.length} Chi Nhánh)</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name.replace('Phụ Kiện 88 - ', '')}</option>
+                ))}
+              </select>
+            ) : (
+              <div 
+                className="w-full p-2.5 bg-slate-950/80 border border-slate-800 rounded-xl text-slate-200 font-bold text-xs flex items-center justify-between shadow-inner"
+                title={`Bạn là Quản lý của ${branches.find(b => b.id === userBranchId)?.name || 'chi nhánh'}. Chi nhánh được khóa cố định theo phân quyền bảo mật.`}
+              >
+                <span className="truncate flex items-center gap-1.5 text-amber-300">
+                  <Building2 className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  {branches.find(b => b.id === userBranchId)?.name.replace('Phụ Kiện 88 - ', '') || 'Chi nhánh của bạn'}
+                </span>
+                <span className="text-[9.5px] font-mono bg-amber-500/10 text-amber-400 border border-amber-500/30 px-1.5 py-0.5 rounded shrink-0">
+                  🔒 Cố định
+                </span>
+              </div>
+            )}
           </div>
 
           {/* Filter 2: Ca làm việc */}
@@ -1034,13 +1117,15 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                             <AlertTriangle className="w-3 h-3" />
                             Quên check-out
                           </span>
-                          <button
-                            type="button"
-                            onClick={() => handleOpenCheckoutModal(record)}
-                            className="text-[10px] text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer flex items-center gap-1"
-                          >
-                            <Clock className="w-3 h-3" /> Chốt giờ ra
-                          </button>
+                          {canManageRecord(record) && (
+                            <button
+                              type="button"
+                              onClick={() => handleOpenCheckoutModal(record)}
+                              className="text-[10px] text-amber-400 hover:text-amber-300 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                            >
+                              <Clock className="w-3 h-3" /> Chốt giờ ra
+                            </button>
+                          )}
                         </div>
                       )}
                     </td>
@@ -1150,7 +1235,11 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
 
                     {/* Thao Tác Quản Lý (1-chạm Duyệt hoặc Từ chối) */}
                     <td className="p-3.5 text-center">
-                      {isPendingDispute ? (
+                      {!canManageRecord(record) ? (
+                        <span className="text-[10px] text-slate-500 font-medium italic">
+                          Chỉ xem
+                        </span>
+                      ) : isPendingDispute ? (
                         <div className="flex items-center justify-center gap-1.5 flex-wrap">
                           <button
                             type="button"
@@ -1182,32 +1271,28 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                           <span className="text-[10px] text-emerald-400 font-semibold">
                             Đã tính lương
                           </span>
-                          {canManage && (
-                            <button
-                              type="button"
-                              onClick={() => setRecordToDelete(record)}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Xóa bản ghi chấm bù / chấm sai"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setRecordToDelete(record)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Xóa bản ghi chấm bù / chấm sai"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : isRejectedDispute ? (
                         <div className="flex items-center justify-center gap-2">
                           <span className="text-[10px] text-rose-400 font-semibold">
                             Không tính công
                           </span>
-                          {canManage && (
-                            <button
-                              type="button"
-                              onClick={() => setRecordToDelete(record)}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Xóa bản ghi"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setRecordToDelete(record)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Xóa bản ghi"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : isMissedCheckout || isCurrentlyWorking ? (
                         <div className="flex items-center justify-center gap-1.5">
@@ -1218,30 +1303,26 @@ export const AttendanceTimesheetView: React.FC<AttendanceTimesheetViewProps> = (
                           >
                             Chốt ca
                           </button>
-                          {canManage && (
-                            <button
-                              type="button"
-                              onClick={() => setRecordToDelete(record)}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Xóa bản ghi chấm nhầm"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setRecordToDelete(record)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Xóa bản ghi chấm nhầm"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       ) : (
                         <div className="flex items-center justify-center gap-1.5">
                           <span className="text-[10px] text-slate-500">Đã chốt</span>
-                          {canManage && (
-                            <button
-                              type="button"
-                              onClick={() => setRecordToDelete(record)}
-                              className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
-                              title="Xóa bản ghi"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          )}
+                          <button
+                            type="button"
+                            onClick={() => setRecordToDelete(record)}
+                            className="p-1 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 transition-colors cursor-pointer"
+                            title="Xóa bản ghi"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </div>
                       )}
                     </td>
