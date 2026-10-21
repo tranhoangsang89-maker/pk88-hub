@@ -647,6 +647,8 @@ CREATE TABLE IF NOT EXISTS marketing_posts (
     author_name VARCHAR(100) NOT NULL,
     views INT DEFAULT 0,
     likes INT DEFAULT 0,
+    comments INT DEFAULT 0,
+    shares INT DEFAULT 0,
     status TEXT DEFAULT 'approved' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected')),
     reviewer_feedback TEXT,
     reviewed_by TEXT,
@@ -661,6 +663,8 @@ CREATE TABLE IF NOT EXISTS marketing_posts (
 
 -- Migration nếu bảng đã tồn tại sẵn từ trước:
 ALTER TABLE marketing_posts 
+ADD COLUMN IF NOT EXISTS comments INT DEFAULT 0,
+ADD COLUMN IF NOT EXISTS shares INT DEFAULT 0,
 ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'approved' CHECK (status IN ('draft', 'pending_review', 'approved', 'rejected')),
 ADD COLUMN IF NOT EXISTS reviewer_feedback TEXT,
 ADD COLUMN IF NOT EXISTS reviewed_by TEXT,
