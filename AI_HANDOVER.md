@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 22/10/2026 (Tích Hợp Tab ❤️ Văn Hóa 88 - Phục Vụ Từ Trái Tim & Cẩm Nang Quy Tắc Ứng Xử Chuỗi 15 Trang Tối Ưu Mobile, Nâng Cấp Thanh Điều Hướng Ngang Chống Tràn Chữ)*
+*Ngày cập nhật mới nhất: 22/10/2026 (Tích Hợp Bé 8 AI CSKH Trực Tuyến 7 Fanpage Facebook Đa Chi Nhánh, Vercel Serverless Webhook Meta, Lưu Trữ Lịch Sử Chat Realtime Supabase CRM Leads, Tab ❤️ Văn Hóa 88 & README.md Chuẩn Kho Mã Nguồn)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -824,7 +824,21 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 - **`attendance`**: Nhật ký chấm công (id, staff_id, branch_id, check_in, check_out, work_hours...)
 - **`leave_requests`**: Quản lý đơn xin nghỉ phép.
 - **`repair_tickets`**: Phiếu tiếp nhận & sửa chữa thiết bị khách hàng.
-- **`leads`**: Khách hàng tiềm năng để lại SĐT từ Chatbot Bé 8 kèm voucher và bản ghi chat.
+- **`leads`**: Khách hàng tiềm năng từ Facebook Messenger và Web Chat. Các trường chính:
+  + `id`: Khóa chính tự tăng (bigint).
+  + `lead_id`: Mã định danh chuỗi (ví dụ: `fb-1792662510948-2967` hoặc `lead-1792549...`).
+  + `customer_name`: Tên khách hàng (mặc định lấy từ tên Facebook hoặc form).
+  + `phone`: Số điện thoại nhận diện từ tin nhắn regex (`03x/05x/07x/08x/09x`).
+  + `need`: Nhu cầu khách hỏi (ví dụ: "Thay pin AirPod 2", "Dán cường lực").
+  + `branch` & `branch_id`: Chi nhánh phụ trách tương ứng (ví dụ: `Phụ Kiện 88 - Đồng Khởi`, `dong-khoi`).
+  + `source`: Kênh nguồn (`facebook_messenger` hoặc `web_chat`).
+  + `status`: Trạng thái xử lý telesales (`NEW`, `CONTACTED`, `APPOINTED`, `COMPLETED`, `CANCELLED`).
+  + `priority`: Mức độ ưu tiên (`HIGH`, `MEDIUM`, `LOW`).
+  + `label`: Nhãn thẻ (`HOT LEAD FB`, `HOT LEAD`, `POTENTIAL`).
+  + `score`: Điểm tiềm năng (100).
+  + `activity_log`: Mảng JSON các tin nhắn đối thoại: `[{ sender: 'user' | 'bot', text: string, time: string }]`.
+  + `conversation_summary`: Tóm tắt nội dung trao đổi quan trọng giữa khách và Bé 8.
+  + `created_at`: Thời điểm tạo lead (ISO timestamp).
 - **`customer_profiles`**: Hồ sơ khách hàng chuẩn hóa, hạng hội viên, dòng máy và chi nhánh quen.
 - **`customer_care_logs`**: Nhật ký các lần gọi điện, nhắn tin Zalo chăm sóc khách hàng của nhân sự.
 - **`courses`, `lessons`, `quizzes`, `staff_progress`:** CSDL hệ thống đào tạo LMS 60 ngày.
@@ -832,10 +846,18 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ---
 
 ## 5. LƯU Ý ĐẶC BIỆT DÀNH CHO AI AGENT KẾ TIẾP
-1. **Model AI duy nhất:** Mọi nâng cấp liên quan đến AI Agent bắt buộc giữ nguyên tên model `gemini-flash-lite-latest`.
-2. **Quản Lý Ảnh Avatar:** Avatar mặc định ưu tiên đọc `staff.avatarUrl`, sau đó fallback sang `AVATAR_FALLBACKS[staff.id]` trong `StaffDetailModal.tsx` / `AdminPanel.tsx`.
-3. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase.
-4. **Hierarchy Priority Sorting:** Duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) ở mọi màn hình hiển thị danh sách nhân sự.
+1. **Model AI Duy Nhất:** Mọi nâng cấp liên quan đến AI Agent bắt buộc giữ nguyên tên model `gemini-flash-lite-latest`.
+2. **Meta Messenger Webhook (`api/meta-webhook.ts`):**
+   - Webhook URL: `https://pk88-hub.vercel.app/api/meta-webhook`
+   - Verify Token: `pk88_meta_webhook_2026`
+   - App ID Meta: `1104157392418456` (`Chatbot phụ kiện 88`).
+   - App Status: Đã bật **Chế độ chính thức (Live)** và đã nộp hồ sơ **Xét duyệt ứng dụng (App Review)** cho quyền `pages_messaging`.
+   - Fanpage Tokens: Được cấu hình trong `BRANCH_PAGES` của `api/meta-webhook.ts` và sao lưu tại `code-fanpage.txt` (đã đưa vào `.gitignore` để tránh rò rỉ lên repo công khai).
+   - Vercel Serverless Lifecyle: Bắt buộc `await Promise.all(processTasks)` trước khi trả về `res.status(200)` để ngăn container đóng sớm làm rớt tin nhắn gửi qua Meta Graph API.
+   - Không tự ý bịa voucher khuyến mãi vì chuỗi hiện không chạy chiến dịch giảm giá.
+3. **Quản Lý Ảnh Avatar:** Avatar mặc định ưu tiên đọc `staff.avatarUrl`, sau đó fallback sang `AVATAR_FALLBACKS[staff.id]` trong `StaffDetailModal.tsx` / `AdminPanel.tsx`.
+4. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase.
+5. **Hierarchy Priority Sorting:** Duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) ở mọi màn hình hiển thị danh sách nhân sự.
 
 ---
 
