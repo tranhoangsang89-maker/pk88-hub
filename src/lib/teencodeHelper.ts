@@ -8,7 +8,7 @@ export interface NormalizedIntent {
   normalizedText: string;
   detectedDevice?: string;
   detectedIssue?: string;
-  detectedCategory?: 'REPAIR' | 'ACCESSORY' | 'BATTERY' | 'SCREEN' | 'CHARGING' | 'PRICING' | 'GENERAL';
+  detectedCategory?: 'REPAIR' | 'ACCESSORY' | 'CASE' | 'SCREEN_PROTECTOR' | 'BATTERY' | 'SCREEN' | 'CHARGING' | 'PRICING' | 'GENERAL';
 }
 
 export function normalizeCustomerQuery(rawQuery: string): NormalizedIntent {
@@ -69,15 +69,22 @@ export function normalizeCustomerQuery(rawQuery: string): NormalizedIntent {
   // Xác định dòng máy
   let detectedDevice = '';
   const ipMatch = text.match(/iphone\s*\d{1,2}(?:\s*(?:pro max|pro|plus|bản thường))?/i);
-  if (ipMatch) detectedDevice = ipMatch[0];
+  if (ipMatch) {
+    detectedDevice = ipMatch[0];
+  } else {
+    const ssMatch = text.match(/samsung\s*(?:galaxy\s*)?[a-z0-9]+/i) || text.match(/\b(?:m\d{2}|a\d{2}|s\d{2}|note\s*\d{1,2}|z\s*(?:fold|flip)\s*\d?)\b/i);
+    if (ssMatch) detectedDevice = ssMatch[0].toUpperCase();
+  }
 
   // Phân loại nhóm nhu cầu
   let detectedCategory: NormalizedIntent['detectedCategory'] = 'GENERAL';
-  if (text.includes('sạc') || text.includes('chân sạc')) detectedCategory = 'CHARGING';
+  if (text.includes('sạc') || text.includes('chân sạc') || text.includes('chuôi sạc')) detectedCategory = 'CHARGING';
   else if (text.includes('pin')) detectedCategory = 'BATTERY';
   else if (text.includes('ép kính') || text.includes('màn hình')) detectedCategory = 'SCREEN';
-  else if (text.includes('cường lực') || text.includes('ốp') || text.includes('tai nghe')) detectedCategory = 'ACCESSORY';
+  else if (text.includes('ốp') || text.includes('bao da') || text.includes('case')) detectedCategory = 'CASE';
+  else if (text.includes('cường lực') || text.includes('dán') || text.includes('ppf') || text.includes('cl')) detectedCategory = 'SCREEN_PROTECTOR';
   else if (text.includes('sửa') || text.includes('kiểm tra')) detectedCategory = 'REPAIR';
+  else if (text.includes('tai nghe') || text.includes('củ sạc') || text.includes('dây sạc')) detectedCategory = 'ACCESSORY';
 
   return {
     originalText,

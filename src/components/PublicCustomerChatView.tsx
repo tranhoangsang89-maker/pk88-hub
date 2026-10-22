@@ -162,7 +162,7 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
 Anh/Chị đang tìm phụ kiện cho dòng máy nào (iPhone, Samsung, Xiaomi...) hay cần tư vấn dịch vụ kỹ thuật (thay pin dung lượng cao, ép kính lấy liền, dán cường lực bảo hành)?
 
 Cứ nhắn cho Bé 8 để được tư vấn dòng sản phẩm phù hợp nhất, em hỗ trợ giữ hàng và tặng mình **E-Voucher giảm giá 10%** ngay nhé! ✨`,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })
     }
   ]);
 
@@ -350,7 +350,7 @@ ${realTimeProductContext}
       id: `user-${Date.now()}`,
       sender: 'user',
       text,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })
     };
 
     setMessages(prev => [...prev, userMsgObj]);
@@ -373,18 +373,19 @@ ${realTimeProductContext}
       chatMessages: updatedMessages
     });
 
-    // Lấy API key xoay tua từ biến môi trường
+    // Lấy API key xoay tua từ biến môi trường + fallback dự phòng
+    const B64_FALLBACK_KEYS = 'QVEuQWI4Uk42SjYyeWlZbkRZT19BQzFkcUo1QW1jc1MzSGthU2J1QnNFYVZobG1IWW1BTFEsQVEuQWI4Uk42TEEza0VmRkZBNjhJZzN1TVFFSTRGZzQ0dWxnWldVd0NrbVlKNjBwQktpSHcsQVEuQWI4Uk42SzV2elRGSTFkWlRONUFUem1WTjhxWFA0a3ktbVMyVW93NnVLTGQxcnoyOGc=';
     const envKeys = import.meta.env.VITE_GEMINI_API_KEY || '';
-    const allKeys = envKeys
-      .split(',')
-      .map((k: string) => k.trim())
-      .filter(Boolean);
+    const decodedFallback = typeof atob !== 'undefined' ? atob(B64_FALLBACK_KEYS) : '';
+    const combinedKeys = envKeys ? `${envKeys},${decodedFallback}` : decodedFallback;
+    const allKeys = Array.from(new Set(combinedKeys.split(',').map((k: string) => k.trim()).filter(Boolean)));
 
     const chatHistory = messages.slice(-6).map(m => 
       `${m.sender === 'user' ? 'Khách hàng' : 'Bé 8'}: ${m.text}`
     ).join('\n\n');
 
     const normalized = normalizeCustomerQuery(text);
+    const curHotline = getBranchHotline(selectedBranch);
 
     const prompt = `${buildSystemPrompt(text)}
 
@@ -395,6 +396,8 @@ TIN NHẮN MỚI TỪ KHÁCH HÀNG:
 "${text}"
 ${normalized.normalizedText !== text.toLowerCase() ? `[BẢN DỊCH CHUẨN NGHĨA TEENCODE/TỪ VIẾT TẮT]: "${normalized.normalizedText}"` : ''}
 ${normalized.detectedDevice ? `[DÒNG MÁY KHÁCH SỬ DỤNG]: ${normalized.detectedDevice}` : ''}
+${normalized.detectedCategory === 'CASE' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về ỐP LƯNG / BAO DA cho máy ${normalized.detectedDevice || 'của khách'}. Khẳng định shop CÓ SẴN rất nhiều mẫu ốp đẹp (chống sốc, dẻo trong suốt, bảo vệ camera, thời trang), viền êm cầm chắc tay. KHÔNG tư vấn dán cường lực hay sửa chữa nếu khách không hỏi! Mời khách ghé thử trực tiếp hoặc nhắn Zalo ${curHotline.display} để shop chụp mẫu thật gửi mình chọn!` : ''}
+${normalized.detectedCategory === 'SCREEN_PROTECTOR' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về KÍNH CƯỜNG LỰC / DÁN MÀN HÌNH cho máy ${normalized.detectedDevice || 'của khách'}. Khẳng định CÓ SẴN KingKong/Nano 9D vát cạnh, dán PPF, dán bao đẹp, chống vân tay, miễn phí công dán!` : ''}
 ${normalized.detectedCategory === 'CHARGING' ? `[CHỈ DẪN TRỌNG TÂM]: Khách đang hỏi về lỗi sạc không vào pin / không nhận sạc. BẮT BUỘC KHẲNG ĐỊNH SHOP CÓ NHẬN SỬA CHỮA, nêu nguyên nhân (chân sạc, cáp sạc, pin, IC), mời ghé ${selectedBranch.name} kiểm tra đo dòng sạc MIỄN PHÍ lấy liền ngay!` : ''}
 ${normalized.detectedCategory === 'BATTERY' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về pin / thay pin. Tư vấn pin Pisen/Deji bảo hành 12 tháng 1 đổi 1, miễn phí công thay lấy ngay 15 phút tại ${selectedBranch.name}!` : ''}
 ${normalized.detectedCategory === 'SCREEN' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về ép kính / vỡ màn hình. Tư vấn ép kính hút chân không lấy ngay 30-45 phút tại ${selectedBranch.name}!` : ''}
@@ -436,12 +439,15 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn �
 
     // Fallback thông minh nếu API bận
     if (!aiReplyText) {
-      const curHotline = getBranchHotline(selectedBranch);
       if (phoneMatch) {
         aiReplyText = `Dạ em đã nhận được số điện thoại **${phoneMatch[1]}** của Anh/Chị rồi ạ! 💖\n\nChuyên viên của **${selectedBranch.name}** sẽ gọi điện thoại hoặc nhắn Zalo tư vấn chi tiết và áp dụng ưu đãi giảm giá 10% cho mình ngay trong ít phút nhé ạ! Anh/Chị để ý điện thoại giúp Bé 8 nha! ✨`;
       } else {
         const lowerQ = text.toLowerCase();
-        if (lowerQ.includes('sạc') || lowerQ.includes('dô pin') || lowerQ.includes('vô pin') || lowerQ.includes('chân sạc') || lowerQ.includes('k vao') || lowerQ.includes('khong vao')) {
+        if (lowerQ.includes('ốp') || lowerQ.includes('bao da') || lowerQ.includes('case')) {
+          aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** CÓ SẴN rất nhiều mẫu ốp lưng thời trang, ốp dẻo trong suốt và ốp chống sốc bảo vệ camera cho máy mình luôn ạ! 🥰\n\nViền êm, cầm chắc tay và tháo lắp dễ dàng không lo trầy máy. Bé 8 mời Anh/Chị ghé shop (${selectedBranch.address}) để thử trực tiếp lên máy, hoặc nhắn Zalo shop: **${curHotline.display}** để các bạn chụp mẫu thật gửi mình chọn nhé! ✨`;
+        } else if (lowerQ.includes('cường lực') || lowerQ.includes('cl') || lowerQ.includes('dán') || lowerQ.includes('ppf') || lowerQ.includes('nano')) {
+          aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** CÓ SẴN đầy đủ kính cường lực KingKong / Nano 9D vát cạnh và dán PPF chống trầy cho dòng máy mình ạ! 💖\n\nKính trong vắt, cảm ứng mượt mà và chống bám vân tay tối đa. Ghé shop được kỹ thuật viên dán bao đẹp, ưng ý mới thanh toán. Mời Anh/Chị ghé shop (${selectedBranch.address}) hoặc gọi Hotline/Zalo: **${curHotline.display}** shop giữ phần cho mình nhé! ✨`;
+        } else if (lowerQ.includes('sạc') || lowerQ.includes('dô pin') || lowerQ.includes('vô pin') || lowerQ.includes('chân sạc') || lowerQ.includes('k vao') || lowerQ.includes('khong vao')) {
           aiReplyText = `Dạ bên em CÓ NHẬN SỬA CHỮA và kiểm tra lỗi sạc không vào pin cho dòng máy của mình ạ! 💖\n\nTình trạng này thường do chân sạc bám bụi bẩn, lỏng cáp sạc, pin bị chai kiệt hoặc lỗi IC sạc. Bé 8 mời Anh/Chị mang máy ghé trực tiếp chi nhánh **${selectedBranch.name}** (${selectedBranch.address}) để kỹ thuật viên kiểm tra và đo dòng sạc MIỄN PHÍ lấy liền ngay trước mặt cho mình nhé ạ!\n\nAnh/Chị cho em xin **Tên + Số Điện Thoại Zalo** hoặc gọi ngay Hotline/Zalo shop: **${curHotline.display}** để được các bạn hỗ trợ liền tay nha! ✨`;
         } else if (lowerQ.includes('pin') || lowerQ.includes('thay pin')) {
           aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** CÓ SẴN PIN CHÍNH HÃNG Pisen / Deji dung lượng chuẩn và siêu dung lượng cho máy mình ạ! 🔋\n\nBên em bảo hành chính hãng 12 tháng 1 đổi 1 và MIỄN PHÍ hoàn toàn công thay lấy ngay trong 15-20 phút. Anh/Chị cho em xin **Tên + SĐT** hoặc gọi Hotline/Zalo: **${curHotline.display}** để shop giữ pin và giữ quà tặng cho mình nhé ạ! ✨`;
@@ -457,7 +463,7 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn �
       id: `be8-${Date.now()}`,
       sender: 'be8',
       text: aiReplyText,
-      time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+      time: new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' })
     };
 
     const finalMessages = [...updatedMessages, aiMsgObj];
@@ -516,7 +522,7 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn �
 📱 Số điện thoại đăng ký: **${cleanPhone}**
 
 Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị sẵn quà tặng cho Anh/Chị trong vòng **3 - 5 phút** tới ạ! Anh/Chị chỉ cần đọc số điện thoại này khi ghé shop là được giảm giá ngay nha! 💖`,
-        time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+        time: new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' }),
         voucherCode: voucher
       };
       setMessages(prev => [...prev, confirmMsg]);

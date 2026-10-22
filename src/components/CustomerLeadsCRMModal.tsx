@@ -457,7 +457,8 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',
-                    minute: '2-digit'
+                    minute: '2-digit',
+                    timeZone: 'Asia/Ho_Chi_Minh'
                   })
                 : 'Mới đây';
 
