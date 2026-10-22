@@ -221,139 +221,144 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-5">
-      <div className="bg-slate-900 border border-slate-800 w-full max-w-5xl rounded-3xl shadow-2xl flex flex-col max-h-[92vh] overflow-hidden animate-scale-up">
-        {/* 1. Header */}
-        <div className="p-4 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-3 bg-gradient-to-r from-slate-900 via-purple-950/30 to-slate-900">
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-rose-500 to-amber-500 p-0.5 shadow-lg shadow-rose-500/20">
-              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-rose-400">
-                <MessageSquare className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 bg-slate-950/85 backdrop-blur-md flex items-end sm:items-center justify-center p-0 sm:p-4">
+      <div className="bg-slate-900 border border-slate-800 w-full sm:max-w-5xl rounded-t-3xl sm:rounded-3xl shadow-2xl flex flex-col h-[100dvh] sm:h-auto sm:max-h-[92vh] overflow-hidden animate-scale-up">
+        {/* 1. Header (Tối ưu gọn gàng cho Mobile) */}
+        <div className="p-3 sm:p-5 border-b border-slate-800 flex items-center justify-between gap-2 sm:gap-3 bg-gradient-to-r from-slate-900 via-purple-950/30 to-slate-900 shrink-0">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+            <div className="w-9 h-9 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl bg-gradient-to-br from-rose-500 to-amber-500 p-0.5 shadow-lg shadow-rose-500/20 shrink-0">
+              <div className="w-full h-full bg-slate-900 rounded-[10px] sm:rounded-[14px] flex items-center justify-center text-rose-400">
+                <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
               </div>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-black text-white">
-                  KHÁCH HÀNG TIỀM NĂNG & CHỐT ĐƠN TELESALES
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                <h2 className="text-sm sm:text-lg font-black text-white truncate">
+                  <span className="sm:hidden">TELESALES & LEADS BÉ 8</span>
+                  <span className="hidden sm:inline">KHÁCH HÀNG TIỀM NĂNG & CHỐT ĐƠN TELESALES</span>
                 </h2>
-                <span className="px-2 py-0.5 rounded-full bg-rose-500 text-slate-950 text-[10px] font-black">
+                <span className="px-2 py-0.5 rounded-full bg-rose-500 text-slate-950 text-[10px] font-black shrink-0">
                   {filteredLeads.filter(l => l.status === 'NEW').length} Chờ Gọi
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
+              <p className="text-[11px] sm:text-xs text-slate-400 truncate hidden sm:block">
                 Dữ liệu khách hàng để lại từ Chatbot Bé 8 • Phân bổ về 7 chi nhánh gọi điện chốt đơn
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <button
               type="button"
               onClick={handleCopyChatbotLink}
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 transition-all cursor-pointer"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-amber-300 border border-slate-700 transition-all cursor-pointer"
             >
               {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedLink ? 'Đã chép link Chatbot' : 'Copy Link Chatbot'}</span>
+              <span>{copiedLink ? 'Đã chép link' : 'Copy Link Chatbot'}</span>
             </button>
 
             <button
               type="button"
               onClick={loadLeads}
               disabled={isLoading}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer"
+              className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition-all cursor-pointer"
               title="Tải lại dữ liệu"
             >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin text-rose-400' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isLoading ? 'animate-spin text-rose-400' : ''}`} />
             </button>
 
             <button
               type="button"
               onClick={() => setShowLinkGenModal(true)}
-              className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-xs flex items-center gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
+              className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-amber-500 to-rose-600 hover:from-amber-400 hover:to-rose-500 text-white font-black text-xs flex items-center gap-1 sm:gap-1.5 shadow-md shadow-amber-500/20 transition-all cursor-pointer"
             >
               <QrCode className="w-3.5 h-3.5" />
-              <span>Tạo Link & Mã QR</span>
+              <span className="hidden sm:inline">Tạo Link & Mã QR</span>
+              <span className="sm:hidden">Tạo QR</span>
             </button>
 
             <button
               type="button"
               onClick={onClose}
-              className="w-9 h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center font-bold text-sm transition-all cursor-pointer"
             >
               ✕
             </button>
           </div>
         </div>
 
-        {/* Banner Link Chatbot Bé 8 Công Khai */}
-        <div className="mx-4 sm:mx-5 mt-3 p-3 bg-gradient-to-r from-cyan-950/70 via-slate-900 to-amber-950/40 border border-cyan-500/30 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 text-xs shadow-inner">
-          <div className="flex items-center gap-2.5">
-            <img src="/be8-avatar.jpg" alt="Bé 8" className="w-9 h-9 rounded-full border border-cyan-400 object-cover shrink-0 shadow-sm shadow-cyan-500/20" />
-            <div>
-              <div className="font-extrabold text-cyan-300 flex items-center gap-1.5">
-                <span>Trang Chatbot Bé 8 Công Khai (Tặng Voucher & Thu Thập SĐT)</span>
+        {/* Banner Link Chatbot Bé 8 Công Khai (Tối ưu Mobile gọn gàng không chiếm diện tích) */}
+        <div className="mx-3 sm:mx-5 mt-2 sm:mt-3 p-2 sm:p-2.5 bg-gradient-to-r from-cyan-950/70 via-slate-900 to-amber-950/40 border border-cyan-500/30 rounded-2xl flex items-center justify-between gap-2 text-xs shadow-inner shrink-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <img src="/be8-avatar.jpg" alt="Bé 8" className="w-7 h-7 sm:w-8 sm:h-8 rounded-full border border-cyan-400 object-cover shrink-0 shadow-sm" />
+            <div className="min-w-0">
+              <div className="font-extrabold text-cyan-300 text-[11px] sm:text-xs flex items-center gap-1 truncate">
+                <span>Link Chatbot Bé 8</span>
+                <span className="text-amber-400/80 font-normal hidden sm:inline">(Tặng Voucher & Thu Thập SĐT)</span>
               </div>
-              <span className="text-[11px] text-slate-300 font-mono select-all">
+              <span className="text-[10px] sm:text-[11px] text-slate-400 font-mono select-all truncate block">
                 {typeof window !== 'undefined' ? `${window.location.origin}/?tab=tu-van` : '/?tab=tu-van'}
               </span>
             </div>
           </div>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-1.5 shrink-0">
             <button
               type="button"
               onClick={handleCopyChatbotLink}
-              className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 text-cyan-300 border border-cyan-500/40 font-bold text-[11px] sm:text-xs flex items-center gap-1 transition-all cursor-pointer"
             >
-              {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              <span>{copiedLink ? 'Đã sao chép!' : 'Sao chép link'}</span>
+              {copiedLink ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
+              <span>{copiedLink ? 'Đã chép' : 'Sao chép'}</span>
             </button>
             <a
               href={`${typeof window !== 'undefined' ? window.location.origin : ''}/?tab=tu-van`}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold flex items-center gap-1.5 transition-all"
+              className="px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold text-[11px] sm:text-xs flex items-center gap-1 transition-all"
             >
-              <ExternalLink className="w-3.5 h-3.5 text-amber-400" />
-              <span>Mở thử</span>
+              <ExternalLink className="w-3 h-3 text-amber-400" />
+              <span className="hidden sm:inline">Mở thử</span>
             </a>
           </div>
         </div>
 
-        {/* THANH CHUYỂN TAB: CÓ SĐT (TELESALES) vs ĐANG CHAT (GIÁM SÁT / MARKETING) */}
-        <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2 overflow-x-auto">
+        {/* THANH CHUYỂN TAB: CÓ SĐT (TELESALES) vs ĐANG CHAT (GIÁM SÁT / MARKETING) - GRID 2 CỘT VỪA KHÍT MOBILE */}
+        <div className="px-3 sm:px-5 pt-2 pb-2 border-b border-slate-800 bg-slate-900/60 grid grid-cols-2 gap-2 shrink-0">
           <button
             type="button"
             onClick={() => setActiveLeadTab('with_phone')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
               activeLeadTab === 'with_phone'
                 ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-600/30 ring-1 ring-white/20'
                 : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
-            <Phone className="w-3.5 h-3.5 text-amber-300" />
-            <span>🔥 Khách Có SĐT - Cần Gọi Ngay</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            <Phone className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+            <span className="hidden sm:inline">🔥 Khách Có SĐT - Cần Gọi Ngay</span>
+            <span className="sm:hidden">🔥 Có SĐT</span>
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black ${
               activeLeadTab === 'with_phone' ? 'bg-slate-950/80 text-amber-300' : 'bg-slate-900 text-slate-400'
             }`}>
               {leadsWithPhone.length}
             </span>
             {leadsWithPhone.filter(l => l.status === 'NEW').length > 0 && (
-              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping shrink-0" />
             )}
           </button>
 
           <button
             type="button"
             onClick={() => setActiveLeadTab('chatting')}
-            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer whitespace-nowrap ${
+            className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer ${
               activeLeadTab === 'chatting'
                 ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-white/20'
                 : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/60'
             }`}
           >
-            <MessageSquare className="w-3.5 h-3.5 text-cyan-300" />
-            <span>💬 Khách Đang Chat / Chưa Có SĐT</span>
-            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-300 shrink-0" />
+            <span className="hidden sm:inline">💬 Khách Đang Chat / Chưa Có SĐT</span>
+            <span className="sm:hidden">💬 Đang Chat</span>
+            <span className={`px-1.5 sm:px-2 py-0.5 rounded-full text-[10px] font-black ${
               activeLeadTab === 'chatting' ? 'bg-slate-950/80 text-cyan-300' : 'bg-slate-900 text-slate-400'
             }`}>
               {leadsChatting.length}
@@ -361,80 +366,72 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
           </button>
         </div>
 
-        {/* 2. Thanh lọc & Tìm kiếm */}
-        <div className="p-3 sm:p-4 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
+        {/* 2. Thanh lọc & Tìm kiếm (Tối ưu 3 cột vừa vặn trên điện thoại) */}
+        <div className="p-2.5 sm:p-4 bg-slate-950/70 border-b border-slate-800 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 shrink-0">
           {/* Ô tìm kiếm */}
-          <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="relative w-full sm:max-w-xs">
             <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
             <input
               type="text"
               placeholder="Tìm theo tên, SĐT, voucher..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-rose-500"
+              className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-8 sm:pl-9 pr-3 py-1.5 text-xs text-white placeholder-slate-400 outline-none focus:border-rose-500"
             />
           </div>
 
-          <div className="flex items-center gap-2 overflow-x-auto">
+          {/* 3 Dropdown bộ lọc dàn đều 3 cột trên mobile */}
+          <div className="grid grid-cols-3 gap-1.5 w-full sm:w-auto sm:flex sm:items-center">
             {/* Lọc chi nhánh */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Building2 className="w-3.5 h-3.5 text-amber-400 flex-shrink-0" />
-              <select
-                value={selectedBranchFilter}
-                onChange={(e) => setSelectedBranchFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-rose-500 cursor-pointer"
-              >
-                <option value="ALL">Tất cả chi nhánh</option>
-                <option value="Phú Khương">Phú Khương (Bến Tre)</option>
-                <option value="Đồng Khởi">Đồng Khởi (Bến Tre)</option>
-                <option value="Mỹ Tho">Mỹ Tho (Tiền Giang)</option>
-                <option value="Cần Thơ">Cần Thơ</option>
-                <option value="Vĩnh Long">Vĩnh Long</option>
-                <option value="Thủ Đức">Thủ Đức (TP.HCM)</option>
-                <option value="Văn Phòng">Văn Phòng Chuỗi</option>
-              </select>
-            </div>
+            <select
+              value={selectedBranchFilter}
+              onChange={(e) => setSelectedBranchFilter(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2 py-1.5 text-[11px] sm:text-xs outline-none focus:border-rose-500 cursor-pointer truncate"
+            >
+              <option value="ALL">🏢 Tất cả shop</option>
+              <option value="Phú Khương">Phú Khương</option>
+              <option value="Đồng Khởi">Đồng Khởi</option>
+              <option value="Mỹ Tho">Mỹ Tho</option>
+              <option value="Cần Thơ">Cần Thơ</option>
+              <option value="Vĩnh Long">Vĩnh Long</option>
+              <option value="Thủ Đức">Thủ Đức</option>
+              <option value="Văn Phòng">Văn Phòng</option>
+            </select>
 
             {/* Lọc trạng thái */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Filter className="w-3.5 h-3.5 text-rose-400 flex-shrink-0" />
-              <select
-                value={selectedStatusFilter}
-                onChange={(e) => setSelectedStatusFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-rose-500 cursor-pointer"
-              >
-                <option value="ALL">Mọi trạng thái</option>
-                <option value="NEW">🚨 Mới chưa gọi</option>
-                <option value="CONTACTED">📞 Đã gọi / Tư vấn</option>
-                <option value="APPOINTED">🗓️ Hẹn ghé shop</option>
-                <option value="COMPLETED">✅ Đã mua thành công</option>
-                <option value="CANCELLED">❌ Đã hủy</option>
-                <option value="CHATTING">💬 Đang chat / Vãng lai</option>
-              </select>
-            </div>
+            <select
+              value={selectedStatusFilter}
+              onChange={(e) => setSelectedStatusFilter(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2 py-1.5 text-[11px] sm:text-xs outline-none focus:border-rose-500 cursor-pointer truncate"
+            >
+              <option value="ALL">🎯 Mọi trạng thái</option>
+              <option value="NEW">🚨 Mới chưa gọi</option>
+              <option value="CONTACTED">📞 Đã gọi</option>
+              <option value="APPOINTED">🗓️ Hẹn ghé</option>
+              <option value="COMPLETED">✅ Đã mua</option>
+              <option value="CANCELLED">❌ Đã hủy</option>
+              <option value="CHATTING">💬 Đang chat</option>
+            </select>
 
             {/* Lọc kênh nguồn */}
-            <div className="flex items-center gap-1.5 text-xs text-slate-400">
-              <Globe className="w-3.5 h-3.5 text-blue-400 flex-shrink-0" />
-              <select
-                value={selectedSourceFilter}
-                onChange={(e) => setSelectedSourceFilter(e.target.value)}
-                className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2.5 py-1.5 text-xs outline-none focus:border-rose-500 cursor-pointer"
-              >
-                <option value="ALL">Mọi kênh nguồn</option>
-                <option value="facebook">Facebook</option>
-                <option value="tiktok">TikTok</option>
-                <option value="zalo">Zalo</option>
-                <option value="qr">QR Bàn Shop</option>
-                <option value="website">Website PK88</option>
-                <option value="youtube">YouTube</option>
-              </select>
-            </div>
+            <select
+              value={selectedSourceFilter}
+              onChange={(e) => setSelectedSourceFilter(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-slate-200 font-bold rounded-xl px-2 py-1.5 text-[11px] sm:text-xs outline-none focus:border-rose-500 cursor-pointer truncate"
+            >
+              <option value="ALL">🌐 Mọi nguồn</option>
+              <option value="facebook">Facebook</option>
+              <option value="tiktok">TikTok</option>
+              <option value="zalo">Zalo</option>
+              <option value="qr">QR Bàn</option>
+              <option value="website">Website</option>
+              <option value="youtube">YouTube</option>
+            </select>
           </div>
         </div>
 
         {/* 3. Danh sách Leads */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-5 space-y-3.5">
+        <div className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-3">
           {isLoading ? (
             <div className="py-16 text-center text-slate-400 text-xs">
               <RefreshCw className="w-6 h-6 animate-spin mx-auto text-rose-400 mb-2" />
@@ -467,31 +464,31 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
               return (
                 <div
                   key={lead.id}
-                  className={`p-4 rounded-2xl border transition-all ${
+                  className={`p-3 sm:p-4 rounded-2xl border transition-all ${
                     lead.status === 'NEW'
                       ? 'bg-rose-950/20 border-rose-500/40 shadow-lg shadow-rose-950/20 ring-1 ring-rose-500/30'
                       : 'bg-slate-900/70 border-slate-800 hover:border-slate-700'
                   }`}
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-2.5">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 sm:gap-3 mb-2.5">
                     {/* Tên khách & SĐT */}
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-rose-400 font-black text-sm">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-rose-400 font-black text-sm shrink-0">
                         {lead.customer_name ? lead.customer_name.charAt(0).toUpperCase() : 'K'}
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="text-sm font-black text-white">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
+                          <h4 className="text-sm font-black text-white truncate max-w-[150px] sm:max-w-none">
                             {lead.customer_name || 'Khách vãng lai'}
                           </h4>
                           {lead.phone && lead.phone.trim().length >= 8 ? (
-                            <span className="font-mono text-sm font-black text-amber-400 tracking-wider">
+                            <span className="font-mono text-sm sm:text-base font-black text-amber-400 tracking-wider">
                               {lead.phone}
                             </span>
                           ) : (
                             <span className="font-sans text-[11px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 flex items-center gap-1">
                               <MessageSquare className="w-3 h-3 text-cyan-400" />
-                              <span>Chưa để lại SĐT</span>
+                              <span>Chưa có SĐT</span>
                             </span>
                           )}
                           {getStatusBadge(lead.status)}
@@ -531,33 +528,33 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                             if (!src) return null;
 
                             return (
-                              <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
+                              <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full border ${badgeStyle}`}>
                                 {platId ? (
-                                  <PlatformBrandIcon platformId={platId} className="w-3.5 h-3.5 shrink-0 rounded-[3px]" />
+                                  <PlatformBrandIcon platformId={platId} className="w-3 h-3 shrink-0 rounded-[3px]" />
                                 ) : (
-                                  <span className="text-[11px]">🎯</span>
+                                  <span className="text-[10px]">🎯</span>
                                 )}
                                 <span>{label}</span>
                               </span>
                             );
                           })()}
                         </div>
-                        <p className="text-[11px] text-slate-400 flex items-center gap-2 mt-0.5">
+                        <p className="text-[11px] text-slate-400 flex items-center gap-1.5 sm:gap-2 mt-0.5">
                           <span className="flex items-center gap-1">
                             <Clock className="w-3 h-3 text-slate-400" />
                             <span>{formattedTime}</span>
                           </span>
                           <span>•</span>
-                          <span className="flex items-center gap-1 text-amber-300 font-semibold">
-                            <MapPin className="w-3 h-3" />
-                            <span>{lead.branch || 'Chưa chọn shop'}</span>
+                          <span className="flex items-center gap-1 text-amber-300 font-semibold truncate">
+                            <MapPin className="w-3 h-3 shrink-0" />
+                            <span className="truncate">{lead.branch || 'Chưa chọn shop'}</span>
                           </span>
                         </p>
                       </div>
                     </div>
 
                     {/* Nút hành động */}
-                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto mt-2 sm:mt-0">
                       {lead.phone && lead.phone.trim().length >= 8 ? (
                         <>
                           <a
@@ -567,7 +564,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                                 handleStatusChange(lead.id, 'CONTACTED');
                               }
                             }}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
                           >
                             <Phone className="w-3.5 h-3.5" />
                             <span>GỌI ĐIỆN</span>
@@ -582,7 +579,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                                 handleStatusChange(lead.id, 'CONTACTED');
                               }
                             }}
-                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
                           >
                             <MessageSquare className="w-3.5 h-3.5" />
                             <span>CHAT ZALO</span>
@@ -592,10 +589,10 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                         <button
                           type="button"
                           onClick={() => setExpandedChatLeadId(expandedChatLeadId === lead.id ? null : lead.id)}
-                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer"
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2.5 sm:py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer"
                         >
                           <MessageSquare className="w-3.5 h-3.5" />
-                          <span>{expandedChatLeadId === lead.id ? 'ĐÓNG HỘI THOẠI' : 'XEM HỘI THOẠI'}</span>
+                          <span>{expandedChatLeadId === lead.id ? 'ĐÓNG CHAT' : 'XEM HỘI THOẠI'}</span>
                         </button>
                       )}
 
@@ -604,7 +601,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDeleteLead(lead.id)}
-                          className="p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 transition-all cursor-pointer"
+                          className="p-2.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-400 border border-slate-700 transition-all cursor-pointer shrink-0"
                           title="Xóa khách này"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
@@ -614,37 +611,37 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                   </div>
 
                   {/* Chi tiết nhu cầu & Mã voucher */}
-                  <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs space-y-1.5">
-                    <div className="flex items-start justify-between gap-2">
+                  <div className="p-2.5 sm:p-3 rounded-xl bg-slate-950/60 border border-slate-800/80 text-xs space-y-1.5">
+                    <div className="flex items-start justify-between gap-2 flex-wrap">
                       <p className="text-slate-300">
                         <span className="font-bold text-slate-400">Nhu cầu:</span>{' '}
                         <span className="text-amber-200">{lead.need || 'Tư vấn mua phụ kiện'}</span>
                       </p>
 
                       {lead.voucher_code && (
-                        <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 flex-shrink-0">
+                        <div className="flex items-center gap-1 text-[11px] font-mono font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 shrink-0">
                           <Gift className="w-3 h-3" />
                           <span>Mã: {lead.voucher_code}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Nút Xem Chi Tiết Lịch Sử Phiên Chat */}
-                    <div className="pt-1.5 flex items-center justify-between border-t border-slate-800/60">
+                    {/* Nút Xem Chi Tiết Lịch Sử Phiên Chat & Nguồn - Tối ưu chống rớt dòng trên Mobile */}
+                    <div className="pt-2 flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 border-t border-slate-800/60">
                       <button
                         type="button"
                         onClick={() => setExpandedChatLeadId(expandedChatLeadId === lead.id ? null : lead.id)}
-                        className="flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs font-bold text-amber-400 hover:text-amber-300 transition-colors cursor-pointer text-left"
                       >
-                        <MessageSquare className="w-3.5 h-3.5 text-amber-400" />
+                        <MessageSquare className="w-3.5 h-3.5 text-amber-400 shrink-0" />
                         <span>
                           {expandedChatLeadId === lead.id 
                             ? 'Thu gọn Lịch Sử Chat ▲' 
-                            : `Xem Lịch Sử Phiên Chat Với Bé 8 (${Array.isArray(lead.activity_log) ? lead.activity_log.length : 1} tin nhắn) ▼`}
+                            : `Xem Lịch Sử Chat Với Bé 8 (${Array.isArray(lead.activity_log) ? lead.activity_log.length : 1} tin) ▼`}
                         </span>
                       </button>
 
-                      <span className="text-[10px] text-slate-400">
+                      <span className="text-[10px] text-slate-400 shrink-0">
                         Nguồn: <strong className="text-slate-300">{lead.source === 'web_chatbot_inline' ? 'Nhập SĐT trong chat' : 'Form E-Voucher'}</strong>
                       </span>
                     </div>
@@ -727,32 +724,32 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(lead.id, 'CONTACTED')}
-                          className="px-2 py-0.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold border border-amber-500/40 cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[11px] font-bold border border-amber-500/40 cursor-pointer transition-all"
                         >
                           ✓ Đánh dấu đã gọi
                         </button>
                       )}
 
                       {lead.status === 'CONTACTED' && (
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <button
                             type="button"
                             onClick={() => handleStatusChange(lead.id, 'APPOINTED')}
-                            className="px-2 py-0.5 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[11px] font-bold border border-purple-500/40 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 text-[11px] font-bold border border-purple-500/40 cursor-pointer transition-all"
                           >
                             🗓️ Hẹn ghé shop
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStatusChange(lead.id, 'COMPLETED')}
-                            className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/40 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/40 cursor-pointer transition-all"
                           >
                             ✅ Đã mua
                           </button>
                           <button
                             type="button"
                             onClick={() => handleStatusChange(lead.id, 'CANCELLED')}
-                            className="px-2 py-0.5 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 text-[11px] font-bold border border-slate-700 cursor-pointer"
+                            className="px-2.5 py-1 rounded-lg bg-slate-800 hover:bg-rose-500/20 text-slate-400 hover:text-rose-300 text-[11px] font-bold border border-slate-700 cursor-pointer transition-all"
                           >
                             ❌ Hủy
                           </button>
@@ -763,7 +760,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                         <button
                           type="button"
                           onClick={() => handleStatusChange(lead.id, 'COMPLETED')}
-                          className="px-2 py-0.5 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/40 cursor-pointer flex items-center gap-1"
+                          className="px-2.5 py-1 rounded-lg bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 text-[11px] font-bold border border-emerald-500/40 cursor-pointer flex items-center gap-1 transition-all"
                         >
                           <Check className="w-3 h-3 text-emerald-400" />
                           <span>Khách đã ghé mua xong</span>
