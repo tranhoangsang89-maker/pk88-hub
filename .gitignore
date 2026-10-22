@@ -16,6 +16,8 @@ dist-ssr
 .env
 .env.*
 supabase-pw.txt
+code-fanpage.txt
+tokens.txt
 
 # Scratch and temp files
 scratch/
