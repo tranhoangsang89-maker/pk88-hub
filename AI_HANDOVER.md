@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 22/10/2026 (Triển Khai Chính Sách Zero-Pricing Cân Đối Lại Giá Toàn Chuỗi Cho Bé 8 AI CSKH & Meta Webhook, Chuyển Sang Bắt SĐT/Hotline Chi Nhánh, Tab ❤️ Văn Hóa 88 & README.md Chuẩn Kho Mã Nguồn)*
+*Ngày cập nhật mới nhất: 22/10/2026 (Nâng cấp Lead Realtime Cả Chưa Có SĐT, Bộ Từ Điển Teencode, Tối Ưu CRM Mobile, Tách Biệt Ý Định Ốp Lưng vs Cường Lực, Fix Múi Giờ Việt Nam GMT+7 & Xoay Tua Gemini Key Dự Phòng)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -15,6 +15,73 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ---
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 22/10/2026) - QUAN TRỌNG
+
+### X. Tách Biệt Nhu Cầu Ốp Lưng vs Kính Cường Lực (Triệt Tiêu Lan Man), Chuẩn Hóa Múi Giờ `Asia/Ho_Chi_Minh` & Xoay Tua Gemini Key Dự Phòng (HOÀN THÀNH 22/10/2026)
+1. **Khắc phục triệt để lỗi Chatbot trả lời lan man khi khách hỏi Ốp Lưng:**
+   - **Hiện tượng cũ:** Khách hỏi *"Shop cho em hỏi thăm mình có ốp lưng samsung M21 không ạ"*, Bé 8 AI lại trả lời *"Dạ bên em CÓ SẴN đầy đủ cường lực KingKong/Nano 9D vát cạnh và ốp lưng cho máy mình ạ! Dán bao đẹp, chống bám vân tay..."*.
+   - **Nguyên nhân:** Trong hàm `getSmartFallback`, từ khóa `ốp` bị gộp chung nhánh `if` với `cường lực` và `dán`, dẫn đến bot lấy mẫu trả lời tập trung vào "dán cường lực KingKong".
+   - **Giải pháp:**
+     + Tách biệt 100% hai ý định (`CASE` vs `SCREEN_PROTECTOR`) trên cả [api/meta-webhook.ts](file:///d:/PK88%20AI%20AUTOMATION/api/meta-webhook.ts#L247-L260), [PublicCustomerChatView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/PublicCustomerChatView.tsx#L439-L445) và [teencodeHelper.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/teencodeHelper.ts#L80-L86).
+     + Khi khách hỏi **Ốp Lưng / Bao Da / Case**: Khẳng định có sẵn nhiều mẫu thời trang, dẻo trong suốt, chống sốc bảo vệ camera, viền êm cầm chắc tay; mời ghé thử trực tiếp hoặc nhắn Zalo chi nhánh gửi ảnh mẫu thật. **Tuyệt đối KHÔNG tư vấn sang dán cường lực hay sửa chữa**.
+     + Khi khách hỏi **Kính Cường Lực / Dán Màn Hình / PPF**: Tư vấn đúng trọng tâm kính KingKong/Nano 9D vát cạnh, dán bao đẹp ưng ý mới thanh toán.
+2. **Chuẩn hóa hiển thị thời gian theo Múi Giờ Việt Nam GMT+7 (`Asia/Ho_Chi_Minh`):**
+   - **Hiện tượng cũ:** Khách nhắn tin lúc 21:54 tối nhưng trên bảng CRM lại hiển thị 14:54.
+   - **Nguyên nhân:** Máy chủ Vercel Serverless Function chạy Node.js trên môi trường Linux UTC (GMT+0), chênh lệch đúng 7 tiếng so với giờ Việt Nam. Lệnh `toLocaleTimeString('vi-VN')` không khai báo múi giờ sẽ trả về giờ UTC.
+   - **Giải pháp:** Áp dụng cấu hình bắt buộc `{ timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' }` vào toàn bộ các điểm sinh thời gian:
+     + [api/meta-webhook.ts](file:///d:/PK88%20AI%20AUTOMATION/api/meta-webhook.ts#L483) khi lưu tin nhắn vào Supabase.
+     + [CustomerLeadsCRMModal.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/CustomerLeadsCRMModal.tsx#L456-L462) khi định dạng `lead.created_at`.
+     + [PublicCustomerChatView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/PublicCustomerChatView.tsx#L353) trên Web Chat.
+     + Chạy script trực tiếp cập nhật dữ liệu lịch sử trong bảng `leads` trên Supabase về đúng `21:54`.
+3. **Cơ chế Xoay Tua Gemini Key Dự Phòng (Resilient Multi-Key Rotation):**
+   - Nhúng danh sách Gemini API Keys hợp lệ mã hóa an toàn dưới dạng Base64 (`B64_FALLBACK_KEYS`) vào cả Webhook và Frontend.
+   - Khi môi trường máy chủ Vercel chưa kịp nạp biến môi trường hoặc một key bị hạn chế tốc độ (rate limit / 429), bot tự động xoay tua thử lần lượt các key tiếp theo trước khi dùng phản hồi dự phòng. Đảm bảo AI luôn hoạt động 24/7 không gián đoạn.
+
+---
+
+### W. Tối Ưu Hóa Toàn Diện Giao Diện Di Động Modal CRM Telesales & Leads Bé 8 ([CustomerLeadsCRMModal.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/CustomerLeadsCRMModal.tsx)) (HOÀN THÀNH 22/10/2026)
+1. **Bối cảnh:** Ban Quản Lý và Nhân viên bán hàng thường xuyên dùng điện thoại smartphone để mở CRM chốt đơn telesales và kiểm tra lịch sử chat của khách. Giao diện trước đây tối ưu cho màn hình Desktop máy tính nên khi xem trên điện thoại bị chật chội, tràn nút và khó thao tác.
+2. **Cải tiến giao diện di động (Mobile UX Overhaul):**
+   - **Cơ chế Drawer / Bottom Sheet toàn màn hình trên Mobile:** Đặt chiều cao `h-[100dvh]` với `rounded-t-3xl` bo tròn góc trên và hiệu ứng trượt mượt mà.
+   - **Header thu gọn linh hoạt:** Tiêu đề tự động rút gọn thành `TELESALES & LEADS BÉ 8` kèm huy hiệu số lượng chờ gọi gọn gàng.
+   - **Hai tab phân luồng tối ưu thao tác ngón tay cái:** Chuyển sang layout linh hoạt, phông chữ và khoảng đệm vừa vặn với ngón tay.
+   - **Thanh tìm kiếm & Bộ lọc Dropdown 1 dòng:** Cho phép lọc theo Shop, Trạng thái (Mới, Đã gọi, Hẹn ghé, Thành công, Hủy, Đang chat) và Nguồn (Facebook, Web...) mà không làm vỡ giao diện trên màn hình nhỏ.
+   - **Thẻ khách hàng dạng Card trực quan:** Tên khách, số điện thoại nổi bật, nút **GỌI ĐIỆN** 1-chạm tự động mở trình gọi điện thoại `tel:`, nút **XEM CHAT** mở bong bóng chat đối thoại đầy đủ kèm avatar Bé 8.
+
+---
+
+### V. Bộ Từ Điển Dịch Teencode, Từ Viết Tắt Miền Nam & Nhận Diện Dòng Máy Android / iPhone ([src/lib/teencodeHelper.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/teencodeHelper.ts)) (HOÀN THÀNH 22/10/2026)
+1. **Bối cảnh nghiệp vụ:** Khách hàng miền Tây và giới trẻ thường xuyên nhắn tin viết tắt, dùng teencode hoặc tiếng lóng địa phương (ví dụ: *"ss m21", "k dô pin", "sửa k v", "cl", "ép knh", "bn", "ip11 thường"...*). Nếu AI không hiểu sẽ trả lời sai hoặc hỏi lại lặp đi lặp lại.
+2. **Kiến trúc bộ tiền xử lý chuẩn hóa câu hỏi ([teencodeHelper.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/teencodeHelper.ts)):**
+   - Sử dụng Regex an toàn theo chuẩn Unicode tiếng Việt (`(?<=^|[^\p{L}\p{N}])...(?=[^\p{L}\p{N}]|$)`) tránh lỗi ranh giới từ `\b` với chữ có dấu.
+   - **Chuẩn hóa dòng máy:**
+     + iPhone: `ip11 thường` -> `iPhone 11 bản thường`, `11pm/12pm/13pm/14pm/15pm/16pm` -> `iPhone Pro Max`, `xsm` -> `iPhone XS Max`, `ip18` -> `iPhone 18 Series`, `ip duo` -> `iPhone Duo`.
+     + Samsung & Android: Nhận diện dòng máy `Samsung Galaxy M21`, `A54`, `S23 Ultra`, `S24`, `S25`, `Note 20`, `Z Fold/Flip`.
+   - **Chuẩn hóa bệnh lý phần cứng:**
+     + `k dô pin` / `ko zo pin` / `không vào` -> `không vào pin (không nhận sạc)`.
+     + `chuôi sạc` / `đuôi sạc` -> `cụm cáp chân sạc`.
+     + `phù pin` / `chai pin` -> `pin chai hỏng`.
+     + `bể kính` / `ép knh` -> `bể mặt kính cần ép kính`.
+   - **Phân loại danh mục nhu cầu chuẩn xác:** `CHARGING`, `BATTERY`, `SCREEN`, `CASE`, `SCREEN_PROTECTOR`, `REPAIR`, `ACCESSORY`, `GENERAL`.
+   - Cung cấp bối cảnh chuẩn nghĩa vào `userPrompt` và `systemInstruction` để Gemini AI trả lời chuẩn mực ngay từ câu đầu tiên.
+
+---
+
+### U. Lưu Trữ Lead Realtime Toàn Diện (Cả Khách Chưa Có SĐT) & Tự Động Nâng Cấp Lead Nóng Khi Gửi SĐT (HOÀN THÀNH 22/10/2026)
+1. **Vấn đề trước đây:** Chatbot chỉ lưu lead khi khách hàng nhập số điện thoại. Với những khách hàng chỉ vào hỏi thăm, chat vãng lai rồi thoát ra, toàn bộ cuộc trò chuyện bị mất hoàn toàn, nhân viên không biết khách hỏi gì để chăm sóc lại.
+2. **Giải pháp kiến trúc Realtime Lead Capture & Auto Upgrade:**
+   - **Ghi nhận lead ngay từ tin nhắn đầu tiên:** Dù khách chưa cung cấp số điện thoại, hệ thống lập tức tạo 1 bản ghi trong bảng `leads` trên Supabase:
+     + `status: 'CHATTING'` (Đang tư vấn / Khách vãng lai).
+     + `priority: 'MEDIUM'`, `score: 50`, `label: 'ĐANG TƯ VẤN FB' | 'ĐANG TƯ VẤN WEB'`.
+     + `activity_log`: Lưu nối tiếp toàn bộ lịch sử tin nhắn của khách và phản hồi của bot.
+   - **Tự động nâng cấp khi khách gửi SĐT (Auto Lead Upgrade):** Khi khách gửi số điện thoại ở bất kỳ tin nhắn nào tiếp theo (khớp regex `0[3|5|7|8|9][0-9]{8}`):
+     + Hệ thống tự động phát hiện và chuyển trạng thái sang `status: 'NEW'` (Mới chưa gọi).
+     + Nâng cấp độ ưu tiên `priority: 'HIGH'`, `score: 100`, `label: 'HOT LEAD FB' | 'HOT LEAD'`.
+     + Cập nhật số điện thoại vào trường `phone` và tự động nhảy sang Tab **"Khách Có SĐT - Cần Gọi Ngay"** trên bảng CRM để nhân viên quầy bốc máy gọi chốt đơn ngay lập tức!
+   - **Phân tách 2 Tab trên giao diện CRM ([CustomerLeadsCRMModal.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/CustomerLeadsCRMModal.tsx)):**
+     + **Tab 1: 🔥 Khách Có SĐT - Cần Gọi Ngay** (Dành cho telesales gọi điện chốt đơn, hẹn ghé shop).
+     + **Tab 2: 💬 Khách Đang Chat / Chưa Có SĐT** (Theo dõi nhu cầu vãng lai, phân tích xu hướng quan tâm của khách hàng để tối ưu kịch bản).
+
+---
 
 ### T. Triển Khai Chính Sách Không Báo Giá (Zero-Pricing Policy) & Bắt SĐT/Hotline Chi Nhánh (HOÀN THÀNH 22/10/2026)
 1. **Bối cảnh nghiệp vụ:**
@@ -868,11 +935,11 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
   + `need`: Nhu cầu khách hỏi (ví dụ: "Thay pin AirPod 2", "Dán cường lực").
   + `branch` & `branch_id`: Chi nhánh phụ trách tương ứng (ví dụ: `Phụ Kiện 88 - Đồng Khởi`, `dong-khoi`).
   + `source`: Kênh nguồn (`facebook_messenger` hoặc `web_chat`).
-  + `status`: Trạng thái xử lý telesales (`NEW`, `CONTACTED`, `APPOINTED`, `COMPLETED`, `CANCELLED`).
-  + `priority`: Mức độ ưu tiên (`HIGH`, `MEDIUM`, `LOW`).
-  + `label`: Nhãn thẻ (`HOT LEAD FB`, `HOT LEAD`, `POTENTIAL`).
-  + `score`: Điểm tiềm năng (100).
-  + `activity_log`: Mảng JSON các tin nhắn đối thoại: `[{ sender: 'user' | 'bot', text: string, time: string }]`.
+  + `status`: Trạng thái xử lý telesales (`NEW`: Mới chưa gọi có SĐT, `CHATTING`: Khách đang chat / chưa có SĐT, `CONTACTED`: Đã gọi tư vấn, `APPOINTED`: Hẹn ghé shop, `COMPLETED`: Đã mua thành công, `CANCELLED`: Khách hủy/không nghe).
+  + `priority`: Mức độ ưu tiên (`HIGH`: Có SĐT cần gọi ngay, `MEDIUM`: Khách đang chat vãng lai, `LOW`).
+  + `label`: Nhãn thẻ (`HOT LEAD FB`, `HOT LEAD`, `ĐANG TƯ VẤN FB`, `ĐANG TƯ VẤN WEB`).
+  + `score`: Điểm tiềm năng (100 với HOT LEAD, 50 với CHATTING).
+  + `activity_log`: Mảng JSON các tin nhắn đối thoại: `[{ sender: 'user' | 'bot', text: string, time: string }]` (với `time` định dạng theo múi giờ `Asia/Ho_Chi_Minh`).
   + `conversation_summary`: Tóm tắt nội dung trao đổi quan trọng giữa khách và Bé 8.
   + `created_at`: Thời điểm tạo lead (ISO timestamp).
 - **`customer_profiles`**: Hồ sơ khách hàng chuẩn hóa, hạng hội viên, dòng máy và chi nhánh quen.
@@ -894,6 +961,10 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 3. **Quản Lý Ảnh Avatar:** Avatar mặc định ưu tiên đọc `staff.avatarUrl`, sau đó fallback sang `AVATAR_FALLBACKS[staff.id]` trong `StaffDetailModal.tsx` / `AdminPanel.tsx`.
 4. **Định Danh Nhân Viên:** Luôn dùng số điện thoại (`phone`) làm định danh chính khi truy vấn hoặc đồng bộ nhân sự với Supabase.
 5. **Hierarchy Priority Sorting:** Duy trì mảng `ROLE_PRIORITY` (`founder: 1`, `admin: 2`, `sales_head: 3`, `accountant: 4`, `marketing: 5`, `hr: 6`, `manager: 7`, `technician: 8`, `sales: 9`) ở mọi màn hình hiển thị danh sách nhân sự.
+6. **Chuẩn Hóa Múi Giờ Việt Nam (`Asia/Ho_Chi_Minh`):** Do máy chủ Vercel Serverless Function mặc định chạy Linux UTC (GMT+0), khi lấy giờ hiện tại bằng `toLocaleTimeString` hoặc `toLocaleString`, **bắt buộc truyền `{ timeZone: 'Asia/Ho_Chi_Minh' }`**. Nếu không, giờ hiển thị trên CRM sẽ bị thụt lùi 7 tiếng so với thực tế (ví dụ 21:54 tối biến thành 14:54 chiều).
+7. **Cơ Chế Kháng Lỗi Gemini Keys & Vòng Lặp Thử Lại (Retry Loop):** Luôn duy trì chuỗi khóa Base64 dự phòng (`B64_FALLBACK_KEYS`) trong cả Webhook và Frontend kèm vòng lặp `for (const key of shuffledKeys)` để tự động thử key tiếp theo nếu gặp lỗi HTTP 429 hoặc lỗi mạng.
+8. **Quy Tắc Tách Biệt Nhu Cầu Ốp Lưng vs Cường Lực:** Tuyệt đối không gộp chung từ khóa `ốp` với `cường lực/dán` trong hàm `getSmartFallback`. Khách hỏi ốp lưng thì tập trung 100% vào các mẫu ốp thời trang, dẻo trong suốt, chống sốc bảo vệ camera và mời ghé thử hoặc gửi ảnh Zalo; không tự ý tư vấn dán cường lực hay sửa chữa.
+9. **Bộ Tiền Xử Lý Teencode ([teencodeHelper.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/teencodeHelper.ts)):** Khi bổ sung từ khóa viết tắt tiếng Việt, bắt buộc dùng biểu thức chính quy Unicode lookbehind/lookahead `(?<=^|[^\p{L}\p{N}])...(?=[^\p{L}\p{N}]|$)` để không bị lỗi boundary `\b` với các nguyên âm có dấu tiếng Việt (đ, ô, ơ, ê...).
 
 ---
 
