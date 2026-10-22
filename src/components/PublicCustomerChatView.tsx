@@ -3,6 +3,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Branch } from '../types';
 import { submitCustomerLead, submitOrUpdateCustomerLead, generateVoucherCode } from '../lib/leadService';
+import { normalizeCustomerQuery } from '../lib/teencodeHelper';
 import productsData from '../lib/products.json';
 import { 
   Send, 
@@ -179,7 +180,11 @@ Cứ nhắn cho Bé 8 để được tư vấn dòng sản phẩm phù hợp nh�
   const searchRelevantProducts = (query: string) => {
     if (!query || !productsData || !Array.isArray(productsData)) return [];
     
-    const cleanQ = query.toLowerCase()
+    // Chuẩn hóa từ viết tắt và teencode để tìm kiếm chính xác
+    const normalized = normalizeCustomerQuery(query);
+    const combinedQuery = `${query} ${normalized.normalizedText}`;
+
+    const cleanQ = combinedQuery.toLowerCase()
       .normalize('NFD')
       .replace(/[\u0300-\u036f]/g, '')
       .replace(/[^a-z0-9\s]/g, ' ')
@@ -320,7 +325,20 @@ ${branchListStr}
 ${sampleProducts}
 - Miễn phí công dán cường lực & vệ sinh máy tại chỗ.
 - Bảo hành 1 đổi 1 trong 12 tháng với củ sạc, cáp sạc, tai nghe lỗi do nhà sản xuất.
-${realTimeProductContext}`;
+${realTimeProductContext}
+
+7. BỘ TỪ ĐIỂN DỊCH TEENCODE & CHỈ DẪN TRẢ LỜI ĐÚNG TRỌNG TÂM CÂU HỎI (QUAN TRỌNG NHẤT):
+- Khách hàng Việt Nam thường nhắn tin nhanh bằng teencode / từ viết tắt / phương ngữ miền Tây:
+  + Dòng máy: "ip11 thường" / "ip 11" = iPhone 11 bản tiêu chuẩn, "11pm/12pm/13pm/14pm/15pm/16pm" = iPhone Pro Max, "xsm" = iPhone XS Max, "ss" = Samsung.
+  + Viết tắt & phương ngữ: "k / ko / kh" = không, "dô / zô" = vào, "k dô pin" = cắm sạc không vào điện / không nhận sạc, "có sửa k vậy" = bên mình có nhận sửa chữa lỗi này không, "bn / bnhieu" = bao nhiêu, "cl" = cường lực, "knh" = kính.
+- NGUYÊN TẮC BẮT BUỘC KHI TRẢ LỜI KHÁCH:
+  1. TRẢ LỜI ĐÚNG VÀO TRỌNG TÂM CÂU HỎI CỦA KHÁCH:
+     - Nếu khách hỏi lỗi kỹ thuật ("sạc k dô pin", "ép kính", "thay pin", "mất nguồn", "vỡ màn hình"):
+       -> BẮT BUỘC KHẲNG ĐỊNH NGAY: "Dạ bên em CÓ NHẬN SỬA CHỮA / KIỂM TRA lỗi [tên lỗi & dòng máy của khách] ạ! 💖"
+       -> Nêu ngắn gọn nguyên nhân thường gặp (bụi bẩn bám chân sạc, lỗi cụm cáp sạc, pin chai phồng hoặc IC sạc).
+       -> Mời khách ghé ngay chi nhánh ${selectedBranch.name} (${selectedBranch.address}) để kỹ thuật viên KIỂM TRA & ĐO DÒNG SẠC MIỄN PHÍ lấy liền ngay trước mặt.
+       -> Khéo léo xin Tên + SĐT hoặc mời gọi Hotline/Zalo: ${currentBranchHotline.display} để được báo giá ưu đãi chính xác trong 3-5 phút!
+  2. TUYỆT ĐỐI KHÔNG CHÀO HỎI CHUNG CHUNG HOẶC HỎI LẠI CÂU KHÁCH VỪA HỎI (Không được hỏi kiểu "Anh/Chị cần kiểm tra ép kính, thay pin vậy ạ" khi khách vừa mới nói rõ là sạc không vào pin)!`;
   };
 
   // Gửi tin nhắn đến Gemini AI
@@ -366,6 +384,8 @@ ${realTimeProductContext}`;
       `${m.sender === 'user' ? 'Khách hàng' : 'Bé 8'}: ${m.text}`
     ).join('\n\n');
 
+    const normalized = normalizeCustomerQuery(text);
+
     const prompt = `${buildSystemPrompt(text)}
 
 LỊCH SỬ CHAT TRƯỚC ĐÓ:
@@ -373,8 +393,13 @@ ${chatHistory}
 
 TIN NHẮN MỚI TỪ KHÁCH HÀNG:
 "${text}"
+${normalized.normalizedText !== text.toLowerCase() ? `[BẢN DỊCH CHUẨN NGHĨA TEENCODE/TỪ VIẾT TẮT]: "${normalized.normalizedText}"` : ''}
+${normalized.detectedDevice ? `[DÒNG MÁY KHÁCH SỬ DỤNG]: ${normalized.detectedDevice}` : ''}
+${normalized.detectedCategory === 'CHARGING' ? `[CHỈ DẪN TRỌNG TÂM]: Khách đang hỏi về lỗi sạc không vào pin / không nhận sạc. BẮT BUỘC KHẲNG ĐỊNH SHOP CÓ NHẬN SỬA CHỮA, nêu nguyên nhân (chân sạc, cáp sạc, pin, IC), mời ghé ${selectedBranch.name} kiểm tra đo dòng sạc MIỄN PHÍ lấy liền ngay!` : ''}
+${normalized.detectedCategory === 'BATTERY' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về pin / thay pin. Tư vấn pin Pisen/Deji bảo hành 12 tháng 1 đổi 1, miễn phí công thay lấy ngay 15 phút tại ${selectedBranch.name}!` : ''}
+${normalized.detectedCategory === 'SCREEN' ? `[CHỈ DẪN TRỌNG TÂM]: Khách hỏi về ép kính / vỡ màn hình. Tư vấn ép kính hút chân không lấy ngay 30-45 phút tại ${selectedBranch.name}!` : ''}
 
-Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn chuyên sâu sản phẩm/dịch vụ, TUYỆT ĐỐI KHÔNG BÁO GIÁ TIỀN, và khéo léo xin Tên + SĐT hoặc hướng dẫn gọi Hotline chi nhánh:`;
+Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn đúng trọng tâm vấn đề của khách, TUYỆT ĐỐI KHÔNG BÁO GIÁ TIỀN, và khéo léo xin Tên + SĐT hoặc hướng dẫn gọi Hotline chi nhánh:`;
 
     const MODEL_NAME = 'gemini-flash-lite-latest';
     let aiReplyText = '';
@@ -409,13 +434,22 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn c
       }
     }
 
-    // Fallback nếu API bận
+    // Fallback thông minh nếu API bận
     if (!aiReplyText) {
       const curHotline = getBranchHotline(selectedBranch);
       if (phoneMatch) {
         aiReplyText = `Dạ em đã nhận được số điện thoại **${phoneMatch[1]}** của Anh/Chị rồi ạ! 💖\n\nChuyên viên của **${selectedBranch.name}** sẽ gọi điện thoại hoặc nhắn Zalo tư vấn chi tiết và áp dụng ưu đãi giảm giá 10% cho mình ngay trong ít phút nhé ạ! Anh/Chị để ý điện thoại giúp Bé 8 nha! ✨`;
       } else {
-        aiReplyText = `Dạ hiện tại chi nhánh **${selectedBranch.name}** đang có sẵn rất nhiều sản phẩm và linh kiện cao cấp cho dòng máy của mình ạ!\n\nVì hệ thống đang cân đối mức giá trợ giá tốt nhất, Anh/Chị cho em xin **Tên + Số Điện Thoại Zalo** để kỹ thuật viên gọi lại tư vấn và báo giá ưu đãi chính xác nhất trong 3-5 phút, hoặc mình có thể gọi trực tiếp Hotline/Zalo chi nhánh: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
+        const lowerQ = text.toLowerCase();
+        if (lowerQ.includes('sạc') || lowerQ.includes('dô pin') || lowerQ.includes('vô pin') || lowerQ.includes('chân sạc') || lowerQ.includes('k vao') || lowerQ.includes('khong vao')) {
+          aiReplyText = `Dạ bên em CÓ NHẬN SỬA CHỮA và kiểm tra lỗi sạc không vào pin cho dòng máy của mình ạ! 💖\n\nTình trạng này thường do chân sạc bám bụi bẩn, lỏng cáp sạc, pin bị chai kiệt hoặc lỗi IC sạc. Bé 8 mời Anh/Chị mang máy ghé trực tiếp chi nhánh **${selectedBranch.name}** (${selectedBranch.address}) để kỹ thuật viên kiểm tra và đo dòng sạc MIỄN PHÍ lấy liền ngay trước mặt cho mình nhé ạ!\n\nAnh/Chị cho em xin **Tên + Số Điện Thoại Zalo** hoặc gọi ngay Hotline/Zalo shop: **${curHotline.display}** để được các bạn hỗ trợ liền tay nha! ✨`;
+        } else if (lowerQ.includes('pin') || lowerQ.includes('thay pin')) {
+          aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** CÓ SẴN PIN CHÍNH HÃNG Pisen / Deji dung lượng chuẩn và siêu dung lượng cho máy mình ạ! 🔋\n\nBên em bảo hành chính hãng 12 tháng 1 đổi 1 và MIỄN PHÍ hoàn toàn công thay lấy ngay trong 15-20 phút. Anh/Chị cho em xin **Tên + SĐT** hoặc gọi Hotline/Zalo: **${curHotline.display}** để shop giữ pin và giữ quà tặng cho mình nhé ạ! ✨`;
+        } else if (lowerQ.includes('kính') || lowerQ.includes('ép kính') || lowerQ.includes('bể kính')) {
+          aiReplyText = `Dạ bên em CÓ NHẬN ÉP KÍNH màn hình công nghệ hút chân không chuẩn nhà máy, lấy liền trong 30-45 phút ạ! 📱\n\nMời Anh/Chị ghé chi nhánh **${selectedBranch.name}** (${selectedBranch.address}) để kỹ thuật viên kiểm tra màn hình miễn phí cho mình, hoặc gọi Hotline/Zalo: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
+        } else {
+          aiReplyText = `Dạ hiện tại chi nhánh **${selectedBranch.name}** đang có sẵn rất nhiều sản phẩm và dịch vụ kỹ thuật cho dòng máy của mình ạ!\n\nVì hệ thống đang cân đối mức giá trợ giá tốt nhất, Anh/Chị cho em xin **Tên + Số Điện Thoại Zalo** để kỹ thuật viên gọi lại tư vấn và báo giá ưu đãi chính xác nhất trong 3-5 phút, hoặc mình có thể gọi trực tiếp Hotline/Zalo chi nhánh: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
+        }
       }
     }
 

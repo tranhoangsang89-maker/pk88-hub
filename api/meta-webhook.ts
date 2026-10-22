@@ -171,6 +171,99 @@ async function sendMetaTextMessage(pageAccessToken: string, recipientId: string,
   }
 }
 
+
+/**
+ * Chuẩn hoá Teencode, từ viết tắt và phương ngữ miền Nam/miền Tây
+ */
+function normalizeTeencode(rawText: string): { normalized: string; intent: string; device: string } {
+  let text = (rawText || '').trim().toLowerCase();
+  
+  // Helper thay thế an toàn cho từ tiếng Việt không bị lỗi \b với ký tự có dấu (ô, ơ, ê, đ...)
+  const replaceWord = (pattern: string, replacement: string) => {
+    const regex = new RegExp(`(?<=^|[^\\p{L}\\p{N}])${pattern}(?=[^\\p{L}\\p{N}]|$)`, 'gui');
+    text = text.replace(regex, replacement);
+  };
+
+  // 1. Chuẩn hóa dòng máy iPhone: Đi từ cụ thể nhất (Pro Max -> Pro -> Plus -> Thường) đến chung chung
+  replaceWord('ip\\s*(\\d{1,2})\\s*(?:pro\\s*max|prm|pm)', 'iPhone $1 Pro Max');
+  replaceWord('ip\\s*(\\d{1,2})\\s*(?:pro|pr)', 'iPhone $1 Pro');
+  replaceWord('ip\\s*(\\d{1,2})\\s*(?:plus|pl)', 'iPhone $1 Plus');
+  replaceWord('ip\\s*(\\d{1,2})\\s*(?:thường|thuong|base)', 'iPhone $1 bản thường');
+  replaceWord('ip\\s*(\\d{1,2})', 'iPhone $1');
+  
+  replaceWord('xsm', 'iPhone XS Max');
+  replaceWord('(?:iphone\\s+)?xs\\s*max', 'iPhone XS Max');
+  replaceWord('ipx', 'iPhone X');
+  replaceWord('ip\\s*duo', 'iPhone Duo (Màn hình gập)');
+  replaceWord('ip\\s*18', 'iPhone 18 Series');
+
+  // Samsung
+  replaceWord('ss\\s*s(\\d{2})\\s*u(?:ltra)?', 'Samsung Galaxy S$1 Ultra');
+  replaceWord('s(\\d{2})\\s*u', 'Samsung Galaxy S$1 Ultra');
+  replaceWord('ss\\s+', 'Samsung ');
+
+  // 2. Chuẩn hóa teencode & phương ngữ miền Nam / miền Tây
+  replaceWord('(?:k|ko|kh|khg)\\s+(?:dô|zô|zo)\\s*(?:pin|dien|điện)?', 'không vào pin (không nhận sạc)');
+  replaceWord('(?:dô|zô|zo)\\s*(?:pin|dien|điện)', 'vào pin (nhận sạc)');
+  replaceWord('(?:k|ko|kh|khg)', 'không');
+  replaceWord('(?:dô|zô|zo)', 'vào');
+  replaceWord('(?:đc|dc)', 'được');
+  replaceWord('(?:sao|ntn|ntnao|ntnào)', 'như thế nào');
+  replaceWord('(?:bn|bnhieu|bnhiu|bao nhiu|bnh)', 'bao nhiêu');
+  replaceWord('(?:đt|dt)', 'điện thoại');
+  replaceWord('(?:sđt|sdt)', 'số điện thoại');
+  replaceWord('(?:pk)', 'phụ kiện');
+  replaceWord('(?:knh)', 'kính');
+  replaceWord('(?:cl|kính cl)', 'kính cường lực');
+  replaceWord('(?:ép knh|ep kinh)', 'ép kính');
+  replaceWord('(?:kb|inb|ib)', 'nhắn tin');
+  replaceWord('(?:ad|shop|b|ad ơi|ad oi)', 'Bé 8 ơi');
+
+  // Bệnh lý phần cứng sạc & pin
+  replaceWord('(?:chân sạc|chuôi sạc|đuôi sạc|cổng sạc)', 'cụm cáp chân sạc');
+  replaceWord('(?:phù pin|chai pin|pin ảo|tuột pin|sụt pin)', 'pin chai hỏng');
+  replaceWord('(?:bể kính|vỡ kính|nứt kính)', 'bể mặt kính cần ép kính');
+  replaceWord('(?:sọc màn|chớp màn|đen màn|mất cảm ứng)', 'hỏng màn hình cần thay màn');
+
+  let device = '';
+  const ipMatch = text.match(/iphone\s*\d{1,2}(?:\s*(?:pro max|pro|plus|bản thường))?/i);
+  if (ipMatch) device = ipMatch[0];
+
+  let intent = 'GENERAL';
+  if (text.includes('sạc')) intent = 'CHARGING';
+  else if (text.includes('pin')) intent = 'BATTERY';
+  else if (text.includes('ép kính') || text.includes('màn hình')) intent = 'SCREEN';
+  else if (text.includes('cường lực') || text.includes('ốp')) intent = 'ACCESSORY';
+  else if (text.includes('sửa')) intent = 'REPAIR';
+
+  return { normalized: text, intent, device };
+}
+
+/**
+ * Phản hồi dự phòng thông minh theo đúng ý định của khách khi Google AI gặp sự cố mạng/hết quota
+ */
+function getSmartFallback(userText: string, branch: typeof BRANCH_PAGES[string]): string {
+  const lower = userText.toLowerCase();
+
+  if (lower.includes('sạc') || lower.includes('dô pin') || lower.includes('vô pin') || lower.includes('không vào') || lower.includes('chuôi sạc') || lower.includes('chân sạc')) {
+    return `Dạ bên em CÓ NHẬN SỬA CHỮA lỗi sạc không vào pin / không nhận sạc cho máy mình ạ! 💖 Tình trạng này thường do bám bụi chân sạc, lỗi cụm cáp sạc, pin hoặc IC sạc trên main. Bé 8 mời anh/chị ghé ngay ${branch.branchName} (${branch.address}) để kỹ thuật viên kiểm tra và đo dòng sạc miễn phí lấy liền cho mình nhé! Hoặc anh/chị liên hệ Hotline/Zalo: ${branch.hotline} để shop hỗ trợ nhanh ạ!`;
+  }
+
+  if (lower.includes('pin') || lower.includes('thay pin') || lower.includes('chai pin') || lower.includes('phù pin')) {
+    return `Dạ bên em CÓ SẴN PIN CHÍNH HÃNG và nhận thay pin lấy liền trong 15-30 phút ạ! 💖 Pin Pisen/Deji cao cấp bảo hành 12 tháng 1 đổi 1, miễn phí hoàn toàn công thay và vệ sinh máy tại quầy. Bé 8 mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc gọi Hotline/Zalo: ${branch.hotline} để shop giữ pin ưu đãi cho mình nhé!`;
+  }
+
+  if (lower.includes('ép kính') || lower.includes('kính') || lower.includes('vỡ') || lower.includes('bể') || lower.includes('màn hình')) {
+    return `Dạ bên em CÓ NHẬN ÉP KÍNH & THAY MÀN HÌNH lấy liền công nghệ hút chân không hiện đại ạ! 💖 Kính thay chuẩn zin hiển thị sắc nét, bảo hành dài hạn và miễn phí vệ sinh máy. Bé 8 mời anh/chị mang máy ghé ${branch.branchName} (${branch.address}) để thợ kiểm tra miễn phí, hoặc gọi Hotline: ${branch.hotline} nhé!`;
+  }
+
+  if (lower.includes('cường lực') || lower.includes('dán') || lower.includes('cl') || lower.includes('ốp')) {
+    return `Dạ bên em CÓ SẴN đầy đủ cường lực KingKong/Nano 9D vát cạnh và ốp lưng cho máy mình ạ! 💖 Dán bao đẹp, chống bám vân tay và bảo vệ máy tối đa, dán xong khách ưng ý mới thanh toán. Em mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc liên hệ Hotline/Zalo: ${branch.hotline} nhé!`;
+  }
+
+  return `Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Shop em nhận sửa chữa, thay pin, ép kính lấy liền và đầy đủ phụ kiện chính hãng cho dòng máy của mình ạ! Anh/Chị cần kiểm tra máy hay tư vấn dịch vụ nào cứ nhắn em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
+}
+
 /**
  * Sinh câu trả lời thông minh bằng Google Gemini AI (gemini-flash-lite-latest)
  */
@@ -178,20 +271,20 @@ async function generateBe8Response(
   userText: string,
   branch: typeof BRANCH_PAGES[string]
 ): Promise<string> {
-  const geminiKeysRaw = process.env.VITE_GEMINI_API_KEY || '';
+  const geminiKeysRaw = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
   const apiKeys = geminiKeysRaw.split(',').map(k => k.trim()).filter(Boolean);
   const selectedKey = apiKeys.length > 0 
     ? apiKeys[Math.floor(Math.random() * apiKeys.length)]
     : '';
 
-  const fallbackMsg = `Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Anh/Chị đang tìm phụ kiện dán máy hay cần kiểm tra ép kính, thay pin vậy ạ? Cứ nhắn cho em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
-
   if (!selectedKey) {
-    return fallbackMsg;
+    return getSmartFallback(userText, branch);
   }
 
+  const { normalized, intent, device } = normalizeTeencode(userText);
+
   const systemInstruction = `
-Bạn là "Bé 8" - Chuyên Viên Tư Vấn Khách Hàng AI duyên dáng, tận tâm của Chuỗi Cửa Hàng Phụ Kiện 88 tại chi nhánh: ${branch.branchName}.
+Bạn là "Bé 8" - Chuyên Viên Tư Vấn Khách Hàng AI duyên dáng, tận tâm, am hiểu kỹ thuật của Chuỗi Cửa Hàng Phụ Kiện 88 tại chi nhánh: ${branch.branchName}.
 Địa chỉ cửa hàng: ${branch.address}. Hotline / Zalo tiếp nhận: ${branch.hotline}.
 
 VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
@@ -200,22 +293,43 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
   + Không nói "Cái này bên em không có" -> Hãy nói: "Dạ mẫu đó hiện tại shop vừa hết, em mời anh/chị xem thử mẫu tương tự này đang rất được chuộng ạ."
   + Không nói "Không biết" -> Hãy nói: "Dạ anh/chị chờ em 30 giây để em kiểm tra thông tin chính xác nhất cho mình nhé."
   + Không nói "Hết hàng rồi, qua chỗ khác mua" -> Hãy nói: "Dạ mẫu này dự kiến sớm về thêm, hoặc em kiểm tra chi nhánh gần nhất ship ngay cho mình nhé."
-- QUY TẮC CỐT LÕI - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀN CHUỖI:
-  + Hiện tại chuỗi cửa hàng Phụ Kiện 88 đang trong đợt cân đối lại bảng giá toàn bộ sản phẩm và dịch vụ trên toàn hệ thống để áp dụng chính sách trợ giá tốt nhất cho khách hàng.
-  + TUYỆT ĐỐI KHÔNG BÁO GIÁ CỤ THỂ HOẶC KHOẢNG GIÁ (không đưa bất kỳ con số tiền nào, không nói "từ xxk", không nói "khoảng xxx.000đ").
-  + CHỈ TẬP TRUNG TƯ VẤN SẢN PHẨM & DỊCH VỤ: Dán cường lực KingKong/Nano vát cạnh 9D, ép kính màn hình cong công nghệ hút chân không lấy liền trong 30-45 phút, thay pin chính hãng Pisen/Deji bảo hành 12 tháng 1 đổi 1, sạc nhanh GaN chuẩn PD, miễn phí hoàn toàn công tháo lắp/dán máy và vệ sinh máy sạch sẽ tại quầy.
+
+QUY TẮC HIỂU TỪ VIẾT TẮT, TEENCODE & BỆNH LÝ MÁY CỦA KHÁCH:
+- Khách hay viết tắt:
+  + "ip11 thường", "ip 11": iPhone 11 bản thường; "pm", "prm": Pro Max; "pr": Pro; "pl": Plus; "xsm": XS Max; "ss": Samsung.
+  + "k dô pin", "ko zo pin", "ko vào pin": sạc không vào pin / máy không nhận sạc.
+  + "sửa k vậy": có sửa không vậy; "đc k": được không; "cl": cường lực; "ép knh": ép kính.
+- Khi khách hỏi sửa chữa ("Bên mình có sửa không", "sạc ko dô pin có sửa đc ko"):
+  + BẮT BUỘC KHẲNG ĐỊNH NGAY: "Dạ bên em CÓ NHẬN SỬA CHỮA lỗi [tên dòng máy + lỗi] ạ! 💖"
+  + Nêu rõ nguyên nhân kỹ thuật chuyên môn (ví dụ lỗi sạc: do bám bụi chân sạc, lỗi cụm cáp chân sạc, pin chai phù hoặc IC sạc trên main).
+  + Mời khách mang máy ghé trực tiếp ${branch.branchName} (${branch.address}) để kỹ thuật viên đo dòng sạc và kiểm tra MIỄN PHÍ lấy liền ngay trước mặt.
+  + Đề xuất xin Tên + SĐT hoặc gợi ý gọi Hotline/Zalo: ${branch.hotline}.
+
+QUY TẮC CỐT LÕI - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀN CHUỖI:
+- Hiện tại chuỗi cửa hàng Phụ Kiện 88 đang trong đợt cân đối lại bảng giá toàn bộ sản phẩm và dịch vụ trên toàn hệ thống để áp dụng chính sách trợ giá tốt nhất cho khách hàng.
+- TUYỆT ĐỐI KHÔNG BÁO GIÁ CỤ THỂ HOẶC KHOẢNG GIÁ (không đưa bất kỳ con số tiền nào, không nói "từ xxk", không nói "khoảng xxx.000đ").
+- CHỈ TẬP TRUNG TƯ VẤN SẢN PHẨM & DỊCH VỤ: Dán cường lực KingKong/Nano vát cạnh 9D, ép kính màn hình cong công nghệ hút chân không lấy liền trong 30-45 phút, thay pin chính hãng Pisen/Deji bảo hành 12 tháng 1 đổi 1, sửa chữa chuyên sâu phần cứng và thay thế linh kiện chính hãng, miễn phí hoàn toàn công tháo lắp và kiểm tra máy tại quầy.
 - MỤC TIÊU CỐT LÕI & KỊCH BẢN ĐIỀU HƯỚNG BÁO GIÁ:
-  + Tư vấn ngắn gọn, súc tích (dưới 4 câu), đúng trọng tâm khách hỏi.
+  + Tư vấn ngắn gọn, súc tích (3-4 câu), đúng trọng tâm khách hỏi.
   + Khi khách hỏi giá hoặc có nhu cầu: Hãy thông báo shop đang có chương trình trợ giá ưu đãi riêng cho chi nhánh, sau đó khéo léo đề xuất:
     "Anh/Chị cho em xin Tên và SĐT (hoặc Zalo) để em nhắn bạn kỹ thuật viên tại quầy ${branch.branchName} gọi lại tư vấn và báo mức giá ưu đãi tốt nhất cho mình trong 3-5 phút nhé ạ!"
     HOẶC:
     "Hoặc Anh/Chị có thể gọi điện/nhắn Zalo trực tiếp đến Hotline chi nhánh: ${branch.hotline} để các bạn kỹ thuật viên kiểm tra máy và báo giá ưu đãi chính xác liền tay ạ! ✨"
   + Cung cấp hotline/Zalo: ${branch.hotline} để khách tiện liên hệ trực tiếp.
-  + Hiện tại chưa có chương trình khuyến mãi nào, không tự bịa voucher nếu không có.
 `;
 
   try {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-lite-latest:generateContent?key=${selectedKey}`;
+    const userPrompt = `Khách hàng nhắn: "${userText}"
+${normalized !== userText.toLowerCase() ? `[Bản dịch chuẩn nghĩa tiếng Việt/Teencode]: "${normalized}"` : ''}
+${device ? `[Dòng máy khách dùng]: ${device}` : ''}
+${intent === 'CHARGING' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi lỗi sạc không vào pin. KHẲNG ĐỊNH SHOP CÓ NHẬN SỬA, giải thích nguyên nhân (chân sạc, cáp, pin, IC), mời ghé quầy ${branch.branchName} kiểm tra đo dòng sạc MIỄN PHÍ lấy liền!` : ''}
+${intent === 'BATTERY' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về pin. Khẳng định có sẵn pin Pisen/Deji chính hãng BH 12T 1 đổi 1, miễn phí công thay lấy ngay 15-30p!` : ''}
+${intent === 'SCREEN' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi ép kính/màn hình. Khẳng định có nhận ép kính hút chân không lấy ngay 30-45p, chuẩn zin!` : ''}
+${intent === 'REPAIR' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi sửa chữa máy. Khẳng định shop CÓ NHẬN SỬA CHỮA đầy đủ phần cứng & phần mềm lấy liền!` : ''}
+
+Hãy trả lời ngắn gọn, chuẩn phong cách Bé 8 Phụ Kiện 88.`;
+
     const response = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -223,7 +337,7 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
         contents: [
           {
             role: 'user',
-            parts: [{ text: `Khách hàng nhắn: "${userText}". Hãy trả lời ngắn gọn, chuẩn phong cách Bé 8 Phụ Kiện 88.` }]
+            parts: [{ text: userPrompt }]
           }
         ],
         systemInstruction: {
@@ -245,7 +359,7 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
     console.error('Lỗi gọi Gemini AI:', err);
   }
 
-  return fallbackMsg;
+  return getSmartFallback(userText, branch);
 }
 
 /**
