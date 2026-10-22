@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 21/10/2026 (Vá Lỗ Hổng Bảo Mật Phân Quyền RBAC & Cách Ly Dữ Liệu Chi Nhánh Chấm Công, Khóa Cứng Lịch Trực Phân Ca, Nâng Cấp Check-in Bù Realtime & Đồng Bộ Tương Tác Marketing 3 Chỉ Số)*
+*Ngày cập nhật mới nhất: 22/10/2026 (Tích Hợp Tab ❤️ Văn Hóa 88 - Phục Vụ Từ Trái Tim & Cẩm Nang Quy Tắc Ứng Xử Chuỗi 15 Trang Tối Ưu Mobile, Nâng Cấp Thanh Điều Hướng Ngang Chống Tràn Chữ)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -7,14 +7,35 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 1. TỔNG QUAN DỰ ÁN
 - **Tên dự án:** PK88 Automation Portal (Hệ Thống Vận Hành Tự Động Hóa AI Chuỗi Phụ Kiện 88)
-- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, Báo cáo vệ sinh cửa hàng bằng hình ảnh nén, và **Phân hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) kèm Bảng Điều Phối Khách Hàng Chốt Đơn Telesales CRM**.
+- **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, Báo cáo vệ sinh cửa hàng bằng hình ảnh nén, **Phân hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) kèm Bảng Điều Phối Khách Hàng Chốt Đơn Telesales CRM**, và **Phân hệ Văn Hóa Doanh Nghiệp & Qui Tắc Ứng Xử 88 (Phục Vụ Từ Trái Tim)**.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`), Progressive Web App (PWA).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
-- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/` | `http://localhost:3000/?tab=tu-van`
+- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/` | `http://localhost:3000/?tab=van-hoa`
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 21/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 22/10/2026) - QUAN TRỌNG
+
+### R. Tích Hợp Tab "❤️ Văn Hóa 88" & Cẩm Nang Quy Tắc Ứng Xử Chuỗi 15 Trang (HOÀN THÀNH 22/10/2026)
+1. **Bổ Sung Tab "❤️ Văn Hóa 88" Cùng Hàng Trên Toàn Bộ Hệ Thống:**
+   - Đặt tab `❤️ Văn Hóa 88` (Icon Trái Tim `Heart` viền hồng ngọc, slug `?tab=van-hoa`) đứng song song ngay cạnh tab `🎓 Học Viện 88`, tạo nên trục bồi dưỡng kép "Tâm & Tài" cho nhân sự PK88.
+   - Mở khóa quyền truy cập cho 100% nhân sự toàn chuỗi (Founder, Ban Điều Hành, Quản lý CHT, Nhân viên bán hàng, Kỹ thuật viên, Khối Văn Phòng).
+2. **Nâng Cấp UX Thanh Điều Hướng Đáy Trên Mobile (Fixed Bottom Navigation Bar):**
+   - Chuyển đổi từ cơ chế lưới cứng (`grid-cols-7`) sang thanh trượt ngang linh hoạt (`flex overflow-x-auto no-scrollbar`), kích thước mỗi nút tối thiểu 58px.
+   - Giải quyết triệt để tình trạng chật hẹp, tràn màn hình hoặc co nghẽn chữ trên các thiết bị di động nhỏ (iPhone SE, màn hình hẹp), đảm bảo thao tác ngón cái êm ái 100%.
+3. **Phân Hệ Số Hóa Toàn Diện 15 Trang Cẩm Nang ([CultureHandbookView.tsx](file:///c:/PK88%20AA/src/components/CultureHandbookView.tsx)):**
+   - **2 Chế độ hiển thị:** Chế độ Trình Chiếu (Slide Interactive với hiệu ứng lật trang, bàn phím mũi tên, tiến độ trang) và Chế độ Đọc Liền Mạch (Full Reading).
+   - **Số hóa chuẩn xác 15 trang tài liệu:**
+     + Trang 1-4: Khởi nguồn phát triển, Sứ mệnh, Tầm nhìn 2030 (Số 1 Miền Tây).
+     + Trang 5-6: 5 Giá trị cốt lõi (Trung thực, Trách nhiệm, Tận tâm, Tỉ mỉ, Cải tiến) & 5 Phẩm chất nhân sự hành động.
+     + Trang 7-8: Triết lý Ngũ Lợi Hài Hòa (Khách - Nhân viên - Đối tác - Xã hội - Bản thân) & 5 Cam kết vàng với khách.
+     + Trang 9-10: Quy chuẩn chào khách 5s (KPI bắt buộc) & Bảng đối chiếu chuyển ngôn từ tiêu cực thành tích cực (loại bỏ "Cái này không có", "Không biết", "Hết hàng qua chỗ khác mua").
+     + Trang 11-13: Giao tiếp hai chiều, Kèm cặp 1-1 không giấu nghề & Chuẩn mực kênh số (cấm "seen" tin nhắn khách).
+     + Trang 14-15: Hệ thống đo lường 360° & Quy trình xử lý vi phạm lũy tiến 4 bước (Nhắc nhở -> Cảnh cáo -> Kỷ luật nội quy -> Chấm dứt HĐ).
+   - **Tải tệp PDF in ấn trực tiếp:** Lưu file PDF gốc chuẩn tại [public/van-hoa-pk88.pdf](file:///c:/PK88%20AA/public/van-hoa-pk88.pdf), tích hợp nút tải về 1 chạm phục vụ in ấn standee dán shop.
+4. **An Toàn 100%:** Kiểm tra TypeScript đạt 0 lỗi (`npx tsc --noEmit`), chạy build production Vite thành công rực rỡ không lỗi.
+
+---
 
 ### Q. Vá Lỗ Hổng Bảo Mật Phân Quyền RBAC, Khóa Cứng Lịch Trực Phân Ca & Nâng Cấp Vận Hành (HOÀN THÀNH 21/10/2026)
 

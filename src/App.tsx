@@ -24,10 +24,11 @@ import { ShopManagementView } from './components/ShopManagementView';
 import { PersonalShiftsModal } from './components/PersonalShiftsModal';
 import { StoreCleanlinessStaffView } from './components/StoreCleanlinessStaffView';
 import { CustomerCRMView } from './components/CustomerCRMView';
+import { CultureHandbookView } from './components/CultureHandbookView';
 import { supabase } from './lib/supabase';
 import { calculateAttendanceIsLate, fetchShiftAssignmentsFromCloud } from './lib/shiftService';
 import { fetchStaffAuthMetadataFromCloud } from './lib/staffAuthService';
-import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings, MapPin, Sparkles, MessageSquare, HeartHandshake, Bot } from 'lucide-react';
+import { Building2, Clock, LayoutDashboard, TicketCheck, Cpu, LogOut, ShieldCheck, QrCode, Lock, RefreshCw, GraduationCap, Send, Megaphone, UserCheck, ChevronDown, Users, ShoppingBag, Wrench, Briefcase, Calendar, KeyRound, Settings, MapPin, Sparkles, MessageSquare, HeartHandshake, Bot, Heart } from 'lucide-react';
 import { MarketingPost, MarketingPlatform, MarketingPostStatus } from './types';
 import { AppTab, getTabFromUrl, isCustomerModeFromUrl, isRecruitmentModeFromUrl, isCustomerChatModeFromUrl, canAccessTab, syncTabToUrl, getDefaultTabForRole } from './lib/router';
 
@@ -1338,6 +1339,15 @@ export function App() {
       ];
     }
 
+    // Tab Văn Hóa 88 - Phục Vụ Từ Trái Tim (Dành cho toàn bộ thành viên hệ thống)
+    const cultureTab = {
+      id: 'culture' as AppTab,
+      label: '❤️ Văn Hóa 88',
+      shortLabel: 'Văn Hóa',
+      icon: <Heart className="w-4 h-4 flex-shrink-0 text-rose-500 fill-rose-500/20" />,
+      activeColor: 'bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 shadow-amber-500/20'
+    };
+
     // 1. Founder: Miễn chấm công, toàn quyền giám sát các Hub điều hành
     if (role === 'founder') {
       return [
@@ -1369,6 +1379,7 @@ export function App() {
           icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
         },
+        cultureTab,
         {
           id: 'training',
           label: '🎓 Học Viện 88',
@@ -1424,6 +1435,7 @@ export function App() {
           icon: <Megaphone className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-blue-500 text-white shadow-blue-500/20'
         },
+        cultureTab,
         {
           id: 'training',
           label: '🎓 Học Viện 88',
@@ -1441,7 +1453,7 @@ export function App() {
       ];
     }
 
-    // 3. Khối Kế Toán & Kế Toán Kho: Chấm công + Báo cáo Tổng Quan + Bảng Lương HR
+    // 3. Khối Kế Toán & Kế Toán Kho: Chấm công + Báo cáo Tổng Quan + Bảng Lương HR + Văn hóa & Học viện
     if (role === 'accountant' || role === 'warehouse_accountant') {
       return [
         {
@@ -1464,11 +1476,19 @@ export function App() {
           shortLabel: 'Lương & HR',
           icon: <Users className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-rose-500 text-white shadow-rose-500/20'
+        },
+        cultureTab,
+        {
+          id: 'training',
+          label: '🎓 Học Viện 88',
+          shortLabel: 'Học Viện',
+          icon: <GraduationCap className="w-4 h-4 flex-shrink-0" />,
+          activeColor: 'bg-cyan-500 text-slate-950 shadow-cyan-500/20'
         }
       ];
     }
 
-    // 4. Khối Marketing & Media: Chấm công + Chiến dịch Marketing + Học viện đào tạo
+    // 4. Khối Marketing & Media: Chấm công + Chiến dịch Marketing + Khách Hàng + Văn hóa + Học viện
     if (role === 'marketing' || role === 'media') {
       return [
         {
@@ -1492,6 +1512,7 @@ export function App() {
           icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
         },
+        cultureTab,
         {
           id: 'training',
           label: '🎓 Học Viện 88',
@@ -1502,7 +1523,7 @@ export function App() {
       ];
     }
 
-    // 5. Cửa Hàng Trưởng (Manager): Chấm công + Quầy POS/Tiếp nhận + Học viện + Quản lý cửa hàng
+    // 5. Cửa Hàng Trưởng (Manager): Chấm công + Quầy POS + Khách Hàng + Văn hóa + Học viện + Quản lý shop
     if (role === 'manager') {
       return [
         {
@@ -1526,6 +1547,7 @@ export function App() {
           icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
           activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
         },
+        cultureTab,
         {
           id: 'training',
           label: '🎓 Học Viện 88',
@@ -1543,7 +1565,7 @@ export function App() {
       ];
     }
 
-    // 6. Nhân viên tại quầy (Sales, Kỹ thuật viên)
+    // 6. Nhân viên tại quầy (Sales, Kỹ thuật viên): Chấm công + Quầy POS + Khách Hàng + Văn hóa + Học viện
     return [
       {
         id: 'attendance',
@@ -1566,6 +1588,7 @@ export function App() {
         icon: <HeartHandshake className="w-4 h-4 flex-shrink-0" />,
         activeColor: 'bg-teal-500 text-slate-950 shadow-teal-500/20'
       },
+      cultureTab,
       {
         id: 'training',
         label: '🎓 Học Viện 88',
@@ -1917,7 +1940,7 @@ export function App() {
           const visibleNavTabs = getNavTabsForRole(currentUser.role);
 
           return (
-            <div className="hidden md:flex items-center justify-center gap-2 p-1.5 bg-slate-900/90 border border-slate-800/90 rounded-2xl shadow-lg backdrop-blur-md max-w-5xl mx-auto">
+            <div className="hidden md:flex items-center justify-center gap-1.5 p-1.5 bg-slate-900/90 border border-slate-800/90 rounded-2xl shadow-lg backdrop-blur-md max-w-6xl mx-auto overflow-x-auto no-scrollbar">
               {visibleNavTabs.map(tab => {
                 const isTabActive = activeTab === tab.id || 
                   (tab.id === 'counter' && (activeTab === 'pos' || activeTab === 'tickets')) ||
@@ -2140,6 +2163,11 @@ export function App() {
               <TrainingLMS currentUser={currentUser} />
             )}
 
+            {/* 8.5. Văn Hóa & Qui Tắc Ứng Xử Phụ Kiện 88 */}
+            {activeTab === 'culture' && currentUser && (
+              <CultureHandbookView currentUser={currentUser} />
+            )}
+
             {!currentUser && (
               <div className="text-center py-20 text-slate-400">
                 <Lock className="w-12 h-12 mx-auto mb-3 text-rose-500 animate-pulse" />
@@ -2151,13 +2179,13 @@ export function App() {
         )}
       </main>
 
-      {/* Mobile Fixed Bottom Navigation Bar */}
+      {/* Mobile Fixed Bottom Navigation Bar - Tối ưu 100% không gian chạm & không bị co nghẽn chữ */}
       {!isCustomerMode && currentUser && (() => {
         const visibleNavTabs = getNavTabsForRole(currentUser.role);
 
         return (
           <div className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-slate-900/95 border-t border-slate-800 backdrop-blur-md pb-safe shadow-2xl">
-            <div className={`grid ${visibleNavTabs.length === 3 ? 'grid-cols-3' : visibleNavTabs.length === 5 ? 'grid-cols-5' : visibleNavTabs.length === 6 ? 'grid-cols-6' : visibleNavTabs.length >= 7 ? 'grid-cols-7' : 'grid-cols-4'} py-1.5 px-1 gap-0.5`}>
+            <div className="flex items-center overflow-x-auto no-scrollbar py-1.5 px-2 gap-1 justify-start">
               {visibleNavTabs.map(tab => {
                 const isTabActive = activeTab === tab.id || 
                   (tab.id === 'counter' && (activeTab === 'pos' || activeTab === 'tickets')) ||
@@ -2169,7 +2197,7 @@ export function App() {
                   <button
                     key={tab.id}
                     onClick={() => handleNavigateTab(tab.id)}
-                    className={`flex flex-col items-center justify-center py-1.5 px-1 rounded-xl text-[10px] font-bold transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-1.5 px-2.5 rounded-xl text-[10px] font-bold transition-all shrink-0 min-w-[58px] cursor-pointer ${
                       isTabActive
                         ? 'text-amber-400 font-extrabold bg-amber-500/10'
                         : 'text-slate-400 hover:text-slate-200'

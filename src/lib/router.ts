@@ -5,6 +5,7 @@ export type AppTab =
   | 'attendance'       // 📱 Ca & Chấm Công (cham-cong)
   | 'counter'          // 🛒 Quầy Phục Vụ (quay-phuc-vu, gom POS & Sửa chữa)
   | 'training'         // 🎓 Học Viện 88 (dao-tao)
+  | 'culture'          // ❤️ Văn Hóa 88 (van-hoa, van-hoa-88, culture)
   // 2. Nhóm Quản lý Shop
   | 'shop_management'  // 🏪 Quản Lý Cửa Hàng (quan-ly-shop)
   // 3. Nhóm Ban Điều Hành & Quản Trị Cấp Cao
@@ -43,11 +44,15 @@ const SLUG_TO_TAB: Record<string, AppTab> = {
   'tiep-nhan': 'counter',
   'tickets': 'counter',
 
-  // 3. Học viện 88
+  // 3. Học viện 88 & Văn hóa 88
   'dao-tao': 'training',
   'daotao': 'training',
   'lms': 'training',
   'training': 'training',
+  'van-hoa': 'culture',
+  'van-hoa-88': 'culture',
+  'vanhoa': 'culture',
+  'culture': 'culture',
 
   // 4. Quản lý cửa hàng (Manager)
   'quan-ly-shop': 'shop_management',
@@ -128,6 +133,7 @@ const TAB_TO_SLUG: Record<AppTab, string> = {
   attendance: 'cham-cong',
   counter: 'quay-phuc-vu',
   training: 'dao-tao',
+  culture: 'van-hoa',
   shop_management: 'quan-ly-shop',
   dashboard: 'tong-quan',
   hr_hub: 'nhan-su',
@@ -171,6 +177,9 @@ export function getTabFromUrl(): AppTab | null {
   }
   if (params.has('khach-hang') || params.has('crm')) {
     return 'customer_crm';
+  }
+  if (params.has('van-hoa') || params.has('vanhoa') || params.has('culture') || params.has('van-hoa-88')) {
+    return 'culture';
   }
 
   // 3. Kiểm tra query parameters (?tab=... hoặc ?module=...)
@@ -249,7 +258,7 @@ export function getDefaultTabForRole(role?: UserRole): AppTab {
  * Kiểm tra quyền truy cập tab theo role của nhân viên
  */
 export function canAccessTab(tab: AppTab, role?: UserRole): boolean {
-  if (tab === 'recruitment' || tab === 'customer_chat') return true; // Công khai cho tất cả mọi người
+  if (tab === 'recruitment' || tab === 'customer_chat' || tab === 'culture') return true; // Công khai cho tất cả mọi người
   if (!role) return false;
   
   const isLeadership = role === 'admin' || role === 'founder' || role === 'hr' || role === 'sales_head';
