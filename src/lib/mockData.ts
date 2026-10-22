@@ -34,11 +34,13 @@ export const INITIAL_BRANCHES: Branch[] = [
   {
     id: '11111111-2222-3333-4444-555555555555',
     code: 'PK88_VANPHONG',
-    name: 'Phụ Kiện 88 - Văn Phòng',
+    name: 'Hệ Thống Phụ Kiện 88',
     address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
     lat: 10.252668,
     lng: 106.370604,
-    isActive: true
+    isActive: true,
+    hotline: '083 389 8688',
+    zalo: '083 389 8688'
   },
   {
     id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
@@ -48,7 +50,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     lat: 10.2527211,
     lng: 106.3707262,
     wifiBssid: '00:11:22:33:44:55',
-    isActive: true
+    isActive: true,
+    hotline: '077 788 8688',
+    zalo: '077 788 8688'
   },
   {
     id: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28',
@@ -57,7 +61,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, TP. Bến Tre (ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
     lat: 10.2584726,
     lng: 106.3616252,
-    isActive: true
+    isActive: true,
+    hotline: '081 449 6789',
+    zalo: '081 449 6789'
   },
   {
     id: 'ce898286-8130-44cb-9f92-25176cec6703',
@@ -66,7 +72,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '25 Đinh Bộ Lĩnh, Phường 2, TP. Mỹ Tho, Tiền Giang (ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc Cầu Quay)',
     lat: 10.355880,
     lng: 106.369735,
-    isActive: true
+    isActive: true,
+    hotline: '087 683 8688',
+    zalo: '087 683 8688'
   },
   {
     id: '7593aa44-bd49-476a-8d13-b9912874c0e0',
@@ -75,7 +83,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '94 Trần Hưng Đạo, Phường An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh Jollibee)',
     lat: 10.037976,
     lng: 105.7763555,
-    isActive: true
+    isActive: true,
+    hotline: '092 136 8688',
+    zalo: '092 136 8688'
   },
   {
     id: '98e58c92-edb5-4c5b-8a33-c78e38b3f954',
@@ -84,7 +94,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long (ngã tư Trưng Nữ Vương & Nguyễn Thị Minh Khai, cạnh Mắt Kính Tâm Đức)',
     lat: 10.2515112,
     lng: 105.9728027,
-    isActive: true
+    isActive: true,
+    hotline: '058 988 6789',
+    zalo: '058 988 6789'
   },
   {
     id: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e',
@@ -93,7 +105,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh',
     lat: 10.8506028,
     lng: 106.762417,
-    isActive: true
+    isActive: true,
+    hotline: '086 506 8688',
+    zalo: '086 506 8688'
   },
   {
     id: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e',
@@ -102,7 +116,9 @@ export const INITIAL_BRANCHES: Branch[] = [
     address: '29 Nguyễn Đáng, Phường 6, TP. Trà Vinh',
     lat: 9.9350,
     lng: 106.3450,
-    isActive: false
+    isActive: false,
+    hotline: '083 389 8688',
+    zalo: '083 389 8688'
   }
 ];
 

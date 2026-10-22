@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 22/10/2026 (Tích Hợp Bé 8 AI CSKH Trực Tuyến 7 Fanpage Facebook Đa Chi Nhánh, Vercel Serverless Webhook Meta, Lưu Trữ Lịch Sử Chat Realtime Supabase CRM Leads, Tab ❤️ Văn Hóa 88 & README.md Chuẩn Kho Mã Nguồn)*
+*Ngày cập nhật mới nhất: 22/10/2026 (Triển Khai Chính Sách Zero-Pricing Cân Đối Lại Giá Toàn Chuỗi Cho Bé 8 AI CSKH & Meta Webhook, Chuyển Sang Bắt SĐT/Hotline Chi Nhánh, Tab ❤️ Văn Hóa 88 & README.md Chuẩn Kho Mã Nguồn)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -10,11 +10,33 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 - **Mục tiêu:** Xây dựng hệ thống quản trị, chấm công bằng GPS Geofencing, quản lý nhân sự chuỗi (7 chi nhánh chuẩn hóa theo Excel), tính lương tự động đa vai trò, hồ sơ năng lực 5 chiều, thưởng nóng VietQR, duyệt đơn nghỉ phép tự động với Chị 8 AI HR, hệ thống LMS đào tạo nội bộ 60 ngày, phân hệ Tuyển dụng Onboarding thông minh, Ma trận Phân chia ca & Điều động nhân sự 15 ngày, Báo cáo vệ sinh cửa hàng bằng hình ảnh nén, **Phân hệ Chatbot Tư Vấn Khách Hàng Độc Lập (Bé 8 AI CSKH) kèm Bảng Điều Phối Khách Hàng Chốt Đơn Telesales CRM**, và **Phân hệ Văn Hóa Doanh Nghiệp & Qui Tắc Ứng Xử 88 (Phục Vụ Từ Trái Tim)**.
 - **Tech Stack:** React 19 (TypeScript), Vite 6, Tailwind CSS, Supabase (PostgreSQL), Recharts, Lucide React, Leaflet, SheetJS (xlsx), Google Gemini AI (`gemini-flash-lite-latest`), Progressive Web App (PWA).
 - **Triển khai (Deployment):** Đang chạy live trên Vercel qua GitHub (`pk88-hub`).
-- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/` | `http://localhost:3000/?tab=van-hoa`
+- **Domain/URL:** `https://pk88-hub.vercel.app/` | `http://localhost:3000/` | `http://localhost:3000/?tab=tu-van` | `http://localhost:3000/?tab=van-hoa`
 
 ---
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 22/10/2026) - QUAN TRỌNG
+
+### T. Triển Khai Chính Sách Không Báo Giá (Zero-Pricing Policy) & Bắt SĐT/Hotline Chi Nhánh (HOÀN THÀNH 22/10/2026)
+1. **Bối cảnh nghiệp vụ:**
+   - Ban Điều Hành chuỗi Phụ Kiện 88 đang trong đợt cân đối, chuẩn hóa lại bảng giá bán của toàn bộ sản phẩm và dịch vụ kỹ thuật trên toàn hệ thống 7 cửa hàng.
+   - Yêu cầu đặt ra: Chatbot tuyệt đối **KHÔNG TỰ TIỆN BÁO GIÁ CỤ THỂ HOẶC KHOẢNG GIÁ** (không đưa ra bất kỳ con số tiền nào như 50k, 120k, 1.535.000đ...). Thay vào đó, AI chỉ tập trung tư vấn chuyên sâu về chất lượng sản phẩm, thương hiệu chính hãng, cam kết bảo hành và điều hướng khách để lại SĐT hoặc gọi điện hotline chi nhánh tương ứng.
+2. **Triển khai kỹ thuật đồng bộ trên cả Web Chat & Meta Webhook:**
+   - **Triệt tiêu trường giá khỏi RAG Context ([PublicCustomerChatView.tsx](file:///d:/PK88%20AI%20AUTOMATION/src/components/PublicCustomerChatView.tsx)):** Thuật toán tìm kiếm 521 sản phẩm (`products.json`) đã loại bỏ hoàn toàn thuộc tính `price` khỏi dữ liệu nhúng vào System Prompt. AI không còn nhìn thấy bất kỳ giá tiền nào trong context nên triệt tiêu 100% rủi ro "bịa giá" hay báo giá cũ.
+   - **Bảng tra cứu Hotline chi nhánh động (`getBranchHotline`):**
+     + Phú Khương: `0777.888.688`
+     + Đồng Khởi: `0814.496.789`
+     + Mỹ Tho: `0876.838.688`
+     + Cần Thơ: `0921.368.688`
+     + Vĩnh Long: `0589.886.789`
+     + Thủ Đức: `0865.068.688`
+     + Tổng đài Hệ thống: `0833.898.688`
+   - **Động hóa nút Hotline trên Header và Banner:** Khi khách chọn chi nhánh nào, nút Hotline ở góc trên bên phải và banner kết nối tự động cập nhật số điện thoại chuẩn của chi nhánh đó (thay vì cố định số HR cũ).
+   - **Đồng bộ trên Meta Serverless Webhook ([api/meta-webhook.ts](file:///d:/PK88%20AI%20AUTOMATION/api/meta-webhook.ts)):** Toàn bộ tin nhắn đến từ 7 Fanpage Facebook đều được áp dụng quy tắc Zero-Pricing, chỉ tư vấn tính năng và dẫn dắt khách để lại SĐT hoặc gọi Hotline chi nhánh tương ứng.
+3. **Kịch bản điều hướng khách hàng chốt đơn tự nhiên:**
+   - Tư vấn hào hứng về các dòng máy: iPhone 18 Series & iPhone Duo mới ra mắt, iPhone 17, 16, 15, Samsung Galaxy S24/S25, pin Pisen chuẩn zin / Pisen Superman siêu dung lượng bảo hành 12 tháng 1 đổi 1, miễn phí công tháo lắp và vệ sinh máy.
+   - Khéo léo đề xuất: *"Dạ hiện tại bên em đang có chương trình trợ giá ưu đãi đặc biệt cho dòng máy của mình tại [Chi Nhánh] ạ. Anh/Chị cho em xin Tên + SĐT để em nhắn bạn kỹ thuật viên tại quầy gọi lại tư vấn và báo mức giá ưu đãi nhất kèm giữ quà tặng cho mình nhé ạ! Hoặc Anh/Chị có thể gọi trực tiếp Hotline [Hotline Chi Nhánh] để kỹ thuật viên kiểm tra máy và báo giá ưu đãi liền tay ạ! ✨"*
+
+---
 
 ### S. Tích Hợp Bé 8 AI Trực Tuyến 7 Fanpage Facebook, Webhook Meta & CRM Telesales Realtime (HOÀN THÀNH 22/10/2026)
 1. **Kết Nối Trực Tiếp 7 Fanpage Facebook Đa Chi Nhánh Của Chuỗi:**
@@ -807,6 +829,20 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
      - Nhắc chăm sóc và tri ân khách VIP sau 45-60 ngày chưa quay lại shop.
    - **Drawer Hồ Sơ 360:** Xem chi tiết 4 tab nghiệp vụ (Đơn hàng POS, Phiếu sửa chữa, Chatbot Bé 8, Nhật ký CSKH).
    - **Đồng Bộ Hai Chiều Supabase Cloud:** Bảng `customer_profiles` và `customer_care_logs` lưu trữ mọi cập nhật hồ sơ, ghi chú và nhật ký cuộc gọi theo thời gian thực.
+
+### I. Nâng Cấp Hệ Thống Lead Thu Thập Khách Vãng Lai & Phiên Chat Chưa Có SĐT (NEW - 22/10)
+1. **Lưu Trữ Realtime Từ Tin Nhắn Đầu Tiên Khi Khách Chưa Để Lại SĐT (`leadService.ts`):**
+   - Hàm `submitOrUpdateCustomerLead`: Tự động ghi nhận phiên chat vào bảng `leads` trên Supabase Cloud từ tin nhắn đầu tiên của khách dưới trạng thái `status: 'CHATTING'`, `phone: ''`, `label: 'ĐANG TƯ VẤN'`, `priority: 'MEDIUM'`, `score: 50`.
+   - Toàn bộ nội dung hỏi đáp chi tiết của khách với Bé 8 được lưu đầy đủ vào `activity_log` và `conversation_summary`, giúp không bao giờ bị mất dữ liệu khách vãng lai hay khách rời đi giữa chừng.
+2. **Cơ Chế Nâng Cấp Phiên Chat Liền Mạch (Seamless Lead Upgrade & Idempotency):**
+   - Khi khách cung cấp số điện thoại (qua regex tin nhắn hoặc qua Modal nhận E-Voucher), hệ thống tìm kiếm theo `lead_id` (được neo bằng `sessionId` hoặc Facebook `senderId`) và nâng cấp tại chỗ bản ghi đó lên `status: 'NEW'`, `phone: detectedPhone`, `label: 'HOT LEAD'`, `priority: 'HIGH'`, `score: 100`.
+   - Tuyệt đối không sinh thêm bản ghi rác trùng lặp, bảo toàn 100% ngữ cảnh hội thoại trước đó cho đội ngũ Telesales.
+3. **Phân Tách 2 Tab Chuyên Biệt Trong CRM Chốt Đơn (`CustomerLeadsCRMModal.tsx`):**
+   - **Tab 1: 🔥 Khách Có SĐT - Cần Gọi Ngay (Mặc định cho Telesales):** Chỉ hiển thị các khách có số điện thoại hợp lệ (≥ 8 chữ số), với các nút bấm 1-chạm `[GỌI ĐIỆN]` và `[CHAT ZALO]`, nhân viên không bị phân tâm bởi các phiên chưa có số.
+   - **Tab 2: 💬 Khách Đang Chat / Chưa Có SĐT (Dành cho Founder / Quản Lý / Marketing):** Hiển thị các phiên chat vãng lai, gắn huy hiệu `💬 Chưa để lại SĐT`, kèm nút `[XEM HỘI THOẠI]` để phân tích nhu cầu sản phẩm, tỉ lệ rớt phễu và chất lượng phản hồi của AI.
+4. **Đồng Bộ Hóa Đa Kênh Facebook Messenger (`api/meta-webhook.ts`):**
+   - Webhook Meta Facebook tự động ghi nhận mọi tin nhắn đến theo `sessionLeadId = fb-${pageId}-${senderId}` với `status: 'CHATTING'`.
+   - Khi khách gửi số điện thoại trong tin nhắn Messenger, bản ghi tự động được nâng cấp lên `HOT LEAD FB` và cập nhật tức thời về danh sách chờ gọi của chi nhánh tương ứng.
 
 ---
 

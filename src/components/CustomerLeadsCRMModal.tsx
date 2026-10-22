@@ -53,6 +53,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
   const [showLinkGenModal, setShowLinkGenModal] = useState<boolean>(false);
   const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(null);
   const [expandedChatLeadId, setExpandedChatLeadId] = useState<string | number | null>(null);
+  const [activeLeadTab, setActiveLeadTab] = useState<'with_phone' | 'chatting'>('with_phone');
 
   // Khởi tạo lọc theo chi nhánh của nhân viên nếu không phải lãnh đạo cấp cao
   useEffect(() => {
@@ -123,6 +124,11 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
 
     return true;
   });
+
+  // Phân chia 2 nhóm: Khách có SĐT (Telesales gọi ngay) và Khách đang chat / chưa có SĐT (Marketing & Quản lý theo dõi)
+  const leadsWithPhone = filteredLeads.filter(l => Boolean(l.phone && l.phone.trim().length >= 8 && l.status !== 'CHATTING'));
+  const leadsChatting = filteredLeads.filter(l => !l.phone || l.phone.trim().length < 8 || l.status === 'CHATTING');
+  const displayLeads = activeLeadTab === 'with_phone' ? leadsWithPhone : leadsChatting;
 
   // Đổi trạng thái lead
   const handleStatusChange = async (leadId: string | number, newStatus: CustomerLeadStatus) => {
@@ -196,6 +202,13 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
         return (
           <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">
             HỦY / KHÔNG LIÊN HỆ ĐƯỢC
+          </span>
+        );
+      case 'CHATTING':
+        return (
+          <span className="px-2 py-0.5 rounded-full text-[10px] font-black bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span>ĐANG TƯ VẤN</span>
           </span>
         );
       default:
@@ -306,6 +319,48 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
           </div>
         </div>
 
+        {/* THANH CHUYỂN TAB: CÓ SĐT (TELESALES) vs ĐANG CHAT (GIÁM SÁT / MARKETING) */}
+        <div className="px-4 sm:px-5 pt-3 pb-2 border-b border-slate-800 bg-slate-900/60 flex items-center gap-2 overflow-x-auto">
+          <button
+            type="button"
+            onClick={() => setActiveLeadTab('with_phone')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer whitespace-nowrap ${
+              activeLeadTab === 'with_phone'
+                ? 'bg-gradient-to-r from-rose-600 to-amber-600 text-white shadow-lg shadow-rose-600/30 ring-1 ring-white/20'
+                : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/60'
+            }`}
+          >
+            <Phone className="w-3.5 h-3.5 text-amber-300" />
+            <span>🔥 Khách Có SĐT - Cần Gọi Ngay</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeLeadTab === 'with_phone' ? 'bg-slate-950/80 text-amber-300' : 'bg-slate-900 text-slate-400'
+            }`}>
+              {leadsWithPhone.length}
+            </span>
+            {leadsWithPhone.filter(l => l.status === 'NEW').length > 0 && (
+              <span className="w-2 h-2 rounded-full bg-rose-400 animate-ping" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setActiveLeadTab('chatting')}
+            className={`flex items-center gap-2 px-4 py-2 rounded-xl font-black text-xs transition-all cursor-pointer whitespace-nowrap ${
+              activeLeadTab === 'chatting'
+                ? 'bg-gradient-to-r from-cyan-600 to-blue-600 text-white shadow-lg shadow-cyan-600/30 ring-1 ring-white/20'
+                : 'bg-slate-800/80 text-slate-400 hover:text-slate-200 hover:bg-slate-800 border border-slate-700/60'
+            }`}
+          >
+            <MessageSquare className="w-3.5 h-3.5 text-cyan-300" />
+            <span>💬 Khách Đang Chat / Chưa Có SĐT</span>
+            <span className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeLeadTab === 'chatting' ? 'bg-slate-950/80 text-cyan-300' : 'bg-slate-900 text-slate-400'
+            }`}>
+              {leadsChatting.length}
+            </span>
+          </button>
+        </div>
+
         {/* 2. Thanh lọc & Tìm kiếm */}
         <div className="p-3 sm:p-4 bg-slate-950/70 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2.5">
           {/* Ô tìm kiếm */}
@@ -354,6 +409,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                 <option value="APPOINTED">🗓️ Hẹn ghé shop</option>
                 <option value="COMPLETED">✅ Đã mua thành công</option>
                 <option value="CANCELLED">❌ Đã hủy</option>
+                <option value="CHATTING">💬 Đang chat / Vãng lai</option>
               </select>
             </div>
 
@@ -384,16 +440,20 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
               <RefreshCw className="w-6 h-6 animate-spin mx-auto text-rose-400 mb-2" />
               <span>Đang tải danh sách khách hàng từ Supabase Cloud...</span>
             </div>
-          ) : filteredLeads.length === 0 ? (
+          ) : displayLeads.length === 0 ? (
             <div className="py-16 text-center text-slate-400 text-xs bg-slate-900/50 rounded-2xl border border-slate-800">
               <User className="w-10 h-10 mx-auto text-slate-400 mb-2" />
-              <p className="font-bold text-slate-300">Chưa có khách hàng nào phù hợp bộ lọc</p>
+              <p className="font-bold text-slate-300">
+                {activeLeadTab === 'with_phone' 
+                  ? 'Chưa có khách hàng có SĐT nào phù hợp bộ lọc'
+                  : 'Chưa có phiên chat vãng lai nào phù hợp bộ lọc'}
+              </p>
               <p className="text-[11px] text-slate-400 mt-1">
                 Hãy chia sẻ link Chatbot <code className="text-amber-400">?tab=tu-van</code> lên Facebook, Zalo để thu hút thêm khách hàng mới!
               </p>
             </div>
           ) : (
-            filteredLeads.map((lead) => {
+            displayLeads.map((lead) => {
               const isActionLoading = actionLoadingId === lead.id;
               const formattedTime = lead.created_at
                 ? new Date(lead.created_at).toLocaleString('vi-VN', {
@@ -424,9 +484,16 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                           <h4 className="text-sm font-black text-white">
                             {lead.customer_name || 'Khách vãng lai'}
                           </h4>
-                          <span className="font-mono text-sm font-black text-amber-400 tracking-wider">
-                            {lead.phone}
-                          </span>
+                          {lead.phone && lead.phone.trim().length >= 8 ? (
+                            <span className="font-mono text-sm font-black text-amber-400 tracking-wider">
+                              {lead.phone}
+                            </span>
+                          ) : (
+                            <span className="font-sans text-[11px] font-bold text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-lg border border-slate-700 flex items-center gap-1">
+                              <MessageSquare className="w-3 h-3 text-cyan-400" />
+                              <span>Chưa để lại SĐT</span>
+                            </span>
+                          )}
                           {getStatusBadge(lead.status)}
                           {/* Huy hiệu Nguồn */}
                           {(() => {
@@ -489,35 +556,48 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                       </div>
                     </div>
 
-                    {/* Nút gọi điện thoại & Zalo 1 chạm */}
+                    {/* Nút hành động */}
                     <div className="flex items-center gap-2 w-full sm:w-auto">
-                      <a
-                        href={`tel:${lead.phone}`}
-                        onClick={() => {
-                          if (lead.status === 'NEW') {
-                            handleStatusChange(lead.id, 'CONTACTED');
-                          }
-                        }}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
-                      >
-                        <Phone className="w-3.5 h-3.5" />
-                        <span>GỌI ĐIỆN</span>
-                      </a>
+                      {lead.phone && lead.phone.trim().length >= 8 ? (
+                        <>
+                          <a
+                            href={`tel:${lead.phone}`}
+                            onClick={() => {
+                              if (lead.status === 'NEW') {
+                                handleStatusChange(lead.id, 'CONTACTED');
+                              }
+                            }}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs shadow-md shadow-emerald-500/20 transition-all cursor-pointer"
+                          >
+                            <Phone className="w-3.5 h-3.5" />
+                            <span>GỌI ĐIỆN</span>
+                          </a>
 
-                      <a
-                        href={`https://zalo.me/${lead.phone}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        onClick={() => {
-                          if (lead.status === 'NEW') {
-                            handleStatusChange(lead.id, 'CONTACTED');
-                          }
-                        }}
-                        className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
-                      >
-                        <MessageSquare className="w-3.5 h-3.5" />
-                        <span>CHAT ZALO</span>
-                      </a>
+                          <a
+                            href={`https://zalo.me/${lead.phone}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={() => {
+                              if (lead.status === 'NEW') {
+                                handleStatusChange(lead.id, 'CONTACTED');
+                              }
+                            }}
+                            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-black text-xs shadow-md shadow-blue-600/20 transition-all cursor-pointer"
+                          >
+                            <MessageSquare className="w-3.5 h-3.5" />
+                            <span>CHAT ZALO</span>
+                          </a>
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setExpandedChatLeadId(expandedChatLeadId === lead.id ? null : lead.id)}
+                          className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white font-black text-xs shadow-md shadow-cyan-600/20 transition-all cursor-pointer"
+                        >
+                          <MessageSquare className="w-3.5 h-3.5" />
+                          <span>{expandedChatLeadId === lead.id ? 'ĐÓNG HỘI THOẠI' : 'XEM HỘI THOẠI'}</span>
+                        </button>
+                      )}
 
                       {/* Nút xóa cho Admin/Founder */}
                       {(currentUser?.role === 'founder' || currentUser?.role === 'admin') && (
@@ -638,6 +718,7 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                           <option value="APPOINTED">🗓️ Hẹn ghé shop</option>
                           <option value="COMPLETED">✅ Đã mua thành công</option>
                           <option value="CANCELLED">❌ Khách hủy / Không nghe</option>
+                          <option value="CHATTING">💬 Đang chat / Vãng lai</option>
                         </select>
                       </div>
 

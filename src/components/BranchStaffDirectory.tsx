@@ -101,6 +101,18 @@ export const BranchStaffDirectory: React.FC<BranchStaffDirectoryProps> = ({
               <p className="text-xs text-slate-400 mt-0.5">
                 Cửa hàng: <strong className="text-cyan-300 font-bold">{currentBranch.name}</strong> • {currentBranch.address}
               </p>
+              {currentBranch.hotline && (
+                <div className="flex items-center gap-3 text-xs mt-1">
+                  <a href={`tel:${currentBranch.hotline.replace(/\D/g, '')}`} className="flex items-center gap-1 text-amber-400 hover:text-amber-300 font-semibold">
+                    <Phone className="w-3 h-3" />
+                    <span>Hotline: {currentBranch.hotline}</span>
+                  </a>
+                  <span className="text-slate-600">•</span>
+                  <a href={`https://zalo.me/${currentBranch.hotline.replace(/\D/g, '')}`} target="_blank" rel="noreferrer" className="flex items-center gap-1 text-cyan-400 hover:text-cyan-300 font-semibold">
+                    <span>Zalo shop: {currentBranch.zalo || currentBranch.hotline}</span>
+                  </a>
+                </div>
+              )}
             </div>
           </div>
 

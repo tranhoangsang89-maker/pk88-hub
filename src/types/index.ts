@@ -19,6 +19,8 @@ export interface Branch {
   wifiBssid?: string;
   telegramGroupId?: string;
   isActive: boolean;
+  hotline?: string;
+  zalo?: string;
 }
 
 export interface CompetencyScores {
@@ -297,7 +299,7 @@ export interface CleanlinessReport {
   createdAt: string;
 }
 
-export type CustomerLeadStatus = 'NEW' | 'CONTACTED' | 'APPOINTED' | 'COMPLETED' | 'CANCELLED';
+export type CustomerLeadStatus = 'NEW' | 'CONTACTED' | 'APPOINTED' | 'COMPLETED' | 'CANCELLED' | 'CHATTING';
 
 export interface CustomerLead {
   id: string | number;

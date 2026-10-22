@@ -20,7 +20,168 @@ export function generateVoucherCode(phone?: string): string {
 }
 
 /**
- * Lưu khách hàng tiềm năng lên Supabase Cloud & LocalStorage
+ * Lưu hoặc Cập nhật Khách Hàng Tiềm Năng theo phiên chat (Upsert by sessionId / lead_id)
+ * Hỗ trợ lưu realtime từ tin nhắn đầu tiên khi khách chưa để lại SĐT (status: 'CHATTING', phone: '')
+ * Tự động nâng cấp thành 'NEW' (HOT LEAD) khi khách cung cấp SĐT mà không làm mất lịch sử chat hay trùng lặp.
+ */
+export async function submitOrUpdateCustomerLead(params: {
+  sessionId: string;
+  chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  phone?: string;
+  customerName?: string;
+  need?: string;
+  branchName?: string;
+  branchId?: string;
+  voucherCode?: string;
+  conversationSummary?: string;
+  productInterest?: string;
+  source?: string;
+  status?: CustomerLeadStatus | string;
+}): Promise<{ success: boolean; lead?: CustomerLead; error?: string }> {
+  try {
+    const sessionId = params.sessionId || `lead-${Date.now()}`;
+    const cleanPhone = (params.phone || '').trim();
+    const hasPhone = cleanPhone.replace(/\D/g, '').length >= 8;
+
+    // Định dạng lịch sử hội thoại thành văn bản đọc nhanh
+    const formattedSummary = params.chatMessages && params.chatMessages.length > 0
+      ? params.chatMessages.map(m => `[${m.time}] ${m.sender === 'user' ? 'Khách' : 'Bé 8'}: ${m.text}`).join('\n')
+      : (params.conversationSummary || '');
+
+    // 1. Kiểm tra xem session này đã có trong Supabase Cloud chưa
+    let existingLead: any = null;
+    try {
+      const { data } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('lead_id', sessionId)
+        .limit(1);
+      if (data && data.length > 0) {
+        existingLead = data[0];
+      }
+    } catch (e) {
+      console.warn('Lỗi kiểm tra existing lead:', e);
+    }
+
+    // 2. Nếu đã có lead_id này -> Thực hiện UPDATE
+    if (existingLead) {
+      const updatePayload: Record<string, any> = {
+        last_action_at: new Date().toISOString()
+      };
+
+      if (params.customerName && params.customerName.trim() && params.customerName !== 'Khách đang chat') {
+        updatePayload.customer_name = params.customerName.trim();
+      }
+      if (params.need && params.need.trim()) {
+        updatePayload.need = params.need.trim();
+      }
+      if (params.branchName) {
+        updatePayload.branch = params.branchName;
+      }
+      if (params.branchId) {
+        updatePayload.branch_id = params.branchId;
+      }
+      if (params.productInterest) {
+        updatePayload.product_interest = params.productInterest;
+      }
+      if (params.source) {
+        updatePayload.source = params.source;
+      }
+      if (formattedSummary) {
+        updatePayload.conversation_summary = formattedSummary;
+      }
+      if (params.chatMessages && params.chatMessages.length > 0) {
+        updatePayload.activity_log = params.chatMessages;
+      }
+
+      // Nếu khách vừa cung cấp SĐT -> NÂNG CẤP LÊN HOT LEAD
+      if (hasPhone) {
+        updatePayload.phone = cleanPhone;
+        updatePayload.status = 'NEW';
+        updatePayload.priority = 'HIGH';
+        updatePayload.label = 'HOT LEAD';
+        updatePayload.score = 100;
+        if (params.voucherCode || !existingLead.voucher_code) {
+          updatePayload.voucher_code = params.voucherCode || generateVoucherCode(cleanPhone);
+        }
+      } else if (params.status) {
+        updatePayload.status = params.status;
+      }
+
+      // Cập nhật Cloud
+      const { data: updatedCloud, error: updateError } = await supabase
+        .from('leads')
+        .update(updatePayload)
+        .eq('id', existingLead.id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.warn('Cảnh báo cập nhật lead Supabase:', updateError.message);
+      }
+
+      const mergedLead = { ...existingLead, ...updatePayload, ...(updatedCloud || {}) };
+
+      // Cập nhật LocalStorage
+      try {
+        const local: any[] = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || '[]');
+        const updatedLocal = local.map(l => (l.lead_id === sessionId || l.id === existingLead.id) ? { ...l, ...updatePayload } : l);
+        localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLocal.slice(0, 50)));
+      } catch (e) {}
+
+      return { success: true, lead: mergedLead as CustomerLead };
+    }
+
+    // 3. Nếu chưa có -> Tạo MỚI (INSERT)
+    const newLead: Partial<CustomerLead> = {
+      lead_id: sessionId,
+      customer_name: params.customerName?.trim() || (hasPhone ? 'Khách hàng Web Chat' : 'Khách đang chat'),
+      phone: hasPhone ? cleanPhone : '',
+      need: params.need?.trim() || 'Tư vấn phụ kiện / dịch vụ',
+      branch: params.branchName || 'Phụ Kiện 88 - Phú Khương',
+      branch_id: params.branchId,
+      product_interest: params.productInterest || params.need,
+      voucher_code: params.voucherCode || (hasPhone ? generateVoucherCode(cleanPhone) : ''),
+      conversation_summary: formattedSummary,
+      activity_log: params.chatMessages || [],
+      source: params.source || 'web_chatbot',
+      status: hasPhone ? 'NEW' : (params.status || 'CHATTING'),
+      priority: hasPhone ? 'HIGH' : 'MEDIUM',
+      label: hasPhone ? 'HOT LEAD' : 'ĐANG TƯ VẤN',
+      score: hasPhone ? 100 : 50,
+      created_at: new Date().toISOString()
+    };
+
+    // Lưu LocalStorage
+    try {
+      const local = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || '[]');
+      local.unshift({ ...newLead, id: Date.now() });
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(local.slice(0, 50)));
+    } catch (e) {
+      console.warn('Lỗi lưu cache lead:', e);
+    }
+
+    // Gửi lên Supabase Cloud
+    const { data, error } = await supabase
+      .from('leads')
+      .insert([newLead])
+      .select()
+      .single();
+
+    if (error) {
+      console.warn('Cảnh báo lưu Supabase Cloud leads:', error.message);
+      return { success: true, lead: newLead as CustomerLead };
+    }
+
+    return { success: true, lead: data as CustomerLead };
+  } catch (err: any) {
+    console.error('Lỗi ngoại lệ submitOrUpdateCustomerLead:', err);
+    return { success: false, error: err?.message || 'Lỗi kết nối' };
+  }
+}
+
+/**
+ * Lưu khách hàng tiềm năng lên Supabase Cloud & LocalStorage (Tương thích ngược)
  */
 export async function submitCustomerLead(params: {
   customerName: string;
@@ -33,63 +194,16 @@ export async function submitCustomerLead(params: {
   productInterest?: string;
   source?: string;
   chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  sessionId?: string;
 }): Promise<{ success: boolean; lead?: CustomerLead; error?: string }> {
-  try {
-    const leadId = typeof crypto !== 'undefined' && crypto.randomUUID 
-      ? crypto.randomUUID() 
-      : `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`;
+  const sessionId = params.sessionId || (typeof crypto !== 'undefined' && crypto.randomUUID 
+    ? crypto.randomUUID() 
+    : `lead-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`);
 
-    // Định dạng lịch sử hội thoại thành văn bản đọc nhanh
-    const formattedSummary = params.chatMessages && params.chatMessages.length > 0
-      ? params.chatMessages.map(m => `[${m.time}] ${m.sender === 'user' ? 'Khách' : 'Bé 8'}: ${m.text}`).join('\n')
-      : (params.conversationSummary || '');
-
-    const newLead: Partial<CustomerLead> = {
-      lead_id: leadId,
-      customer_name: params.customerName.trim(),
-      phone: params.phone.trim(),
-      need: params.need?.trim() || 'Tư vấn phụ kiện / dịch vụ',
-      branch: params.branchName || 'Phụ Kiện 88 - Phú Khương',
-      branch_id: params.branchId,
-      product_interest: params.productInterest || params.need,
-      voucher_code: params.voucherCode || generateVoucherCode(params.phone),
-      conversation_summary: formattedSummary,
-      activity_log: params.chatMessages || [],
-      source: params.source || 'web_chatbot',
-      status: 'NEW',
-      priority: 'HIGH',
-      label: 'HOT LEAD',
-      score: 100,
-      created_at: new Date().toISOString()
-    };
-
-    // 1. Lưu dự phòng LocalStorage ngay lập tức
-    try {
-      const local = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || '[]');
-      local.unshift({ ...newLead, id: Date.now() });
-      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(local.slice(0, 50)));
-    } catch (e) {
-      console.warn('Lỗi lưu cache lead:', e);
-    }
-
-    // 2. Gửi lên Supabase Cloud
-    const { data, error } = await supabase
-      .from('leads')
-      .insert([newLead])
-      .select()
-      .single();
-
-    if (error) {
-      console.warn('Cảnh báo lưu Supabase Cloud leads:', error.message);
-      // Dù Supabase có lỗi mạng, dữ liệu vẫn được bảo toàn trong LocalStorage
-      return { success: true, lead: newLead as CustomerLead };
-    }
-
-    return { success: true, lead: data as CustomerLead };
-  } catch (err: any) {
-    console.error('Lỗi ngoại lệ submitCustomerLead:', err);
-    return { success: false, error: err?.message || 'Lỗi kết nối' };
-  }
+  return submitOrUpdateCustomerLead({
+    ...params,
+    sessionId
+  });
 }
 
 /**

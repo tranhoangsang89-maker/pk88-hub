@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Branch } from '../types';
-import { submitCustomerLead, generateVoucherCode } from '../lib/leadService';
+import { submitCustomerLead, submitOrUpdateCustomerLead, generateVoucherCode } from '../lib/leadService';
 import productsData from '../lib/products.json';
 import { 
   Send, 
@@ -41,9 +41,42 @@ interface ChatMessage {
   isLeadPrompt?: boolean;
 }
 
+// Bảng tra cứu số Hotline / Zalo chính xác của từng chi nhánh PK88
+export const getBranchHotline = (branch?: { code?: string; id?: string; name?: string; hotline?: string; zalo?: string }) => {
+  if (branch?.hotline) {
+    const raw = branch.hotline.replace(/\D/g, '');
+    const display = branch.hotline;
+    const zalo = branch.zalo || branch.hotline;
+    return { tel: raw, display, zalo, zaloLink: `https://zalo.me/${raw}` };
+  }
+
+  const code = (branch?.code || '').toUpperCase();
+  const name = (branch?.name || '').toLowerCase();
+  
+  if (code.includes('PHUKHUONG') || name.includes('phú khương')) {
+    return { tel: '0777888688', display: '077 788 8688', zalo: '077 788 8688', zaloLink: 'https://zalo.me/0777888688' };
+  }
+  if (code.includes('DONGKHOI') || name.includes('đồng khởi')) {
+    return { tel: '0814496789', display: '081 449 6789', zalo: '081 449 6789', zaloLink: 'https://zalo.me/0814496789' };
+  }
+  if (code.includes('MYTHO') || name.includes('mỹ tho')) {
+    return { tel: '0876838688', display: '087 683 8688', zalo: '087 683 8688', zaloLink: 'https://zalo.me/0876838688' };
+  }
+  if (code.includes('CANTHO') || name.includes('cần thơ')) {
+    return { tel: '0921368688', display: '092 136 8688', zalo: '092 136 8688', zaloLink: 'https://zalo.me/0921368688' };
+  }
+  if (code.includes('VINHLONG') || name.includes('vĩnh long')) {
+    return { tel: '0589886789', display: '058 988 6789', zalo: '058 988 6789', zaloLink: 'https://zalo.me/0589886789' };
+  }
+  if (code.includes('THUDUC') || name.includes('thủ đức')) {
+    return { tel: '0865068688', display: '086 506 8688', zalo: '086 506 8688', zaloLink: 'https://zalo.me/0865068688' };
+  }
+  return { tel: '0833898688', display: '083 389 8688', zalo: '083 389 8688', zaloLink: 'https://zalo.me/0833898688' };
+};
+
 const QUICK_ACTIONS = [
   { icon: 'Smartphone', text: 'Tìm ốp lưng & cường lực theo dòng máy' },
-  { icon: 'Wrench', text: 'Báo giá thay pin & ép kính lấy liền' },
+  { icon: 'Wrench', text: 'Tư vấn thay pin & ép kính lấy liền' },
   { icon: 'Sparkles', text: 'Củ sạc nhanh & cáp sạc chính hãng' },
   { icon: 'MapPin', text: 'Xem địa chỉ 7 chi nhánh gần tôi nhất' },
   { icon: 'Gift', text: 'Nhận E-Voucher giảm giá 10% hôm nay' }
@@ -87,6 +120,8 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
     };
   });
 
+  const currentBranchHotline = getBranchHotline(selectedBranch);
+
   const [inputMessage, setInputMessage] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(false);
   const [copiedLink, setCopiedLink] = useState<boolean>(false);
@@ -100,6 +135,22 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
   const [isSubmittingLead, setIsSubmittingLead] = useState<boolean>(false);
   const [claimedVoucher, setClaimedVoucher] = useState<string | null>(null);
 
+  // Định danh phiên chat độc nhất (Persistent Chat Session ID)
+  const [chatSessionId] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const saved = sessionStorage.getItem('pk88_chat_session_id');
+        if (saved) return saved;
+        const newId = `web-${Date.now()}-${Math.random().toString(36).substring(2, 8)}`;
+        sessionStorage.setItem('pk88_chat_session_id', newId);
+        return newId;
+      } catch (e) {
+        return `web-${Date.now()}`;
+      }
+    }
+    return `web-${Date.now()}`;
+  });
+
   // Lịch sử tin nhắn
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -107,9 +158,9 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
       sender: 'be8',
       text: `Dạ chào Anh/Chị! Em là **Bé 8** - Chuyên Viên Tư Vấn AI của Chuỗi Cửa Hàng **Phụ Kiện 88** 🤖💖
 
-Anh/Chị đang tìm phụ kiện cho dòng máy nào (iPhone, Samsung, Xiaomi...) hay cần báo giá dịch vụ kỹ thuật (thay pin dung lượng cao, ép kính lấy liền, dán cường lực bảo hành)?
+Anh/Chị đang tìm phụ kiện cho dòng máy nào (iPhone, Samsung, Xiaomi...) hay cần tư vấn dịch vụ kỹ thuật (thay pin dung lượng cao, ép kính lấy liền, dán cường lực bảo hành)?
 
-Cứ nhắn cho Bé 8, em tư vấn chi tiết và tặng mình **E-Voucher giảm giá 10%** ngay nhé! ✨`,
+Cứ nhắn cho Bé 8 để được tư vấn dòng sản phẩm phù hợp nhất, em hỗ trợ giữ hàng và tặng mình **E-Voucher giảm giá 10%** ngay nhé! ✨`,
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     }
   ]);
@@ -180,8 +231,12 @@ Cứ nhắn cho Bé 8, em tư vấn chi tiết và tặng mình **E-Voucher gi�
 
   // Xây dựng kho tri thức thời gian thực cho System Prompt của Gemini AI
   const buildSystemPrompt = (userQueryText?: string) => {
+    const currentBranchHotline = getBranchHotline(selectedBranch);
     const branchListStr = activeBranches
-      .map(b => `- ${b.name}: ${b.address}`)
+      .map(b => {
+        const h = getBranchHotline(b);
+        return `- ${b.name}: ${b.address} (Hotline/Zalo: ${h.display})`;
+      })
       .join('\n');
 
     // Lấy mốc thời gian thực tại Việt Nam
@@ -192,26 +247,26 @@ Cứ nhắn cho Bé 8, em tư vấn chi tiết và tặng mình **E-Voucher gi�
     const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const currentYear = now.getFullYear();
 
-    // Tìm kiếm các sản phẩm khớp trực tiếp trong kho thực tế theo câu hỏi của khách
+    // Tìm kiếm các sản phẩm khớp trực tiếp trong kho thực tế theo câu hỏi của khách (loại bỏ trường giá)
     const matchedProducts = userQueryText ? searchRelevantProducts(userQueryText) : [];
     let realTimeProductContext = '';
     if (matchedProducts.length > 0) {
       realTimeProductContext = `
-5. DỮ LIỆU TỒN KHO THỰC TẾ KHỚP TRỰC TIẾP VỚI YÊU CẦU CỦA KHÁCH (HÃY DÙNG TÊN VÀ GIÁ NIÊM YẾT CHÍNH XÁC NÀY ĐỂ BÁO KHÁCH):
-${matchedProducts.map(p => `- ${p.name} | Danh mục: ${p.category} | Hãng: ${p.brand || 'Chính hãng'} | Giá niêm yết: ${Number(p.price).toLocaleString('vi-VN')}đ`).join('\n')}
-(Nếu khách cần, cam kết shop luôn có sẵn tại quầy và hỗ trợ dán/thay máy miễn phí công)`;
+5. DỮ LIỆU TỒN KHO THỰC TẾ KHỚP TRỰC TIẾP VỚI YÊU CẦU CỦA KHÁCH (CHỈ DÙNG TÊN VÀ ĐẶC ĐIỂM SẢN PHẨM ĐỂ TƯ VẤN, TUYỆT ĐỐI KHÔNG TỰ BÁO GIÁ):
+${matchedProducts.map(p => `- ${p.name} | Danh mục: ${p.category} | Hãng: ${p.brand || 'Chính hãng'}`).join('\n')}
+(Cam kết shop luôn có sẵn hàng tại quầy và hỗ trợ dán/thay máy miễn phí công lấy liền)`;
     }
 
-    // Các sản phẩm tiêu biểu đa dạng
+    // Các sản phẩm tiêu biểu đa dạng (không kèm giá tiền)
     const sampleProducts = [
-      'Cường lực KingKong / Anank / URR / Wiwu chống va đập, chống nhìn trộm (giá từ 60k - 180k)',
-      'Lens Camera URR Sapphire bảo vệ mắt kính camera siêu cứng (giá 45k - 300k)',
-      'Ốp lưng Chống sốc, Magsafe, viền xi, chống ố vàng cho đầy đủ các dòng iPhone (từ iPhone 7 đến iPhone 17 và iPhone 18 Series, iPhone Duo siêu hot vừa ra mắt) và Samsung, Xiaomi (giá từ 45k - 250k)',
+      'Cường lực KingKong / Anank / URR / Wiwu chống va đập, chống nhìn trộm, bề mặt nano mượt mà',
+      'Lens Camera URR Sapphire bảo vệ mắt kính camera siêu cứng trong suốt chuẩn HD',
+      'Ốp lưng Chống sốc, Magsafe, viền xi cao cấp, chống ố vàng cho đầy đủ các dòng iPhone (từ iPhone 7 đến iPhone 18 Series, iPhone Duo) và Samsung, Xiaomi',
       'Củ sạc nhanh 20W, 30W, 35W, 65W GaN sạc siêu tốc chuẩn Power Delivery bảo hành 1 đổi 1 trong 12 tháng',
-      'Cáp sạc bọc dù siêu bền Type-C, Lightning, 3-in-1 chống gãy đứt',
-      'Tai nghe Bluetooth TWS pin trâu 6-8 tiếng, bass ấm (giá từ 180k - 450k)',
-      'Pin dung lượng cao cho iPhone chính hãng Pisen / Deji bảo hành 12 tháng (giá từ 250k - 650k tùy dòng máy)',
-      'Ép kính màn hình cong, thay mặt kính lấy liền trong 30-45 phút'
+      'Cáp sạc bọc dù siêu bền Type-C, Lightning, 3-in-1 chống gãy gập',
+      'Tai nghe Bluetooth TWS pin trâu 6-8 tiếng, bass ấm, đàm thoại to rõ',
+      'Pin dung lượng cao cho iPhone chính hãng Pisen / Deji bảo hành 12 tháng, miễn phí công thay lấy ngay',
+      'Ép kính màn hình cong hút chân không không bọt bụi, thay mặt kính lấy liền trong 30-45 phút'
     ].join('\n');
 
     return `BẠN LÀ "BÉ 8" - CHUYÊN VIÊN TƯ VẤN KHÁCH HÀNG AI DUYÊN DÁNG, NHIỆT TÌNH CỦA CHUỖI CỬA HÀNG PHỤ KIỆN 88 (HỆ THỐNG BÁN LẺ & SỬA CHỮA ĐIỆN THOẠI UY TÍN TẠI MIỀN TÂY & TP.HCM).
@@ -222,49 +277,50 @@ MỐC THỜI GIAN THỰC TẾ HỆ THỐNG:
 - Năm hiện tại: NĂM ${currentYear}.
 
 NHẬN THỨC THỜI GIAN THỰC & ĐỊNH HƯỚNG DÒNG MÁY SMARTPHONE NĂM ${currentYear}:
-- Bạn LUÔN NHẬN THỨC RÕ hiện tại đang là tháng 10 năm ${currentYear}.
+- Bạn LUÔN NHẬN THỨC RÕ hiện tại đang là năm ${currentYear}.
 - Về các dòng máy Apple iPhone mới nhất:
-  + Siêu phẩm ĐÌNH ĐÁM VỪA RA MẮT: Apple đã chính thức ra mắt thế hệ **iPhone 18 Series (iPhone 18, 18 Air/Slim, 18 Pro, 18 Pro Max)** và mẫu điện thoại màn hình gập đột phá **iPhone Duo**!
-  + Tình hình hàng hóa tại Phụ Kiện 88: Chuỗi Phụ Kiện 88 đã và đang liên tục về các lô ốp lưng Magsafe cao cấp, cường lực KingKong/URR, dán PPF full body và lens bảo vệ camera riêng cho iPhone 18 Series và iPhone Duo.
-  + Kịch bản tư vấn khi khách hỏi iPhone 18 hoặc iPhone Duo: 
-    * Hãy chúc mừng khách với giọng điệu hào hứng, phấn khởi vì khách sở hữu/quan tâm dòng máy đỉnh cao mới nhất của Apple.
-    * Xác nhận shop đang có sẵn hoặc các lô hàng ốp lưng/cường lực mới nhất đang liên tục cập bến 7 chi nhánh với giá ưu đãi cực tốt (khoảng 65k - 250k tùy dòng ốp chống sốc/Magsafe/viền xi).
-    * Khuyên khách để lại **Tên + Số Điện Thoại Zalo** để nhân viên quầy gửi ảnh mẫu thực tế các mẫu ốp ưng ý nhất và giữ hàng kích hoạt E-Voucher giảm 10% ngay cho mình!
-  + Với các dòng máy iPhone 17 Series, 16 Series, 15 Series... trở về trước: Shop luôn có sẵn kho 521 phụ kiện đầy đủ mọi mẫu mã tại quầy.
+  + Dòng máy mới nhất: Apple đã chính thức ra mắt thế hệ **iPhone 18 Series (iPhone 18, 18 Air/Slim, 18 Pro, 18 Pro Max)** và điện thoại màn hình gập đột phá **iPhone Duo**!
+  + Chuỗi Phụ Kiện 88 liên tục có sẵn các mẫu ốp lưng Magsafe cao cấp, cường lực KingKong/URR, dán PPF full body và lens bảo vệ camera riêng cho iPhone 18 Series và iPhone Duo.
+  + Với các dòng máy iPhone 17 Series, 16 Series, 15 Series, 14, 13, 12, 11... trở về trước: Shop luôn có sẵn đầy đủ linh kiện và phụ kiện chính hãng tại quầy.
 - Về các dòng máy Samsung & Android:
-  + Các thế hệ hot nhất: Galaxy S24, S25 Series (S24/S25 Ultra, Plus), Galaxy Z Fold6, Z Flip6, Z Fold7...
-  + Shop có sẵn cường lực, ốp chống sốc, củ sạc siêu nhanh 25W/45W/65W GaN.
+  + Galaxy S24, S25 Series, Galaxy Z Fold6, Z Flip6, Z Fold7... Shop luôn có sẵn cường lực, ốp chống sốc, củ sạc siêu nhanh 25W/45W/65W GaN.
 ==============================
 
-1. TÔN CHỈ PHỤC VỤ & PHONG CÁCH:
-- Luôn xưng "Bé 8" hoặc "em", gọi khách là "Anh/Chị" (hoặc "bạn").
-- Giọng điệu: Thân thiện, chu đáo, lịch thiệp, nhiều năng lượng tích cực, dùng emoji tự nhiên (✨, 💖, 📱, 🔋, 🛡️).
-- Trả lời rõ ràng, định dạng gạch đầu dòng ngắn gọn, báo giá công khai minh bạch.
-- KHÔNG BAO GIỜ bịa đặt giá trên trời, nếu khách hỏi món không có thì khéo léo nói shop có sẵn nhiều mẫu tương đương chất lượng cao.
+QUY TẮC BẮT BUỘC SỐ 1 - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀN CHUỖI:
+HIỆN TẠI CHUỖI CỬA HÀNG PHỤ KIỆN 88 ĐANG TRONG ĐỢT CÂN ĐỐI LẠI BẢNG GIÁ BÁN TOÀN BỘ SẢN PHẨM & DỊCH VỤ TRÊN TOÀN HỆ THỐNG ĐỂ ÁP DỤNG CHÍNH SÁCH TRỢ GIÁ TỐT NHẤT CHO KHÁCH HÀNG.
+VÌ VẬY, BẠN TUÂN THỦ TUYỆT ĐỐI CÁC ĐIỀU SAU:
+1. TUYỆT ĐỐI KHÔNG BÁO BẤT KỲ GIÁ TIỀN NÀO:
+   - KHÔNG đưa ra con số giá cụ thể (TUYỆT ĐỐI KHÔNG nói bất kỳ số tiền nào như 50k, 120k, 250k, 1.535.000đ, 2.299.000đ...).
+   - KHÔNG đưa ra khoảng giá (KHÔNG nói "khoảng từ... đến...", "dao động từ...").
+   - Kể cả khi khách hỏi trực tiếp "thay pin giá bao nhiêu", "cường lực giá sao", "ốp lưng bao nhiêu tiền", bạn TUYỆT ĐỐI KHÔNG TỰ BÁO GIÁ TIỀN.
 
-2. DANH SÁCH 7 CHI NHÁNH PHỤ KIỆN 88:
+2. TẬP TRUNG TƯ VẤN SẢN PHẨM & DỊCH VỤ CHUYÊN SÂU:
+   - Tư vấn chi tiết về xuất xứ, thương hiệu chính hãng (Pisen, Deji, KingKong, URR, Wiwu, Anank...).
+   - Tư vấn tính năng, sự khác biệt (ví dụ: Pin Pisen chuẩn zin hoạt động bền bỉ, ổn định; Pin Pisen Superman/Dragon siêu dung lượng cho thời lượng pin trâu hơn hẳn).
+   - Nêu rõ các cam kết vàng: Bảo hành chính hãng 12 tháng 1 đổi 1, miễn phí hoàn toàn công tháo lắp và dán máy tại chỗ, kiểm tra và vệ sinh máy sạch sẽ bên trong, khách được quan sát kỹ thuật viên thao tác trực tiếp lấy liền ngay trước mặt trong 30-45 phút.
+
+3. KỊCH BẢN ĐIỀU HƯỚNG BÁO GIÁ (XIN SĐT HOẶC ĐỀ NGHỊ GỌI HOTLINE CHI NHÁNH):
+   - Khi khách hỏi giá hoặc có nhu cầu thay pin, ép kính, dán máy, mua phụ kiện:
+     Sau khi tư vấn tính năng và chính sách dịch vụ, hãy thông báo duyên dáng rằng chi nhánh đang có chương trình trợ giá ưu đãi riêng và khéo léo đề xuất 2 phương án:
+     + PHƯƠNG ÁN 1 (XIN SĐT): "Dạ hiện tại hệ thống bên em đang có chương trình trợ giá ưu đãi đặc biệt cho dòng máy của mình tại ${selectedBranch.name} ạ. Anh/Chị cho em xin Tên + Số Điện Thoại (hoặc Zalo) để em nhắn bạn kỹ thuật viên tại quầy gọi lại tư vấn và báo mức giá ưu đãi nhất kèm giữ quà tặng cho mình nhé ạ! ✨"
+     + PHƯƠNG ÁN 2 (GỌI HOTLINE CHI NHÁNH): "Hoặc Anh/Chị có thể gọi điện/nhắn Zalo trực tiếp đến Hotline của ${selectedBranch.name}: ${currentBranchHotline.display} để các bạn kỹ thuật viên kiểm tra máy và báo giá ưu đãi chính xác liền tay cho mình ạ! 📞"
+   - Nếu khách gửi số điện thoại trong tin nhắn (10 chữ số): HÃY CẢM ƠN NỒNG NHIỆT, xác nhận đã tiếp nhận thông tin và cam kết bạn kỹ thuật viên tại ${selectedBranch.name} sẽ liên hệ lại trong 3-5 phút tới!
+
+4. TÔN CHỈ PHỤC VỤ & PHONG CÁCH:
+- Luôn xưng "Bé 8" hoặc "em", gọi khách là "Anh/Chị" (hoặc "bạn").
+- Giọng điệu: Thân thiện, chu đáo, lịch thiệp, nhiều năng lượng tích cực, dùng emoji tự nhiên (✨, 💖, 📱, 🔋, 🛡️, 📞).
+- Trình bày thông thoáng, gạch đầu dòng rõ ràng, KHÔNG lạm dụng dấu sao in đậm tràn lan.
+
+5. DANH SÁCH 7 CHI NHÁNH PHỤ KIỆN 88:
 ${branchListStr}
-- Chi nhánh hiện tại khách đang chọn: ${selectedBranch.name} (${selectedBranch.address}).
+- Chi nhánh hiện tại khách đang chọn: ${selectedBranch.name} (${selectedBranch.address}) - Hotline/Zalo: ${currentBranchHotline.display}.
 - Giờ mở cửa: 07:30 - 22:00 tất cả các ngày trong tuần (kể cả Thứ 7, Chủ Nhật và ngày lễ).
 
-3. CÁC SẢN PHẨM & DỊCH VỤ NỔI BẬT:
+6. CÁC DỊCH VỤ NỔI BẬT:
 ${sampleProducts}
-- Tổng kho có hơn 521 phụ kiện có sẵn tại quầy.
 - Miễn phí công dán cường lực & vệ sinh máy tại chỗ.
 - Bảo hành 1 đổi 1 trong 12 tháng với củ sạc, cáp sạc, tai nghe lỗi do nhà sản xuất.
-${realTimeProductContext}
-
-4. NHIỆM VỤ CHỐT SALE & XIN SỐ ĐIỆN THOẠI KHÉO LÉO (LEAD CAPTURE):
-- Khi khách hỏi giá, hỏi dòng máy, hoặc cần mua: Sau khi tư vấn sản phẩm phù hợp, hãy khuyên khách:
-  "Dạ chi nhánh bên em đang có sẵn hàng, Anh/Chị cho em xin Tên và Số Điện Thoại Zalo để em gửi ảnh mẫu thực tế và kích hoạt mã giảm giá 10% giữ hàng cho mình trước nhé ạ!"
-- Nếu khách gửi số điện thoại trong tin nhắn (dạng 10 số 03x, 05x, 07x, 08x, 09x):
-  HÃY CẢM ƠN NỒNG NHIỆT, xác nhận đã tiếp nhận thông tin và hứa hẹn chi nhánh gần nhất sẽ gọi điện / nhắn Zalo hỗ trợ trong 3-5 phút tới!
-
-5. QUY TẮC ĐỊNH DẠNG TIN NHẮN (THẨM MỸ & THÂN THIỆN):
-- TUYỆT ĐỐI HẠN CHẾ lạm dụng dấu sao (**). Không in đậm tràn lan từng chữ, từng dòng!
-- Chỉ in đậm tối đa 1-2 từ khóa then chốt (như Tên sản phẩm chính, Giá tiền hoặc Mã voucher).
-- TUYỆT ĐỐI KHÔNG dùng 3 dấu sao (***) hoặc bọc dấu sao quanh dấu gạch đầu dòng, dấu hai chấm.
-- Trình bày thông thoáng, tự nhiên, câu từ mạch lạc như một bạn chuyên viên quầy nhắn tin Zalo thân mật, không mang tính khuôn mẫu robot.`;
+${realTimeProductContext}`;
   };
 
   // Gửi tin nhắn đến Gemini AI
@@ -285,20 +341,19 @@ ${realTimeProductContext}
 
     // Kiểm tra xem khách có vừa gửi số điện thoại trực tiếp trong tin nhắn không
     const phoneMatch = text.match(/(0[3|5|7|8|9][0-9]{8})/);
-    if (phoneMatch) {
-      const extractedPhone = phoneMatch[1];
-      // Tự động lưu lead vào hệ thống kèm toàn bộ lịch sử tin nhắn và nguồn tracking
-      submitCustomerLead({
-        customerName: 'Khách hàng Web Chat',
-        phone: extractedPhone,
-        need: text,
-        branchName: selectedBranch.name,
-        branchId: selectedBranch.id,
-        conversationSummary: `Khách cung cấp SĐT trong chat: "${text}"`,
-        source: trackingSource || 'web_chatbot',
-        chatMessages: [...messages, userMsgObj]
-      });
-    }
+    const updatedMessages = [...messages, userMsgObj];
+
+    // Tự động lưu realtime phiên chat ngay từ tin nhắn đầu tiên (Dù có hay chưa có SĐT)
+    submitOrUpdateCustomerLead({
+      sessionId: chatSessionId,
+      phone: phoneMatch ? phoneMatch[1] : undefined,
+      customerName: phoneMatch ? 'Khách hàng Web Chat' : undefined,
+      need: text,
+      branchName: selectedBranch.name,
+      branchId: selectedBranch.id,
+      source: trackingSource || 'web_chatbot',
+      chatMessages: updatedMessages
+    });
 
     // Lấy API key xoay tua từ biến môi trường
     const envKeys = import.meta.env.VITE_GEMINI_API_KEY || '';
@@ -319,7 +374,7 @@ ${chatHistory}
 TIN NHẮN MỚI TỪ KHÁCH HÀNG:
 "${text}"
 
-Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn chính xác và khéo léo xin SĐT để chốt đơn/giữ hàng:`;
+Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn chuyên sâu sản phẩm/dịch vụ, TUYỆT ĐỐI KHÔNG BÁO GIÁ TIỀN, và khéo léo xin Tên + SĐT hoặc hướng dẫn gọi Hotline chi nhánh:`;
 
     const MODEL_NAME = 'gemini-flash-lite-latest';
     let aiReplyText = '';
@@ -356,10 +411,11 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn c
 
     // Fallback nếu API bận
     if (!aiReplyText) {
+      const curHotline = getBranchHotline(selectedBranch);
       if (phoneMatch) {
         aiReplyText = `Dạ em đã nhận được số điện thoại **${phoneMatch[1]}** của Anh/Chị rồi ạ! 💖\n\nChuyên viên của **${selectedBranch.name}** sẽ gọi điện thoại hoặc nhắn Zalo tư vấn chi tiết và áp dụng ưu đãi giảm giá 10% cho mình ngay trong ít phút nhé ạ! Anh/Chị để ý điện thoại giúp Bé 8 nha! ✨`;
       } else {
-        aiReplyText = `Dạ hiện tại chi nhánh **${selectedBranch.name}** đang có sẵn rất nhiều mẫu phụ kiện chuẩn đẹp cho máy của mình ạ!\n\nAnh/Chị bấm vào nút **[🎁 Nhận E-Voucher & Báo Giá]** bên dưới hoặc để lại Số Điện Thoại để Bé 8 báo giá ưu đãi và giữ sẵn hàng cho mình ghé xem nhé ạ! ✨`;
+        aiReplyText = `Dạ hiện tại chi nhánh **${selectedBranch.name}** đang có sẵn rất nhiều sản phẩm và linh kiện cao cấp cho dòng máy của mình ạ!\n\nVì hệ thống đang cân đối mức giá trợ giá tốt nhất, Anh/Chị cho em xin **Tên + Số Điện Thoại Zalo** để kỹ thuật viên gọi lại tư vấn và báo giá ưu đãi chính xác nhất trong 3-5 phút, hoặc mình có thể gọi trực tiếp Hotline/Zalo chi nhánh: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
       }
     }
 
@@ -370,8 +426,18 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn c
       time: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
     };
 
-    setMessages(prev => [...prev, aiMsgObj]);
+    const finalMessages = [...updatedMessages, aiMsgObj];
+    setMessages(finalMessages);
     setIsLoading(false);
+
+    // Đồng bộ tiếp câu trả lời của Bé 8 vào CRM Cloud để nhân viên thấy trọn vẹn cuộc trò chuyện
+    submitOrUpdateCustomerLead({
+      sessionId: chatSessionId,
+      branchName: selectedBranch.name,
+      branchId: selectedBranch.id,
+      source: trackingSource || 'web_chatbot',
+      chatMessages: finalMessages
+    });
   };
 
   // Nộp form nhận E-Voucher và Số Điện Thoại
@@ -386,7 +452,8 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn c
     setIsSubmittingLead(true);
     const voucher = generateVoucherCode(cleanPhone);
 
-    const res = await submitCustomerLead({
+    const res = await submitOrUpdateCustomerLead({
+      sessionId: chatSessionId,
       customerName: customerName.trim() || 'Khách hàng nhận Voucher',
       phone: cleanPhone,
       need: customerNeed.trim() || 'Nhận E-Voucher 10% & Tư vấn phụ kiện',
@@ -494,14 +561,14 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
             </button>
 
             <a
-              href="tel:0394336726"
-              title="Hotline: 0394.336.726"
+              href={`tel:${currentBranchHotline.tel}`}
+              title={`Hotline: ${currentBranchHotline.display} (${selectedBranch.name})`}
               className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 text-xs font-bold transition-all cursor-pointer shadow-lg shadow-rose-500/10 whitespace-nowrap"
             >
               <Phone className="w-3.5 h-3.5 animate-bounce shrink-0 text-rose-400" />
               <span className="hidden sm:inline">Hotline:</span>
-              <span className="hidden sm:inline">0394.336.726</span>
-              <span className="sm:hidden">Gọi</span>
+              <span className="hidden sm:inline">{currentBranchHotline.display}</span>
+              <span className="sm:hidden">{currentBranchHotline.display}</span>
             </a>
 
             {onBackToApp && (
@@ -561,7 +628,14 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
               <MapPin className="w-3.5 h-3.5" />
               <span>Đang kết nối với: {selectedBranch.name}</span>
             </p>
-            <p className="text-[11px] text-slate-400">{selectedBranch.address}</p>
+            <p className="text-[11px] text-slate-400">
+              {selectedBranch.address}
+            </p>
+            <div className="flex items-center justify-center gap-3 text-[11px] mt-1 pt-1 border-t border-slate-800/60">
+              <span>Hotline: <a href={`tel:${currentBranchHotline.tel}`} className="text-amber-400 font-bold hover:underline">{currentBranchHotline.display}</a></span>
+              <span className="text-slate-600">•</span>
+              <span>Zalo: <a href={currentBranchHotline.zaloLink} target="_blank" rel="noreferrer" className="text-cyan-400 font-bold hover:underline">{currentBranchHotline.zalo}</a></span>
+            </div>
           </div>
 
           {/* Danh sách tin nhắn */}

@@ -200,14 +200,16 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
   + Không nói "Cái này bên em không có" -> Hãy nói: "Dạ mẫu đó hiện tại shop vừa hết, em mời anh/chị xem thử mẫu tương tự này đang rất được chuộng ạ."
   + Không nói "Không biết" -> Hãy nói: "Dạ anh/chị chờ em 30 giây để em kiểm tra thông tin chính xác nhất cho mình nhé."
   + Không nói "Hết hàng rồi, qua chỗ khác mua" -> Hãy nói: "Dạ mẫu này dự kiến sớm về thêm, hoặc em kiểm tra chi nhánh gần nhất ship ngay cho mình nhé."
-- BẢNG GIÁ DỊCH VỤ THỰC TẾ:
-  + Dán kính cường lực KingKong / Nano chống va đập: từ 50.000đ - 120.000đ (bảo hành dán lại).
-  + Ép kính lấy liền: 350.000đ - 650.000đ tùy dòng máy (hút chân không không bụi, lấy ngay sau 45-60p).
-  + Thay pin dung lượng cao (chính hãng bảo hành 12 tháng): từ 250.000đ - 750.000đ.
-  + Củ sạc nhanh 20W/30W/65W Type-C, cáp dù bọc thép, ốp lưng chống sốc chuẩn thiết kế.
-- MỤC TIÊU CỐT LÕI:
+- QUY TẮC CỐT LÕI - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀN CHUỖI:
+  + Hiện tại chuỗi cửa hàng Phụ Kiện 88 đang trong đợt cân đối lại bảng giá toàn bộ sản phẩm và dịch vụ trên toàn hệ thống để áp dụng chính sách trợ giá tốt nhất cho khách hàng.
+  + TUYỆT ĐỐI KHÔNG BÁO GIÁ CỤ THỂ HOẶC KHOẢNG GIÁ (không đưa bất kỳ con số tiền nào, không nói "từ xxk", không nói "khoảng xxx.000đ").
+  + CHỈ TẬP TRUNG TƯ VẤN SẢN PHẨM & DỊCH VỤ: Dán cường lực KingKong/Nano vát cạnh 9D, ép kính màn hình cong công nghệ hút chân không lấy liền trong 30-45 phút, thay pin chính hãng Pisen/Deji bảo hành 12 tháng 1 đổi 1, sạc nhanh GaN chuẩn PD, miễn phí hoàn toàn công tháo lắp/dán máy và vệ sinh máy sạch sẽ tại quầy.
+- MỤC TIÊU CỐT LÕI & KỊCH BẢN ĐIỀU HƯỚNG BÁO GIÁ:
   + Tư vấn ngắn gọn, súc tích (dưới 4 câu), đúng trọng tâm khách hỏi.
-  + Luôn khéo léo xin Tên + Số Điện Thoại: "Anh/Chị cho em xin Tên và SĐT để em nhắn bạn kỹ thuật viên tại quầy ${branch.branchName} giữ sẵn hàng, khi mình ghé là phục vụ ngay không cần chờ đợi nhé!"
+  + Khi khách hỏi giá hoặc có nhu cầu: Hãy thông báo shop đang có chương trình trợ giá ưu đãi riêng cho chi nhánh, sau đó khéo léo đề xuất:
+    "Anh/Chị cho em xin Tên và SĐT (hoặc Zalo) để em nhắn bạn kỹ thuật viên tại quầy ${branch.branchName} gọi lại tư vấn và báo mức giá ưu đãi tốt nhất cho mình trong 3-5 phút nhé ạ!"
+    HOẶC:
+    "Hoặc Anh/Chị có thể gọi điện/nhắn Zalo trực tiếp đến Hotline chi nhánh: ${branch.hotline} để các bạn kỹ thuật viên kiểm tra máy và báo giá ưu đãi chính xác liền tay ạ! ✨"
   + Cung cấp hotline/Zalo: ${branch.hotline} để khách tiện liên hệ trực tiếp.
   + Hiện tại chưa có chương trình khuyến mãi nào, không tự bịa voucher nếu không có.
 `;
@@ -322,38 +324,55 @@ export default async function handler(req: any, res: any) {
               // 2. Gửi tin nhắn trả lời qua Facebook Graph API
               await sendMetaTextMessage(activeToken, senderId, botReply);
 
-              // 3. Kiểm tra số điện thoại để ghi nhận Khách Hàng Chốt Đơn
+              // 3. Ghi nhận hội thoại khách hàng vào Supabase Cloud (Realtime Lead Capture & Upgrade)
               const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
-              if (phoneMatch) {
-                const detectedPhone = phoneMatch[0];
-                console.log(`🔥 [HOT LEAD] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
-                const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-                
-                const chatLog = [
-                  { sender: 'user', text: userText, time: timeStr },
-                  { sender: 'bot', text: botReply, time: timeStr }
-                ];
-                const summary = `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`;
+              const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+              const sessionLeadId = `fb-${pageId}-${senderId}`;
+              
+              const chatLog = [
+                { sender: 'user', text: userText, time: timeStr },
+                { sender: 'bot', text: botReply, time: timeStr }
+              ];
 
-                try {
-                  // Kiểm tra xem đã có lead với SĐT này chưa
-                  const { data: existingLeads } = await supabase
-                    .from('leads')
-                    .select('id, activity_log')
-                    .eq('phone', detectedPhone)
-                    .limit(1);
+              try {
+                // Kiểm tra xem đã có lead với sessionLeadId này chưa
+                const { data: existingLeads } = await supabase
+                  .from('leads')
+                  .select('id, phone, activity_log, status')
+                  .eq('lead_id', sessionLeadId)
+                  .limit(1);
 
-                  if (existingLeads && existingLeads.length > 0) {
-                    const currentLog = Array.isArray(existingLeads[0].activity_log) ? existingLeads[0].activity_log : [];
-                    await supabase.from('leads').update({
-                      need: userText,
-                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Cập nhật lúc ${timeStr}`,
-                      activity_log: [...currentLog, ...chatLog],
-                      conversation_summary: summary
-                    }).eq('id', existingLeads[0].id);
-                  } else {
+                const existingLead = existingLeads && existingLeads.length > 0 ? existingLeads[0] : null;
+
+                if (existingLead) {
+                  const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
+                  const updatedLog = [...currentLog, ...chatLog];
+                  const updatePayload: Record<string, any> = {
+                    need: userText,
+                    activity_log: updatedLog,
+                    notes: `Fanpage: ${branch.branchName} (${pageId}) | Cập nhật lúc ${timeStr}`,
+                    last_action_at: new Date().toISOString()
+                  };
+
+                  if (phoneMatch) {
+                    const detectedPhone = phoneMatch[0];
+                    console.log(`🔥 [HOT LEAD FB UPGRADE] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
+                    updatePayload.phone = detectedPhone;
+                    updatePayload.status = 'NEW';
+                    updatePayload.priority = 'HIGH';
+                    updatePayload.label = 'HOT LEAD FB';
+                    updatePayload.score = 100;
+                    updatePayload.conversation_summary = `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`;
+                  }
+
+                  await supabase.from('leads').update(updatePayload).eq('id', existingLead.id);
+                } else {
+                  // Tạo mới session lead
+                  if (phoneMatch) {
+                    const detectedPhone = phoneMatch[0];
+                    console.log(`🔥 [HOT LEAD FB] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
                     await supabase.from('leads').insert([{
-                      lead_id: `fb-${Date.now()}-${senderId.slice(-4)}`,
+                      lead_id: sessionLeadId,
                       customer_name: 'Khách Facebook Messenger',
                       phone: detectedPhone,
                       need: userText,
@@ -366,12 +385,30 @@ export default async function handler(req: any, res: any) {
                       score: 100,
                       notes: `Fanpage: ${branch.branchName} (${pageId}) | Yêu cầu: "${userText}"`,
                       activity_log: chatLog,
-                      conversation_summary: summary
+                      conversation_summary: `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`
+                    }]);
+                  } else {
+                    console.log(`💬 [CHATTING FB] Khách Messenger ${senderId} đang chat tại ${branch.branchName}`);
+                    await supabase.from('leads').insert([{
+                      lead_id: sessionLeadId,
+                      customer_name: 'Khách Facebook Messenger',
+                      phone: '',
+                      need: userText,
+                      branch: branch.branchName,
+                      branch_id: branch.branchId,
+                      source: 'facebook_messenger',
+                      status: 'CHATTING',
+                      priority: 'MEDIUM',
+                      label: 'ĐANG TƯ VẤN FB',
+                      score: 50,
+                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Đang chat: "${userText}"`,
+                      activity_log: chatLog,
+                      conversation_summary: `Khách đang chat: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`
                     }]);
                   }
-                } catch (dbErr) {
-                  console.error('Lỗi ghi Supabase leads:', dbErr);
                 }
+              } catch (dbErr) {
+                console.error('Lỗi ghi Supabase leads:', dbErr);
               }
             })();
 
