@@ -16,6 +16,33 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 22/10/2026) - QUAN TRỌNG
 
+### S. Tích Hợp Bé 8 AI Trực Tuyến 7 Fanpage Facebook, Webhook Meta & CRM Telesales Realtime (HOÀN THÀNH 22/10/2026)
+1. **Kết Nối Trực Tiếp 7 Fanpage Facebook Đa Chi Nhánh Của Chuỗi:**
+   - Hoàn tất cấp phát token và đăng ký thành công Webhook (`subscribed_apps`) cho toàn bộ 7 Fanpage:
+     + 1. Phụ Kiện 88 - Phú Khương (Bến Tre)
+     + 2. Phụ Kiện 88 Bến Tre - Đồng Khởi
+     + 3. Phụ Kiện 88 - Mỹ Tho
+     + 4. Phụ Kiện 88 - Cần Thơ
+     + 5. Phụ Kiện 88 - Vĩnh Long
+     + 6. Phụ Kiện 88 - TP. Thủ Đức
+     + 7. Phụ Kiện 88 - Toàn Hệ Thống (Trang Tổng)
+2. **Xây Dựng Máy Chủ Webhook Serverless Hai Chiều ([api/meta-webhook.ts](file:///c:/PK88%20AA/api/meta-webhook.ts)):**
+   - Hỗ trợ giao thức đối soát xác thực Meta Webhook (`GET`) với Verify Token chuẩn `pk88_meta_webhook_2026`.
+   - Tiếp nhận sự kiện tin nhắn từ người dùng (`POST`), tự động phân luồng theo `pageId` của từng chi nhánh tương ứng.
+   - Cơ chế đọc raw body stream tin cậy trên môi trường Vercel Serverless Function và đảm bảo gửi tin nhắn phản hồi qua Meta Graph API v20.0 hoàn tất (`await Promise.all`) trước khi kết thúc response.
+3. **Bộ Não Bé 8 AI CSKH Chuẩn Hóa Theo Văn Hóa 88:**
+   - Tích hợp mô hình Google Gemini AI (`gemini-flash-lite-latest`) với bộ quy tắc giao tiếp Ngũ Lợi Hài Hòa:
+     + Triệt để loại bỏ các câu trả lời tiêu cực ("không có", "không biết", "hết hàng rồi").
+     + Nắm vững bảng giá thực tế: Dán cường lực KingKong (50k - 120k), Ép kính hút chân không (350k - 650k), Thay pin dung lượng cao bảo hành 12T (250k - 750k).
+     + Trả lời súc tích, duyên dáng và khéo léo xin Tên + SĐT để chuyển kỹ thuật viên giữ hàng sẵn tại quầy.
+4. **Tự Động Bắt SĐT Khách Hàng & Đồng Bộ Realtime Lên Supabase CRM Leads:**
+   - Tự động nhận diện biểu thức regex Số Điện Thoại (`/(0[3|5|7|8|9][0-9]{8})/`).
+   - Đẩy trực tiếp vào bảng `leads` trên Supabase Cloud kèm phân loại chi nhánh, mức độ ưu tiên `HIGH`, nhãn `HOT LEAD FB` và điểm số `100`.
+   - Lưu trữ đầy đủ toàn bộ lịch sử bong bóng chat (`activity_log`) và tóm tắt cuộc trò chuyện (`conversation_summary`), giúp nhân viên trực quầy xem trọn vẹn ngữ cảnh khách hàng đã hỏi trước khi gọi điện thoại chốt đơn.
+5. **Chính Sách Quyền Riêng Tư & Xét Duyệt Meta App:**
+   - Triển khai trang Chính Sách Quyền Riêng Tư chuẩn hóa tại [public/privacy.html](file:///c:/PK88%20AA/public/privacy.html).
+   - Thiết lập cấu hình Meta for Developers (App ID `1104157392418456`), chuyển trạng thái Chế độ chính thức (Live) và gửi hồ sơ Xét duyệt ứng dụng (App Review) quyền `pages_messaging`.
+
 ### R. Tích Hợp Tab "❤️ Văn Hóa 88" & Cẩm Nang Quy Tắc Ứng Xử Chuỗi 15 Trang (HOÀN THÀNH 22/10/2026)
 1. **Bổ Sung Tab "❤️ Văn Hóa 88" Cùng Hàng Trên Toàn Bộ Hệ Thống:**
    - Đặt tab `❤️ Văn Hóa 88` (Icon Trái Tim `Heart` viền hồng ngọc, slug `?tab=van-hoa`) đứng song song ngay cạnh tab `🎓 Học Viện 88`, tạo nên trục bồi dưỡng kép "Tâm & Tài" cho nhân sự PK88.
