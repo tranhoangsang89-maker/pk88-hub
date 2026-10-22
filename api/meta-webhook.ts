@@ -8,7 +8,10 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://kvxxkfgictaqmwcwv
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2eHhrZmdpY3RhcW13Y3d2bHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTExNTYsImV4cCI6MjEwNjA4NzE1Nn0.2_DlkAogz1dmdPs2lnozj4hSxekY7gmmtT2X_NGs7NQ';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// Bảng đối chiếu 7 Fanpage Chi Nhánh & Mã Truy Cập (Page Access Tokens)
+// Token dự phòng mặc định nếu không khớp Page ID
+const DEFAULT_FALLBACK_TOKEN = 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs';
+
+// Bảng đối chiếu TẤT CẢ các Fanpage Chi Nhánh của Phụ Kiện 88 (Map linh hoạt cả các ID biến thể)
 export const BRANCH_PAGES: Record<string, { 
   branchId: string; 
   branchName: string; 
@@ -17,7 +20,7 @@ export const BRANCH_PAGES: Record<string, {
   zalo: string;
   token: string;
 }> = {
-  // 1. Phụ Kiện 88 - Phú Khương
+  // 1. Phụ Kiện 88 - Phú Khương / Bến Tre
   '101678755095111': {
     branchId: 'phu-khuong',
     branchName: 'Phụ Kiện 88 - Phú Khương',
@@ -26,7 +29,8 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '077 788 8688',
     token: 'EAAPsOa0mtpgBS5DcblZBjWAZAaCpd0gsrL6jYXXZAfcvEsIkBqKvJooqzMxV3WYdB7C45u2sQ0rOdh7ZBjCIirBPLacvK8pJHZCSeV3NThHSKVeu7Y9mEiG0qkO83CgJmv16toHi7waM6RNCP0QY49EOE4yfwLe4fNA2tEve3vmryGIQKe2RcSzv1iWj2FiYem0Lh'
   },
-  // 2. Phụ Kiện 88 - Đồng Khởi
+
+  // 2. Phụ Kiện 88 Bến Tre - Đồng Khởi (Hỗ trợ cả 2 Page ID Đồng Khởi)
   '112851187716380': {
     branchId: 'dong-khoi',
     branchName: 'Phụ Kiện 88 - Đồng Khởi',
@@ -35,6 +39,15 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '081 449 6789',
     token: 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs'
   },
+  '160136970515237': {
+    branchId: 'dong-khoi',
+    branchName: 'Phụ Kiện 88 - Đồng Khởi',
+    address: '139 Đại Lộ Đồng Khởi, P. Phú Khương, TP. Bến Tre',
+    hotline: '081 449 6789',
+    zalo: '081 449 6789',
+    token: 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs'
+  },
+
   // 3. Phụ Kiện 88 - Mỹ Tho
   '791330520729975': {
     branchId: 'my-tho',
@@ -44,6 +57,7 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '087 683 8688',
     token: 'EAAPsOa0mtpgBS3AfnCJLrUmF6tHMBFFNCCl9nid5958p0gySteYuFGsbVGRtuzYMzvE0cMEZA5GkORYgZCGvOFuzPiEcpe9mszSakSu00KF1brtrTpIyegJQDlFBHFCfLeEfiFOXVwsfZAvcmcQ1zNH1srZB1OZBG2xIqPCen50FiZAFBpm3GrCT0qN7OKUENoS06CawZDZD'
   },
+
   // 4. Phụ Kiện 88 - Cần Thơ
   '487433804445622': {
     branchId: 'can-tho',
@@ -53,6 +67,7 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '092 136 8688',
     token: 'EAAPsOa0mtpgBSxIHnLgbsUnCNTxKCwlPh1TLomWbUn48izlz60wsX3TeV8SYal2sjmafrg14JRmDtKQDJ4QhFLyNgZBqWZAnZCbArmfQLYK2nA7VQUblYaVNFfZCLfm8dd4HB7wu6SDgh0qeifUNZAXSjiAmbdPZAdhWOvQ7ZBW8lGJMGXZC7lY9wHWg5UtIMseJQsvdFQZDZD'
   },
+
   // 5. Phụ Kiện 88 - Vĩnh Long
   '102307502816794': {
     branchId: 'vinh-long',
@@ -62,7 +77,8 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '058 988 6789',
     token: 'EAAPsOa0mtpgBSZBWoFdAG2xf2MKbwZBcQtRuLVYJSxcD2CjZALWFPHUMmWw1LSWe6ssBQGsWOLJFYNPIFcEdaXrkn7XiqIpFuwO8bjfpERjgXZAwCU6qGcaAIQvTzYtm1TG4oCr5s79SNm1JnmfAkrnZBuvcVVksk4zUsF6BuZA7zxPbeOXZAhL9yOgx8iFJ8au2DFm'
   },
-  // 6. Phụ Kiện 88 - Thủ Đức
+
+  // 6. Phụ Kiện 88 - Thủ Đức (Hỗ trợ cả 2 Page ID)
   '1324117450777083': {
     branchId: 'thu-duc',
     branchName: 'Phụ Kiện 88 - Thủ Đức',
@@ -71,8 +87,25 @@ export const BRANCH_PAGES: Record<string, {
     zalo: '086 506 8688',
     token: 'EAAPsOa0mtpgBS4lGaSzZCUZAaR3cPmUWUOkDlBggOJoRstKPswiMBIZAh65wQcAYiYVT6ukukKjIIyqh4QjkqB9oTb4Vik0hOVx2EJ0qu60PzAWdQ7ZCR25XwnvZBo9IWhyP71ZBkhQqGfZAFhaRa8vOScZCYOsZCR9oHkrlD9ZB3PiH5oZAg4gTSyEm1woO435QwzRUOyG1wZDZD'
   },
+  '107179208627472': {
+    branchId: 'thu-duc',
+    branchName: 'Phụ Kiện 88 - Thủ Đức',
+    address: '12 Võ Văn Ngân, P. Linh Chiểu, TP. Thủ Đức, TP.HCM',
+    hotline: '086 506 8688',
+    zalo: '086 506 8688',
+    token: 'EAAPsOa0mtpgBS4lGaSzZCUZAaR3cPmUWUOkDlBggOJoRstKPswiMBIZAh65wQcAYiYVT6ukukKjIIyqh4QjkqB9oTb4Vik0hOVx2EJ0qu60PzAWdQ7ZCR25XwnvZBo9IWhyP71ZBkhQqGfZAFhaRa8vOScZCYOsZCR9oHkrlD9ZB3PiH5oZAg4gTSyEm1woO435QwzRUOyG1wZDZD'
+  },
+
   // 7. Toàn Hệ Thống Phụ Kiện 88
   '109869170590318': {
+    branchId: 'he-thong',
+    branchName: 'Hệ Thống Phụ Kiện 88',
+    address: 'Hệ Thống Chuỗi Cửa Hàng Bán Lẻ & Chăm Sóc Điện Thoại Phụ Kiện 88 Miền Tây',
+    hotline: '083 389 8688',
+    zalo: '083 389 8688',
+    token: 'EAAPsOa0mtpgBSZB7422qUdRipiYzhijPZAtVuCIa4KD094PkpHKMixWezUNDYdMRCecUXLlZCAbTbqFds3ZC5FyZA5f94aL47tmTB2wlGJb6oWecwpTovWdpVdBeQI0WXKXJBHwEVW6vBenKF04bxeUXVknZBUNuIUDCiMN1iV13SXBZBvB2dHYkKnSNkb8aTHaJQmY'
+  },
+  '101670599570787': {
     branchId: 'he-thong',
     branchName: 'Hệ Thống Phụ Kiện 88',
     address: 'Hệ Thống Chuỗi Cửa Hàng Bán Lẻ & Chăm Sóc Điện Thoại Phụ Kiện 88 Miền Tây',
@@ -83,11 +116,40 @@ export const BRANCH_PAGES: Record<string, {
 };
 
 /**
- * Gửi tin nhắn phản hồi qua Meta Graph API
+ * Đọc raw body an toàn từ Stream trong môi trường Vercel Serverless
  */
-async function sendMetaTextMessage(pageAccessToken: string, recipientId: string, text: string) {
+async function parseRequestBody(req: any): Promise<any> {
+  if (req.body) {
+    if (typeof req.body === 'object') return req.body;
+    try {
+      return JSON.parse(req.body);
+    } catch (e) {
+      return null;
+    }
+  }
+
+  return new Promise((resolve) => {
+    let raw = '';
+    req.on('data', (chunk: any) => { raw += chunk; });
+    req.on('end', () => {
+      try {
+        resolve(raw ? JSON.parse(raw) : null);
+      } catch (e) {
+        resolve(null);
+      }
+    });
+    req.on('error', () => resolve(null));
+  });
+}
+
+/**
+ * Gửi tin nhắn phản hồi qua Meta Graph API (Bắt buộc hoàn thành trước khi đóng response)
+ */
+async function sendMetaTextMessage(pageAccessToken: string, recipientId: string, text: string): Promise<boolean> {
   try {
     const url = `https://graph.facebook.com/v20.0/me/messages?access_token=${pageAccessToken}`;
+    console.log(`[Meta Graph API] Đang gửi phản hồi tới recipient: ${recipientId}...`);
+
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -98,12 +160,14 @@ async function sendMetaTextMessage(pageAccessToken: string, recipientId: string,
     });
     const data = await res.json();
     if (data.error) {
-      console.error('❌ Lỗi gửi tin nhắn Meta:', data.error);
-    } else {
-      console.log('✅ Đã gửi phản hồi Messenger thành công tới:', recipientId);
+      console.error('❌ Lỗi phản hồi Meta API:', JSON.stringify(data.error));
+      return false;
     }
+    console.log('✅ Gửi tin nhắn thành công qua Graph API:', data?.message_id || 'OK');
+    return true;
   } catch (err) {
-    console.error('Lỗi ngoại lệ sendMetaTextMessage:', err);
+    console.error('❌ Ngoại lệ sendMetaTextMessage:', err);
+    return false;
   }
 }
 
@@ -120,8 +184,10 @@ async function generateBe8Response(
     ? apiKeys[Math.floor(Math.random() * apiKeys.length)]
     : '';
 
+  const fallbackMsg = `Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Anh/Chị đang tìm phụ kiện dán máy hay cần kiểm tra ép kính, thay pin vậy ạ? Cứ nhắn cho em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
+
   if (!selectedKey) {
-    return `Dạ chào Anh/Chị! Em là Bé 8 - Trợ lý tư vấn của ${branch.branchName} (${branch.address}). Anh/Chị cho em xin Tên và Số Điện Thoại để nhân viên shop chuẩn bị sẵn sản phẩm tại quầy, khi mình ghé là có ngay không phải đợi nhé! Hotline shop: ${branch.hotline}`;
+    return fallbackMsg;
   }
 
   const systemInstruction = `
@@ -155,7 +221,7 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
         contents: [
           {
             role: 'user',
-            parts: [{ text: `Khách hàng nhắn: "${userText}". Hãy trả lời theo đúng phong cách Bé 8 Phụ Kiện 88.` }]
+            parts: [{ text: `Khách hàng nhắn: "${userText}". Hãy trả lời ngắn gọn, chuẩn phong cách Bé 8 Phụ Kiện 88.` }]
           }
         ],
         systemInstruction: {
@@ -177,8 +243,7 @@ VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
     console.error('Lỗi gọi Gemini AI:', err);
   }
 
-  // Fallback nếu API lỗi
-  return `Dạ em chào Anh/Chị! Em là Bé 8 của ${branch.branchName} (${branch.address}). Anh/Chị cho em xin Tên và Số Điện Thoại để shop chuẩn bị phụ kiện sẵn cho mình nhé! Hotline hỗ trợ 24/7: ${branch.hotline}.`;
+  return fallbackMsg;
 }
 
 /**
@@ -212,28 +277,31 @@ export default async function handler(req: any, res: any) {
   // 2. TIẾP NHẬN TIN NHẮN TỪ KHÁCH HÀNG (POST)
   if (req.method === 'POST') {
     try {
-      let body = req.body;
-      if (typeof body === 'string') {
-        try {
-          body = JSON.parse(body);
-        } catch (e) {}
+      const body = await parseRequestBody(req);
+
+      if (!body) {
+        console.warn('⚠️ Webhook nhận request body rỗng hoặc lỗi JSON');
+        return res.status(400).send('Bad Request: Invalid JSON Body');
       }
 
-      if (body?.object === 'page') {
-        // Phản hồi 200 OK ngay lập tức cho Facebook để tránh retry loop
-        res.status(200).send('EVENT_RECEIVED');
-
+      if (body.object === 'page') {
         const entries = body.entry || [];
+        const processTasks: Promise<any>[] = [];
+
         for (const entry of entries) {
-          const pageId = entry.id;
-          const branch = BRANCH_PAGES[pageId];
+          const pageId = String(entry.id || '');
+          const branch = BRANCH_PAGES[pageId] || {
+            branchId: 'dong-khoi',
+            branchName: 'Phụ Kiện 88 - Bến Tre / Đồng Khởi',
+            address: '139 Đại Lộ Đồng Khởi, TP. Bến Tre',
+            hotline: '081 449 6789',
+            zalo: '081 449 6789',
+            token: DEFAULT_FALLBACK_TOKEN
+          };
 
-          if (!branch || !branch.token) {
-            console.warn(`[Meta Webhook] Bỏ qua Page ID chưa cấu hình token: ${pageId}`);
-            continue;
-          }
-
+          const activeToken = branch.token || DEFAULT_FALLBACK_TOKEN;
           const messagingEvents = entry.messaging || [];
+
           for (const event of messagingEvents) {
             const senderId = event.sender?.id;
             const message = event.message;
@@ -244,49 +312,58 @@ export default async function handler(req: any, res: any) {
             const userText = message.text || '';
             if (!userText.trim()) continue;
 
-            console.log(`📩 [Fanpage ${branch.branchName}] Khách ${senderId}: "${userText}"`);
+            console.log(`📩 [Fanpage ${branch.branchName}] (${pageId}) Khách ${senderId}: "${userText}"`);
 
-            // Kiểm tra số điện thoại của khách
-            const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
-            if (phoneMatch) {
-              const detectedPhone = phoneMatch[0];
-              console.log(`🔥 [LEAD NÓNG PHỤ KIỆN 88] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
-
-              // Tự động lưu thẳng vào Supabase Bảng `leads` (SSOT)
-              try {
-                await supabase.from('leads').insert([{
-                  lead_id: `fb-${Date.now()}-${senderId.slice(-4)}`,
-                  customer_name: 'Khách Facebook Messenger',
-                  phone: detectedPhone,
-                  need: userText,
-                  branch: branch.branchName,
-                  branch_id: branch.branchId,
-                  source: 'facebook_messenger',
-                  status: 'NEW',
-                  priority: 'HIGH',
-                  label: 'HOT LEAD FB',
-                  score: 100,
-                  notes: `Fanpage: ${branch.branchName} | ID: ${pageId} | Yêu cầu: "${userText}"`
-                }]);
-                console.log(`✅ Đã lưu khách ${detectedPhone} vào Supabase Cloud CRM thành công!`);
-              } catch (dbErr) {
-                console.error('Lỗi ghi Supabase leads:', dbErr);
+            // Đưa task xử lý vào mảng để ĐẢM BẢO HOÀN THÀNH trước khi kết thúc response
+            const task = (async () => {
+              // 1. Kiểm tra số điện thoại
+              const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
+              if (phoneMatch) {
+                const detectedPhone = phoneMatch[0];
+                console.log(`🔥 [HOT LEAD] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
+                try {
+                  await supabase.from('leads').insert([{
+                    lead_id: `fb-${Date.now()}-${senderId.slice(-4)}`,
+                    customer_name: 'Khách Facebook Messenger',
+                    phone: detectedPhone,
+                    need: userText,
+                    branch: branch.branchName,
+                    branch_id: branch.branchId,
+                    source: 'facebook_messenger',
+                    status: 'NEW',
+                    priority: 'HIGH',
+                    label: 'HOT LEAD FB',
+                    score: 100,
+                    notes: `Fanpage: ${branch.branchName} (${pageId}) | Yêu cầu: "${userText}"`
+                  }]);
+                } catch (dbErr) {
+                  console.error('Lỗi ghi Supabase leads:', dbErr);
+                }
               }
-            }
 
-            // Gọi AI Bé 8 sinh câu trả lời
-            const botReply = await generateBe8Response(userText, branch);
+              // 2. Gọi AI Bé 8 tạo câu trả lời
+              const botReply = await generateBe8Response(userText, branch);
 
-            // Gửi tin nhắn trả lời qua Facebook Graph API
-            await sendMetaTextMessage(branch.token, senderId, botReply);
+              // 3. Gửi tin nhắn trả lời qua Facebook Graph API
+              await sendMetaTextMessage(activeToken, senderId, botReply);
+            })();
+
+            processTasks.push(task);
           }
         }
-        return;
+
+        // Đợi toàn bộ tin nhắn được gửi đi thành công trước khi đóng kết nối Vercel
+        if (processTasks.length > 0) {
+          await Promise.all(processTasks);
+        }
+
+        // Báo 200 OK cho Facebook
+        return res.status(200).send('EVENT_RECEIVED');
       }
 
       return res.status(404).send('Not a page subscription');
     } catch (err: any) {
-      console.error('Lỗi xử lý POST Meta Webhook:', err);
+      console.error('❌ Lỗi xử lý POST Meta Webhook:', err);
       return res.status(500).json({ error: err.message });
     }
   }
