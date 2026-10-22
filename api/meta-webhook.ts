@@ -316,36 +316,63 @@ export default async function handler(req: any, res: any) {
 
             // Đưa task xử lý vào mảng để ĐẢM BẢO HOÀN THÀNH trước khi kết thúc response
             const task = (async () => {
-              // 1. Kiểm tra số điện thoại
+              // 1. Gọi AI Bé 8 tạo câu trả lời
+              const botReply = await generateBe8Response(userText, branch);
+
+              // 2. Gửi tin nhắn trả lời qua Facebook Graph API
+              await sendMetaTextMessage(activeToken, senderId, botReply);
+
+              // 3. Kiểm tra số điện thoại để ghi nhận Khách Hàng Chốt Đơn
               const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
               if (phoneMatch) {
                 const detectedPhone = phoneMatch[0];
                 console.log(`🔥 [HOT LEAD] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
+                const timeStr = new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+                
+                const chatLog = [
+                  { sender: 'user', text: userText, time: timeStr },
+                  { sender: 'bot', text: botReply, time: timeStr }
+                ];
+                const summary = `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`;
+
                 try {
-                  await supabase.from('leads').insert([{
-                    lead_id: `fb-${Date.now()}-${senderId.slice(-4)}`,
-                    customer_name: 'Khách Facebook Messenger',
-                    phone: detectedPhone,
-                    need: userText,
-                    branch: branch.branchName,
-                    branch_id: branch.branchId,
-                    source: 'facebook_messenger',
-                    status: 'NEW',
-                    priority: 'HIGH',
-                    label: 'HOT LEAD FB',
-                    score: 100,
-                    notes: `Fanpage: ${branch.branchName} (${pageId}) | Yêu cầu: "${userText}"`
-                  }]);
+                  // Kiểm tra xem đã có lead với SĐT này chưa
+                  const { data: existingLeads } = await supabase
+                    .from('leads')
+                    .select('id, activity_log')
+                    .eq('phone', detectedPhone)
+                    .limit(1);
+
+                  if (existingLeads && existingLeads.length > 0) {
+                    const currentLog = Array.isArray(existingLeads[0].activity_log) ? existingLeads[0].activity_log : [];
+                    await supabase.from('leads').update({
+                      need: userText,
+                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Cập nhật lúc ${timeStr}`,
+                      activity_log: [...currentLog, ...chatLog],
+                      conversation_summary: summary
+                    }).eq('id', existingLeads[0].id);
+                  } else {
+                    await supabase.from('leads').insert([{
+                      lead_id: `fb-${Date.now()}-${senderId.slice(-4)}`,
+                      customer_name: 'Khách Facebook Messenger',
+                      phone: detectedPhone,
+                      need: userText,
+                      branch: branch.branchName,
+                      branch_id: branch.branchId,
+                      source: 'facebook_messenger',
+                      status: 'NEW',
+                      priority: 'HIGH',
+                      label: 'HOT LEAD FB',
+                      score: 100,
+                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Yêu cầu: "${userText}"`,
+                      activity_log: chatLog,
+                      conversation_summary: summary
+                    }]);
+                  }
                 } catch (dbErr) {
                   console.error('Lỗi ghi Supabase leads:', dbErr);
                 }
               }
-
-              // 2. Gọi AI Bé 8 tạo câu trả lời
-              const botReply = await generateBe8Response(userText, branch);
-
-              // 3. Gửi tin nhắn trả lời qua Facebook Graph API
-              await sendMetaTextMessage(activeToken, senderId, botReply);
             })();
 
             processTasks.push(task);
