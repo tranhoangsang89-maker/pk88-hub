@@ -313,3 +313,60 @@ export async function deleteCustomerLead(leadId: string | number): Promise<boole
     return false;
   }
 }
+
+/**
+ * Tạm dừng hoặc Bật lại Chatbot Bé 8 cho một khách hàng cụ thể
+ */
+export async function toggleLeadBotPause(
+  leadId: string | number, 
+  pause: boolean, 
+  pauseMinutes: number = 60
+): Promise<boolean> {
+  try {
+    const { data: leadData, error: fetchErr } = await supabase
+      .from('leads')
+      .select('id, notes, status')
+      .eq('id', leadId)
+      .single();
+
+    if (fetchErr || !leadData) return false;
+
+    const currentNotes = leadData.notes || '';
+    const cleanNotes = currentNotes.replace(/\[BOT_PAUSED_UNTIL:[^\]]+\]/g, '').trim();
+
+    let updatedNotes = cleanNotes;
+    let newLabel: string | undefined;
+
+    if (pause) {
+      const pausedUntil = new Date(Date.now() + pauseMinutes * 60 * 1000).toISOString();
+      updatedNotes = `[BOT_PAUSED_UNTIL:${pausedUntil}] | ${cleanNotes}`.trim();
+      newLabel = 'NHÂN VIÊN ĐANG CHAT';
+    }
+
+    const updatePayload: Record<string, any> = {
+      notes: updatedNotes,
+      last_action_at: new Date().toISOString()
+    };
+    if (newLabel) updatePayload.label = newLabel;
+
+    const { error: updateErr } = await supabase
+      .from('leads')
+      .update(updatePayload)
+      .eq('id', leadId);
+
+    if (updateErr) return false;
+
+    // Cập nhật LocalStorage
+    try {
+      const local: any[] = JSON.parse(localStorage.getItem(LEADS_STORAGE_KEY) || '[]');
+      const updatedLocal = local.map(l => (l.id === leadId || String(l.id) === String(leadId)) ? { ...l, ...updatePayload } : l);
+      localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(updatedLocal));
+    } catch (e) {}
+
+    return true;
+  } catch (e) {
+    console.error('Lỗi toggleLeadBotPause:', e);
+    return false;
+  }
+}
+

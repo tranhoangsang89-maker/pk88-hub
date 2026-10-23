@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Branch, Staff, CustomerLead, CustomerLeadStatus } from '../types';
-import { fetchCustomerLeads, updateCustomerLeadStatus, deleteCustomerLead } from '../lib/leadService';
+import { fetchCustomerLeads, updateCustomerLeadStatus, deleteCustomerLead, toggleLeadBotPause } from '../lib/leadService';
 import { 
   Phone, 
   MessageSquare, 
@@ -580,6 +580,32 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                               </span>
                             );
                           })()}
+
+                          {/* Huy hiệu Yêu Cầu Gặp Người Thật */}
+                          {(() => {
+                            const isHumanReq = (lead.label || '').includes('CẦN GẶP NGƯỜI THẬT') ||
+                                               (lead.notes || '').includes('🚨 Khách yêu cầu gặp nhân viên');
+                            if (!isHumanReq) return null;
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black px-2 py-0.5 rounded-full bg-rose-600 text-white border border-rose-400 shadow-md shadow-rose-600/30 animate-pulse">
+                                <span>🚨</span>
+                                <span>Cần gặp người thật!</span>
+                              </span>
+                            );
+                          })()}
+
+                          {/* Huy hiệu Tạm Dừng Bot (Nhân viên đang chat) */}
+                          {(() => {
+                            const pauseMatch = (lead.notes || '').match(/\[BOT_PAUSED_UNTIL:([^\]]+)\]/);
+                            const isPaused = Boolean(pauseMatch && pauseMatch[1] && new Date(pauseMatch[1]).getTime() > Date.now());
+                            if (!isPaused) return null;
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40">
+                                <span>⏸️</span>
+                                <span>Bot đang tạm dừng</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1.5 sm:gap-2 mt-0.5">
                           <span className="flex items-center gap-1">
@@ -707,9 +733,11 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                             >
                               {chat.sender !== 'user' && (
                                 <img
-                                  src="/be8-avatar.jpg"
-                                  alt="Bé 8"
-                                  className="w-6 h-6 rounded-lg object-cover ring-1 ring-rose-500/40 flex-shrink-0 mt-0.5"
+                                  src={chat.sender === 'staff' ? '/logo-pk88.jpg' : '/be8-avatar.jpg'}
+                                  alt={chat.sender === 'staff' ? 'Nhân viên PK88' : 'Bé 8'}
+                                  className={`w-6 h-6 rounded-lg object-cover ring-1 flex-shrink-0 mt-0.5 ${
+                                    chat.sender === 'staff' ? 'ring-blue-500/50' : 'ring-rose-500/40'
+                                  }`}
                                   onError={(e) => {
                                     (e.target as HTMLImageElement).src = '/logo-pk88.jpg';
                                   }}
@@ -719,11 +747,17 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                                 className={`p-2.5 rounded-xl max-w-[85%] leading-relaxed ${
                                   chat.sender === 'user'
                                     ? 'bg-rose-500/20 text-rose-200 border border-rose-500/30 rounded-tr-none'
-                                    : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none'
+                                    : (chat.sender === 'staff'
+                                        ? 'bg-blue-950/50 text-blue-100 border border-blue-500/40 rounded-tl-none shadow-sm shadow-blue-500/10'
+                                        : 'bg-slate-900 text-slate-200 border border-slate-800 rounded-tl-none')
                                 }`}
                               >
                                 <div className="text-[10px] text-slate-400 font-semibold mb-0.5 flex items-center justify-between gap-2">
-                                  <span>{chat.sender === 'user' ? '👤 Khách hàng' : '🤖 Bé 8 AI CSKH'}</span>
+                                  <span>
+                                    {chat.sender === 'user' 
+                                      ? '👤 Khách hàng' 
+                                      : (chat.sender === 'staff' ? '👨‍💼 Nhân viên PK88' : '🤖 Bé 8 AI CSKH')}
+                                  </span>
                                   <span className="text-[9px] text-slate-400 font-normal">{chat.time}</span>
                                 </div>
                                 {chat.imageUrl && (
@@ -827,6 +861,47 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                           <span>Khách đã ghé mua xong</span>
                         </button>
                       )}
+
+                      {/* Nút bật/tắt tạm dừng Bot Bé 8 (Nhường nhân viên chat) */}
+                      {(() => {
+                        const pauseMatch = (lead.notes || '').match(/\[BOT_PAUSED_UNTIL:([^\]]+)\]/);
+                        const isPaused = Boolean(pauseMatch && pauseMatch[1] && new Date(pauseMatch[1]).getTime() > Date.now());
+                        return (
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const newPause = !isPaused;
+                              setActionLoadingId(lead.id);
+                              const ok = await toggleLeadBotPause(lead.id, newPause);
+                              setActionLoadingId(null);
+                              if (ok) {
+                                setLeads(prev => prev.map(l => {
+                                  if (l.id === lead.id || String(l.id) === String(lead.id)) {
+                                    const cleanNotes = (l.notes || '').replace(/\[BOT_PAUSED_UNTIL:[^\]]+\]/g, '').trim();
+                                    const newNotes = newPause 
+                                      ? `[BOT_PAUSED_UNTIL:${new Date(Date.now() + 60*60*1000).toISOString()}] | ${cleanNotes}`.trim()
+                                      : cleanNotes;
+                                    return { 
+                                      ...l, 
+                                      notes: newNotes,
+                                      label: newPause ? 'NHÂN VIÊN ĐANG CHAT' : (l.label === 'NHÂN VIÊN ĐANG CHAT' ? 'ĐANG TƯ VẤN FB' : l.label)
+                                    };
+                                  }
+                                  return l;
+                                }));
+                              }
+                            }}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition-all cursor-pointer flex items-center gap-1 ${
+                              isPaused
+                                ? 'bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border-emerald-500/40 shadow-sm'
+                                : 'bg-slate-800 hover:bg-amber-500/20 text-slate-300 hover:text-amber-300 border-slate-700'
+                            }`}
+                            title={isPaused ? "Bot Bé 8 đang tạm dừng. Bấm để bật lại trả lời tự động." : "Bấm để tạm dừng Bé 8 nhường cho nhân viên quầy chat."}
+                          >
+                            <span>{isPaused ? '▶️ Bật lại Bot' : '⏸️ Tạm dừng Bot'}</span>
+                          </button>
+                        );
+                      })()}
                     </div>
 
                     {lead.assigned_to && (

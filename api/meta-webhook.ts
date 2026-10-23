@@ -155,8 +155,14 @@ async function parseRequestBody(req: any): Promise<any> {
 
 /**
  * Gửi tin nhắn phản hồi qua Meta Graph API (Bắt buộc hoàn thành trước khi đóng response)
+ * Gắn nhãn metadata 'PK88_BOT_BE8' để phân biệt rõ tin nhắn do Bot gửi vs tin do Nhân Viên gửi
  */
-async function sendMetaTextMessage(pageAccessToken: string, recipientId: string, text: string): Promise<boolean> {
+async function sendMetaTextMessage(
+  pageAccessToken: string, 
+  recipientId: string, 
+  text: string,
+  metadata: string = 'PK88_BOT_BE8'
+): Promise<boolean> {
   try {
     const url = `https://graph.facebook.com/v20.0/me/messages?access_token=${pageAccessToken}`;
     console.log(`[Meta Graph API] Đang gửi phản hồi tới recipient: ${recipientId}...`);
@@ -166,7 +172,10 @@ async function sendMetaTextMessage(pageAccessToken: string, recipientId: string,
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         recipient: { id: recipientId },
-        message: { text }
+        message: { 
+          text,
+          metadata
+        }
       })
     });
     const data = await res.json();
@@ -181,6 +190,22 @@ async function sendMetaTextMessage(pageAccessToken: string, recipientId: string,
     return false;
   }
 }
+
+/**
+ * Phát hiện nhu cầu muốn nói chuyện với nhân viên thật / người thật
+ */
+function isRequestingHumanStaff(rawText: string): boolean {
+  if (!rawText) return false;
+  const clean = rawText.toLowerCase().trim();
+  const humanPatterns = [
+    /(gặp|cho gặp|nói chuyện với|chuyển qua|chuyển sang|kết nối|muốn gặp)\s+(nhân viên|người thật|tư vấn viên|kỹ thuật|chủ shop|quản lý|admin|người)/i,
+    /\b(nhân viên đâu|người thật đâu|có ai trực không|có ai trực ko|có người trực không|có người trực ko|chát với người|chat với người)\b/i,
+    /\b(tư vấn viên|gặp người|gọi nhân viên|gặp trực tiếp)\b/i,
+    /(kết nối|chuyển máy)\s+(tư vấn|nhân viên)/i
+  ];
+  return humanPatterns.some(p => p.test(clean));
+}
+
 
 
 /**
@@ -517,12 +542,94 @@ export default async function handler(req: any, res: any) {
           const messagingEvents = entry.messaging || [];
 
           for (const event of messagingEvents) {
-            const senderId = event.sender?.id;
             const message = event.message;
+            if (!message) continue;
 
-            // Bỏ qua tin nhắn do page tự gửi hoặc tin echo
-            if (!message || message.is_echo) continue;
+            // =========================================================================
+            // CÁCH 1: PHÁT HIỆN NHÂN VIÊN THẬT TRẢ LỜI TỪ META BUSINESS SUITE (ECHO)
+            // =========================================================================
+            if (message.is_echo) {
+              // Nếu metadata là 'PK88_BOT_BE8' -> Do chính bot Bé 8 vừa gửi -> Bỏ qua
+              if (message.metadata === 'PK88_BOT_BE8') {
+                continue;
+              }
 
+              // Nếu KHÔNG PHẢI Bé 8 -> Đích thị là NHÂN VIÊN THẬT gõ từ Meta Business Suite / Điện thoại!
+              const customerId = event.recipient?.id;
+              if (!customerId) continue;
+
+              const staffText = (message.text || '').trim();
+              console.log(`👤 [NHÂN VIÊN TRỰC PAGE] (${branch.branchName}) Nhân viên vừa gửi tin tới khách ${customerId}: "${staffText || '[Gửi ảnh/tệp]'}" -> TẠM DỪNG BÉ 8`);
+
+              const echoTask = (async () => {
+                try {
+                  const sessionLeadId = `fb-${pageId}-${customerId}`;
+                  const timeStr = new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
+                  // Tự động tạm dừng Bé 8 trong 45 phút kể từ tin nhắn cuối của nhân viên
+                  const pausedUntil = new Date(Date.now() + 45 * 60 * 1000).toISOString();
+
+                  const staffLog = [{
+                    sender: 'staff',
+                    text: staffText || '[Nhân viên gửi ảnh/tệp]',
+                    time: timeStr
+                  }];
+
+                  const { data: existingLeads } = await supabase
+                    .from('leads')
+                    .select('id, activity_log, notes, status')
+                    .eq('lead_id', sessionLeadId)
+                    .limit(1);
+
+                  const existingLead = existingLeads && existingLeads.length > 0 ? existingLeads[0] : null;
+
+                  if (existingLead) {
+                    const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
+                    const cleanNotes = (existingLead.notes || '').replace(/\[BOT_PAUSED_UNTIL:[^\]]+\]/g, '').trim();
+                    const updatedNotes = `[BOT_PAUSED_UNTIL:${pausedUntil}] | ${cleanNotes} | Nhân viên trực lúc ${timeStr}`.trim();
+
+                    const updatePayload: Record<string, any> = {
+                      activity_log: [...currentLog, ...staffLog],
+                      notes: updatedNotes,
+                      label: 'NHÂN VIÊN ĐANG CHAT',
+                      last_action_at: new Date().toISOString()
+                    };
+
+                    if (existingLead.status === 'NEW' || existingLead.status === 'CHATTING') {
+                      updatePayload.status = 'CONTACTED';
+                    }
+
+                    await supabase.from('leads').update(updatePayload).eq('id', existingLead.id);
+                  } else {
+                    await supabase.from('leads').insert([{
+                      lead_id: sessionLeadId,
+                      customer_name: 'Khách Facebook Messenger',
+                      phone: '',
+                      need: 'Nhân viên đang hỗ trợ trực tiếp',
+                      branch: branch.branchName,
+                      branch_id: branch.branchId,
+                      source: 'facebook_messenger',
+                      status: 'CONTACTED',
+                      priority: 'MEDIUM',
+                      label: 'NHÂN VIÊN ĐANG CHAT',
+                      score: 70,
+                      notes: `[BOT_PAUSED_UNTIL:${pausedUntil}] | Fanpage: ${branch.branchName} (${pageId}) | Nhân viên bắt đầu chat lúc ${timeStr}`,
+                      activity_log: staffLog,
+                      conversation_summary: `Nhân viên trực tiếp hỗ trợ: "${staffText || '[Gửi ảnh/file]'}"`
+                    }]);
+                  }
+                } catch (err) {
+                  console.error('Lỗi ghi nhận nhân viên trực page:', err);
+                }
+              })();
+
+              processTasks.push(echoTask);
+              continue;
+            }
+
+            // =========================================================================
+            // TIN NHẮN TỪ KHÁCH HÀNG GỬI ĐẾN
+            // =========================================================================
+            const senderId = event.sender?.id;
             const userText = (message.text || '').trim();
 
             // Trích xuất hình ảnh từ Messenger đính kèm (Attachments)
@@ -544,22 +651,79 @@ export default async function handler(req: any, res: any) {
 
             // Đưa task xử lý vào mảng để ĐẢM BẢO HOÀN THÀNH trước khi kết thúc response
             const task = (async () => {
-              // 1. Gọi AI Bé 8 tạo câu trả lời
-              const botReply = await generateBe8Response(userText, branch, {
-                hasImage,
-                imageUrl,
-                isAdReferral,
-                adTitle
-              });
+              const sessionLeadId = `fb-${pageId}-${senderId}`;
+              const timeStr = new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
 
-              // 2. Gửi tin nhắn trả lời qua Facebook Graph API
+              // Kiểm tra thông tin lead trong database
+              let existingLead: any = null;
+              try {
+                const { data: existingLeads } = await supabase
+                  .from('leads')
+                  .select('id, phone, activity_log, status, source, notes, need')
+                  .eq('lead_id', sessionLeadId)
+                  .limit(1);
+
+                if (existingLeads && existingLeads.length > 0) {
+                  existingLead = existingLeads[0];
+                }
+              } catch (dbErr) {
+                console.error('Lỗi kiểm tra lead:', dbErr);
+              }
+
+              // --- KIỂM TRA BOT CÓ ĐANG TẠM DỪNG (NHƯỜNG NHÂN VIÊN THẬT) KHÔNG? ---
+              const pauseMatch = (existingLead?.notes || '').match(/\[BOT_PAUSED_UNTIL:([^\]]+)\]/);
+              let isBotPaused = false;
+              if (pauseMatch && pauseMatch[1]) {
+                const pauseTime = new Date(pauseMatch[1]).getTime();
+                if (!isNaN(pauseTime) && Date.now() < pauseTime) {
+                  isBotPaused = true;
+                }
+              }
+
+              // NẾU BOT ĐANG TẠM DỪNG: Không trả lời đè, chỉ ghi tin nhắn vào CRM để nhân viên xem
+              if (isBotPaused) {
+                console.log(`⏸️ [BOT TẠM DỪNG] Khách ${senderId} nhắn tin, Bé 8 giữ im lặng vì nhân viên đang phụ trách.`);
+                try {
+                  const customerMsg = [{
+                    sender: 'user',
+                    text: userText || (hasImage ? '[Khách gửi 1 hình ảnh]' : ''),
+                    imageUrl: imageUrl,
+                    time: timeStr
+                  }];
+                  if (existingLead) {
+                    const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
+                    await supabase.from('leads').update({
+                      activity_log: [...currentLog, ...customerMsg],
+                      last_action_at: new Date().toISOString()
+                    }).eq('id', existingLead.id);
+                  }
+                } catch (e) {
+                  console.error('Lỗi cập nhật log khi bot tạm dừng:', e);
+                }
+                return;
+              }
+
+              // --- CÁCH 2: KIỂM TRA KHÁCH CÓ YÊU CẦU GẶP NGƯỜI THẬT / NHÂN VIÊN KHÔNG? ---
+              const isAskingForHuman = isRequestingHumanStaff(userText);
+              let botReply = '';
+
+              if (isAskingForHuman) {
+                botReply = `Dạ em xin phép kết nối cuộc trò chuyện đến Anh/Chị nhân sự trực quầy tại ${branch.branchName} ngay bây giờ ạ! 💖\n\nAnh/Chị đợi nhân viên shop trong giây lát nhé ạ! Hoặc nếu cần gấp lấy liền, Anh/Chị có thể gọi điện/nhắn Zalo trực tiếp Hotline chi nhánh: ${branch.hotline} để các bạn hỗ trợ liền tay ạ! 🥰`;
+              } else {
+                // Gọi AI Bé 8 tạo câu trả lời
+                botReply = await generateBe8Response(userText, branch, {
+                  hasImage,
+                  imageUrl,
+                  isAdReferral,
+                  adTitle
+                });
+              }
+
+              // 2. Gửi tin nhắn trả lời qua Facebook Graph API (kèm metadata PK88_BOT_BE8)
               await sendMetaTextMessage(activeToken, senderId, botReply);
 
               // 3. Ghi nhận hội thoại khách hàng vào Supabase Cloud (Realtime Lead Capture & Upgrade)
               const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
-              const timeStr = new Date().toLocaleTimeString('vi-VN', { timeZone: 'Asia/Ho_Chi_Minh', hour: '2-digit', minute: '2-digit' });
-              const sessionLeadId = `fb-${pageId}-${senderId}`;
-              
               const chatLog = [
                 { 
                   sender: 'user', 
@@ -575,20 +739,13 @@ export default async function handler(req: any, res: any) {
               ];
 
               try {
-                // Kiểm tra xem đã có lead với sessionLeadId này chưa
-                const { data: existingLeads } = await supabase
-                  .from('leads')
-                  .select('id, phone, activity_log, status, source')
-                  .eq('lead_id', sessionLeadId)
-                  .limit(1);
-
-                const existingLead = existingLeads && existingLeads.length > 0 ? existingLeads[0] : null;
-
                 // Xác định nguồn và nhãn thích hợp
                 const leadSource = isAdReferral ? 'facebook_ads' : (existingLead?.source || 'facebook_messenger');
                 
                 let leadLabel = 'ĐANG TƯ VẤN FB';
-                if (phoneMatch) {
+                if (isAskingForHuman) {
+                  leadLabel = '🚨 CẦN GẶP NGƯỜI THẬT';
+                } else if (phoneMatch) {
                   leadLabel = isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB';
                 } else if (isAdReferral) {
                   leadLabel = 'KHÁCH TỪ QUẢNG CÁO';
@@ -597,16 +754,23 @@ export default async function handler(req: any, res: any) {
                 }
 
                 let extraNote = '';
+                if (isAskingForHuman) {
+                  const pausedUntil = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+                  extraNote += ` | [BOT_PAUSED_UNTIL:${pausedUntil}] | 🚨 Khách yêu cầu gặp nhân viên trực tiếp!`;
+                }
                 if (hasImage) extraNote += ' | [📷 Có gửi ảnh]';
                 if (isAdReferral) extraNote += ` | [🔥 Click Ads: ${adTitle || 'Chiến dịch Meta'}]`;
 
                 if (existingLead) {
                   const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
                   const updatedLog = [...currentLog, ...chatLog];
+                  const cleanNotes = (existingLead.notes || '').replace(/\[BOT_PAUSED_UNTIL:[^\]]+\]/g, '').trim();
+                  const updatedNotes = `Fanpage: ${branch.branchName} (${pageId})${extraNote} | ${cleanNotes} | Cập nhật lúc ${timeStr}`.trim();
+
                   const updatePayload: Record<string, any> = {
                     need: userText || (hasImage ? '[Khách gửi ảnh]' : (existingLead.need || 'Tư vấn sản phẩm')),
                     activity_log: updatedLog,
-                    notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Cập nhật lúc ${timeStr}`,
+                    notes: updatedNotes,
                     last_action_at: new Date().toISOString()
                   };
 
@@ -614,7 +778,13 @@ export default async function handler(req: any, res: any) {
                     updatePayload.source = 'facebook_ads';
                   }
 
-                  if (phoneMatch) {
+                  if (isAskingForHuman) {
+                    updatePayload.status = 'NEW';
+                    updatePayload.priority = 'HIGH';
+                    updatePayload.label = '🚨 CẦN GẶP NGƯỜI THẬT';
+                    updatePayload.score = 100;
+                    updatePayload.conversation_summary = `Khách yêu cầu gặp nhân viên: "${userText}"\nBé 8 AI đã báo kết nối nhân sự quầy.`;
+                  } else if (phoneMatch) {
                     const detectedPhone = phoneMatch[0];
                     console.log(`🔥 [HOT LEAD FB UPGRADE] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
                     updatePayload.phone = detectedPhone;
@@ -630,6 +800,7 @@ export default async function handler(req: any, res: any) {
                   await supabase.from('leads').update(updatePayload).eq('id', existingLead.id);
                 } else {
                   // Tạo mới session lead
+                  const pausedTag = isAskingForHuman ? `[BOT_PAUSED_UNTIL:${new Date(Date.now() + 60 * 60 * 1000).toISOString()}] | 🚨 Khách yêu cầu gặp nhân viên trực tiếp! | ` : '';
                   if (phoneMatch) {
                     const detectedPhone = phoneMatch[0];
                     console.log(`🔥 [HOT LEAD FB] Khách SĐT: ${detectedPhone} tại ${branch.branchName}!`);
@@ -643,9 +814,9 @@ export default async function handler(req: any, res: any) {
                       source: leadSource,
                       status: 'NEW',
                       priority: 'HIGH',
-                      label: isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB',
+                      label: isAskingForHuman ? '🚨 CẦN GẶP NGƯỜI THẬT' : (isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB'),
                       score: 100,
-                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Yêu cầu: "${userText || '[Gửi ảnh]'}"`,
+                      notes: `${pausedTag}Fanpage: ${branch.branchName} (${pageId})${extraNote} | Yêu cầu: "${userText || '[Gửi ảnh]'}"`,
                       activity_log: chatLog,
                       conversation_summary: `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText || '[Gửi ảnh]'}"\nBé 8 AI tư vấn: "${botReply}"`
                     }]);
@@ -659,11 +830,11 @@ export default async function handler(req: any, res: any) {
                       branch: branch.branchName,
                       branch_id: branch.branchId,
                       source: leadSource,
-                      status: 'CHATTING',
-                      priority: isAdReferral ? 'HIGH' : 'MEDIUM',
+                      status: isAskingForHuman ? 'NEW' : 'CHATTING',
+                      priority: (isAskingForHuman || isAdReferral) ? 'HIGH' : 'MEDIUM',
                       label: leadLabel,
-                      score: isAdReferral ? 70 : 50,
-                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Đang chat: "${userText || '[Gửi ảnh]'}"`,
+                      score: isAskingForHuman ? 100 : (isAdReferral ? 70 : 50),
+                      notes: `${pausedTag}Fanpage: ${branch.branchName} (${pageId})${extraNote} | Đang chat: "${userText || '[Gửi ảnh]'}"`,
                       activity_log: chatLog,
                       conversation_summary: `Khách đang chat: "${userText || '[Khách gửi hình ảnh]'}"\nBé 8 AI tư vấn: "${botReply}"`
                     }]);
