@@ -18,15 +18,17 @@ export const BRANCH_PAGES: Record<string, {
   address: string; 
   hotline: string; 
   zalo: string;
+  mapUrl: string;
   token: string;
 }> = {
   // 1. Phụ Kiện 88 - Phú Khương / Bến Tre
   '101678755095111': {
     branchId: 'phu-khuong',
     branchName: 'Phụ Kiện 88 - Phú Khương',
-    address: '35 B2 Đoàn Hoàng Minh, P. Phú Khương, TP. Bến Tre',
+    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ) (đối diện cây xăng ngã tư Phú Khương)',
     hotline: '077 788 8688',
     zalo: '077 788 8688',
+    mapUrl: 'https://maps.app.goo.gl/rTUneKwULXKE4jTy8',
     token: 'EAAPsOa0mtpgBS5DcblZBjWAZAaCpd0gsrL6jYXXZAfcvEsIkBqKvJooqzMxV3WYdB7C45u2sQ0rOdh7ZBjCIirBPLacvK8pJHZCSeV3NThHSKVeu7Y9mEiG0qkO83CgJmv16toHi7waM6RNCP0QY49EOE4yfwLe4fNA2tEve3vmryGIQKe2RcSzv1iWj2FiYem0Lh'
   },
 
@@ -34,17 +36,19 @@ export const BRANCH_PAGES: Record<string, {
   '112851187716380': {
     branchId: 'dong-khoi',
     branchName: 'Phụ Kiện 88 - Đồng Khởi',
-    address: '139 Đại Lộ Đồng Khởi, P. Phú Khương, TP. Bến Tre',
+    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Bến Tre cũ, ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
     hotline: '081 449 6789',
     zalo: '081 449 6789',
+    mapUrl: 'https://maps.app.goo.gl/dt37ZhxBXdpjrJTn8',
     token: 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs'
   },
   '160136970515237': {
     branchId: 'dong-khoi',
     branchName: 'Phụ Kiện 88 - Đồng Khởi',
-    address: '139 Đại Lộ Đồng Khởi, P. Phú Khương, TP. Bến Tre',
+    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Bến Tre cũ, ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
     hotline: '081 449 6789',
     zalo: '081 449 6789',
+    mapUrl: 'https://maps.app.goo.gl/dt37ZhxBXdpjrJTn8',
     token: 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs'
   },
 
@@ -52,9 +56,10 @@ export const BRANCH_PAGES: Record<string, {
   '791330520729975': {
     branchId: 'my-tho',
     branchName: 'Phụ Kiện 88 - Mỹ Tho',
-    address: '228 Ấp Bắc, Phường 10, TP. Mỹ Tho, Tiền Giang',
+    address: '25 Đinh Bộ Lĩnh, Phường Mỹ Tho, Tỉnh Đồng Tháp (ngay ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc chân Cầu Quay)',
     hotline: '087 683 8688',
     zalo: '087 683 8688',
+    mapUrl: 'https://maps.app.goo.gl/cvFvkeVnbPL98Wu47',
     token: 'EAAPsOa0mtpgBS3AfnCJLrUmF6tHMBFFNCCl9nid5958p0gySteYuFGsbVGRtuzYMzvE0cMEZA5GkORYgZCGvOFuzPiEcpe9mszSakSu00KF1brtrTpIyegJQDlFBHFCfLeEfiFOXVwsfZAvcmcQ1zNH1srZB1OZBG2xIqPCen50FiZAFBpm3GrCT0qN7OKUENoS06CawZDZD'
   },
 
@@ -62,9 +67,10 @@ export const BRANCH_PAGES: Record<string, {
   '487433804445622': {
     branchId: 'can-tho',
     branchName: 'Phụ Kiện 88 - Cần Thơ',
-    address: '128 Đường 30/4, P. An Phú, Q. Ninh Kiều, TP. Cần Thơ',
+    address: '94 Trần Hưng Đạo, P. An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh gà rán Jollibee)',
     hotline: '092 136 8688',
     zalo: '092 136 8688',
+    mapUrl: 'https://maps.app.goo.gl/enVvzP6qUr6fCPTz5',
     token: 'EAAPsOa0mtpgBSxIHnLgbsUnCNTxKCwlPh1TLomWbUn48izlz60wsX3TeV8SYal2sjmafrg14JRmDtKQDJ4QhFLyNgZBqWZAnZCbArmfQLYK2nA7VQUblYaVNFfZCLfm8dd4HB7wu6SDgh0qeifUNZAXSjiAmbdPZAdhWOvQ7ZBW8lGJMGXZC7lY9wHWg5UtIMseJQsvdFQZDZD'
   },
 
@@ -72,9 +78,10 @@ export const BRANCH_PAGES: Record<string, {
   '102307502816794': {
     branchId: 'vinh-long',
     branchName: 'Phụ Kiện 88 - Vĩnh Long',
-    address: '52 Đinh Tiên Hoàng, Phường 8, TP. Vĩnh Long',
+    address: '120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long (ngã tư Trưng Nữ Vương & Nguyễn Thị Minh Khai, cạnh Mắt Kính Tâm Đức)',
     hotline: '058 988 6789',
     zalo: '058 988 6789',
+    mapUrl: 'https://maps.app.goo.gl/gUGJWUDfSwZf7BfX7',
     token: 'EAAPsOa0mtpgBSZBWoFdAG2xf2MKbwZBcQtRuLVYJSxcD2CjZALWFPHUMmWw1LSWe6ssBQGsWOLJFYNPIFcEdaXrkn7XiqIpFuwO8bjfpERjgXZAwCU6qGcaAIQvTzYtm1TG4oCr5s79SNm1JnmfAkrnZBuvcVVksk4zUsF6BuZA7zxPbeOXZAhL9yOgx8iFJ8au2DFm'
   },
 
@@ -82,17 +89,19 @@ export const BRANCH_PAGES: Record<string, {
   '1324117450777083': {
     branchId: 'thu-duc',
     branchName: 'Phụ Kiện 88 - Thủ Đức',
-    address: '12 Võ Văn Ngân, P. Linh Chiểu, TP. Thủ Đức, TP.HCM',
+    address: '178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh',
     hotline: '086 506 8688',
     zalo: '086 506 8688',
+    mapUrl: 'https://maps.app.goo.gl/KfNyFD4nQRzFbJsMA',
     token: 'EAAPsOa0mtpgBS4lGaSzZCUZAaR3cPmUWUOkDlBggOJoRstKPswiMBIZAh65wQcAYiYVT6ukukKjIIyqh4QjkqB9oTb4Vik0hOVx2EJ0qu60PzAWdQ7ZCR25XwnvZBo9IWhyP71ZBkhQqGfZAFhaRa8vOScZCYOsZCR9oHkrlD9ZB3PiH5oZAg4gTSyEm1woO435QwzRUOyG1wZDZD'
   },
   '107179208627472': {
     branchId: 'thu-duc',
     branchName: 'Phụ Kiện 88 - Thủ Đức',
-    address: '12 Võ Văn Ngân, P. Linh Chiểu, TP. Thủ Đức, TP.HCM',
+    address: '178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh',
     hotline: '086 506 8688',
     zalo: '086 506 8688',
+    mapUrl: 'https://maps.app.goo.gl/KfNyFD4nQRzFbJsMA',
     token: 'EAAPsOa0mtpgBS4lGaSzZCUZAaR3cPmUWUOkDlBggOJoRstKPswiMBIZAh65wQcAYiYVT6ukukKjIIyqh4QjkqB9oTb4Vik0hOVx2EJ0qu60PzAWdQ7ZCR25XwnvZBo9IWhyP71ZBkhQqGfZAFhaRa8vOScZCYOsZCR9oHkrlD9ZB3PiH5oZAg4gTSyEm1woO435QwzRUOyG1wZDZD'
   },
 
@@ -100,17 +109,19 @@ export const BRANCH_PAGES: Record<string, {
   '109869170590318': {
     branchId: 'he-thong',
     branchName: 'Hệ Thống Phụ Kiện 88',
-    address: 'Hệ Thống Chuỗi Cửa Hàng Bán Lẻ & Chăm Sóc Điện Thoại Phụ Kiện 88 Miền Tây',
+    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long (Bến Tre cũ) & Chuỗi 7 Chi Nhánh Miền Tây',
     hotline: '083 389 8688',
     zalo: '083 389 8688',
+    mapUrl: 'https://maps.app.goo.gl/bEVyXTdPdbzd6L7K7',
     token: 'EAAPsOa0mtpgBSZB7422qUdRipiYzhijPZAtVuCIa4KD094PkpHKMixWezUNDYdMRCecUXLlZCAbTbqFds3ZC5FyZA5f94aL47tmTB2wlGJb6oWecwpTovWdpVdBeQI0WXKXJBHwEVW6vBenKF04bxeUXVknZBUNuIUDCiMN1iV13SXBZBvB2dHYkKnSNkb8aTHaJQmY'
   },
   '101670599570787': {
     branchId: 'he-thong',
     branchName: 'Hệ Thống Phụ Kiện 88',
-    address: 'Hệ Thống Chuỗi Cửa Hàng Bán Lẻ & Chăm Sóc Điện Thoại Phụ Kiện 88 Miền Tây',
+    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long (Bến Tre cũ) & Chuỗi 7 Chi Nhánh Miền Tây',
     hotline: '083 389 8688',
     zalo: '083 389 8688',
+    mapUrl: 'https://maps.app.goo.gl/bEVyXTdPdbzd6L7K7',
     token: 'EAAPsOa0mtpgBSZB7422qUdRipiYzhijPZAtVuCIa4KD094PkpHKMixWezUNDYdMRCecUXLlZCAbTbqFds3ZC5FyZA5f94aL47tmTB2wlGJb6oWecwpTovWdpVdBeQI0WXKXJBHwEVW6vBenKF04bxeUXVknZBUNuIUDCiMN1iV13SXBZBvB2dHYkKnSNkb8aTHaJQmY'
   }
 };
@@ -247,6 +258,8 @@ function normalizeTeencode(rawText: string): { normalized: string; intent: strin
     intent = 'SCREEN_PROTECTOR';
   } else if (text.includes('sửa')) {
     intent = 'REPAIR';
+  } else if (text.includes('địa chỉ') || text.includes('ở đâu') || text.includes('chỗ nào') || text.includes('đoạn nào') || text.includes('chỉ đường') || text.includes('bản đồ') || text.includes('map')) {
+    intent = 'LOCATION';
   }
 
   return { normalized: text, intent, device };
@@ -283,7 +296,12 @@ function getSmartFallback(userText: string, branch: typeof BRANCH_PAGES[string])
     return `Dạ bên em CÓ NHẬN ÉP KÍNH & THAY MÀN HÌNH lấy liền công nghệ hút chân không hiện đại ạ! 💖 Kính thay chuẩn zin hiển thị sắc nét, bảo hành dài hạn và miễn phí vệ sinh máy. Bé 8 mời anh/chị mang máy ghé ${branch.branchName} (${branch.address}) để thợ kiểm tra miễn phí, hoặc gọi Hotline/Zalo: ${branch.hotline} nhé!`;
   }
 
-  // 6. Mặc định
+  // 6. Khách hỏi địa chỉ / vị trí / chỉ đường
+  if (lower.includes('địa chỉ') || lower.includes('ở đâu') || lower.includes('chỗ nào') || lower.includes('đoạn nào') || lower.includes('chỉ đường') || lower.includes('bản đồ') || lower.includes('map')) {
+    return `Dạ chi nhánh ${branch.branchName} tọa lạc tại: ${branch.address} ạ! 🏠📍\n\nAnh/chị có thể xem chỉ đường trực tiếp trên Google Maps: ${branch.mapUrl}\n\nShop mở cửa đón khách từ 07:30 đến 22:00 tất cả các ngày trong tuần. Nếu đến gần chưa thấy shop, anh/chị gọi ngay Hotline/Zalo: ${branch.hotline} để nhân viên ra đón mình nhé! ✨`;
+  }
+
+  // 7. Mặc định
   return `Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Shop em nhận sửa chữa, thay pin, ép kính lấy liền và đầy đủ phụ kiện chính hãng cho dòng máy của mình ạ! Anh/Chị cần kiểm tra máy hay tư vấn sản phẩm nào cứ nhắn em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
 }
 
@@ -310,7 +328,9 @@ async function generateBe8Response(
 
   const systemInstruction = `
 Bạn là "Bé 8" - Chuyên Viên Tư Vấn Khách Hàng AI duyên dáng, tận tâm, am hiểu kỹ thuật của Chuỗi Cửa Hàng Phụ Kiện 88 tại chi nhánh: ${branch.branchName}.
-Địa chỉ cửa hàng: ${branch.address}. Hotline / Zalo tiếp nhận: ${branch.hotline}.
+Địa chỉ cửa hàng chính xác: ${branch.address}. 
+Hotline / Zalo tiếp nhận: ${branch.hotline}.
+Link chỉ đường Google Maps: ${branch.mapUrl}.
 
 VĂN HÓA DOANH NGHIỆP "PHỤC VỤ TỪ TRÁI TIM" CỦA PHỤ KIỆN 88:
 - Luôn mở đầu thân thiện, lễ phép: "Dạ em chào Anh/Chị! Em là Bé 8 tại ${branch.branchName} ạ..."
@@ -325,6 +345,7 @@ QUY TẮC HIỂU TỪ VIẾT TẮT, TEENCODE & BỆNH LÝ MÁY CỦA KHÁCH:
   + "k dô pin", "ko zo pin", "ko vào pin": sạc không vào pin / máy không nhận sạc.
   + "sửa k vậy": có sửa không vậy; "đc k": được không; "cl": cường lực; "ép knh": ép kính; "m21", "a54": các dòng máy Samsung.
 - QUY TẮC PHẢN HỒI ĐÚNG TRỌNG TÂM:
+  + Khi khách hỏi ĐỊA CHỈ / VỊ TRÍ / TÌM ĐƯỜNG: Cung cấp chính xác 100% địa chỉ cửa hàng: ${branch.address}. Cung cấp link Google Maps: ${branch.mapUrl} để khách bấm vào mở bản đồ điều hướng.
   + Khi khách hỏi ỐP LƯNG / BAO DA: BẮT BUỘC KHẲNG ĐỊNH NGAY là shop CÓ SẴN nhiều mẫu ốp lưng thời trang, ốp dẻo trong suốt, ốp chống sốc bảo vệ camera cho dòng máy của khách. TUYỆT ĐỐI KHÔNG tự chuyển sang nói dán cường lực hay sửa chữa nếu khách không hỏi!
   + Khi khách hỏi CƯỜNG LỰC / DÁN MÀN HÌNH: Khẳng định có sẵn kính KingKong/Nano 9D vát cạnh, dán PPF, ghé shop được dán bao đẹp, ưng ý mới thanh toán.
   + Khi khách hỏi sửa chữa ("Bên mình có sửa không", "sạc ko dô pin có sửa đc ko"):
@@ -349,6 +370,7 @@ QUY TẮC CỐT LÕI - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀ
   const userPrompt = `Khách hàng nhắn: "${userText}"
 ${normalized !== userText.toLowerCase() ? `[Bản dịch chuẩn nghĩa tiếng Việt/Teencode]: "${normalized}"` : ''}
 ${device ? `[Dòng máy khách dùng]: ${device}` : ''}
+${intent === 'LOCATION' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về ĐỊA CHỈ / VỊ TRÍ / TÌM ĐƯỜNG đến chi nhánh ${branch.branchName}. Hãy báo chính xác địa chỉ: ${branch.address}, gửi link Google Maps: ${branch.mapUrl} và Hotline/Zalo: ${branch.hotline} để khách tiện liên hệ đón!` : ''}
 ${intent === 'CASE' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về ỐP LƯNG / BAO DA cho máy ${device || 'của khách'}. Khẳng định shop CÓ SẴN rất nhiều mẫu ốp đẹp (chống sốc, dẻo trong suốt, bảo vệ camera, thời trang), viền êm cầm chắc tay. KHÔNG tư vấn dán cường lực hay sửa chữa nếu khách không hỏi! Mời khách ghé thử trực tiếp hoặc nhắn Zalo ${branch.hotline} để shop chụp mẫu thật gửi mình chọn!` : ''}
 ${intent === 'SCREEN_PROTECTOR' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về KÍNH CƯỜNG LỰC / DÁN MÀN HÌNH cho máy ${device || 'của khách'}. Khẳng định có sẵn kính KingKong/Nano 9D vát cạnh, dán PPF, dán bao đẹp, chống vân tay. Mời khách ghé shop dán miễn phí lấy liền!` : ''}
 ${intent === 'CHARGING' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi lỗi sạc không vào pin. KHẲNG ĐỊNH SHOP CÓ NHẬN SỬA, giải thích nguyên nhân (chân sạc, cáp, pin, IC), mời ghé quầy ${branch.branchName} kiểm tra đo dòng sạc MIỄN PHÍ lấy liền!` : ''}
@@ -448,10 +470,11 @@ export default async function handler(req: any, res: any) {
           const pageId = String(entry.id || '');
           const branch = BRANCH_PAGES[pageId] || {
             branchId: 'dong-khoi',
-            branchName: 'Phụ Kiện 88 - Bến Tre / Đồng Khởi',
-            address: '139 Đại Lộ Đồng Khởi, TP. Bến Tre',
+            branchName: 'Phụ Kiện 88 - Đồng Khởi',
+            address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Bến Tre cũ, ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
             hotline: '081 449 6789',
             zalo: '081 449 6789',
+            mapUrl: 'https://maps.app.goo.gl/dt37ZhxBXdpjrJTn8',
             token: DEFAULT_FALLBACK_TOKEN
           };
 

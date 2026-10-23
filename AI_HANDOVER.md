@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 22/10/2026 (Nâng cấp Lead Realtime Cả Chưa Có SĐT, Bộ Từ Điển Teencode, Tối Ưu CRM Mobile, Tách Biệt Ý Định Ốp Lưng vs Cường Lực, Fix Múi Giờ Việt Nam GMT+7 & Xoay Tua Gemini Key Dự Phòng)*
+*Ngày cập nhật mới nhất: 23/10/2026 (Chuẩn Hóa 100% Địa Chỉ & Vị Trí Chi Nhánh Theo google-maps.txt Cho Chatbot Bé 8, CRM & Supabase Cloud, Thêm Google Maps Link)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -14,7 +14,26 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 
 ---
 
-## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 22/10/2026) - QUAN TRỌNG
+## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 23/10/2026) - QUAN TRỌNG
+
+### Y. Chuẩn Hóa 100% Địa Chỉ & Tọa Độ Chi Nhánh Theo Tệp google-maps.txt Cho Toàn Chuỗi (HOÀN THÀNH 23/10/2026)
+1. **Khắc phục triệt để lỗi Chatbot Bé 8 trả lời sai địa chỉ tại các Fanpage:**
+   - **Hiện tượng:** Khách để lại SĐT tại Fanpage Phụ Kiện 88 - Mỹ Tho, Bé 8 trả lời: *"Em xin phép mời bạn kỹ thuật viên tại chi nhánh (228 Ấp Bắc, Phường 10, TP. Mỹ Tho, Tiền Giang) gọi lại..."*.
+   - **Nguyên nhân:** Trong file serverless webhook `api/meta-webhook.ts`, bảng đối soát `BRANCH_PAGES` và fallback trước đây còn lưu địa chỉ cũ (228 Ấp Bắc đối với Mỹ Tho, 139 Đồng Khởi đối với Bến Tre, 128 Đường 30/4 đối với Cần Thơ, 52 Đinh Tiên Hoàng đối với Vĩnh Long, 12 Võ Văn Ngân đối với Thủ Đức).
+   - **Giải pháp xử lý:**
+     + Đồng bộ 100% địa chỉ chuẩn từ tệp `google-maps.txt` vào `BRANCH_PAGES` trong `api/meta-webhook.ts`:
+       * **Mỹ Tho:** `25 Đinh Bộ Lĩnh, Phường Mỹ Tho, Tỉnh Đồng Tháp (ngay ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc chân Cầu Quay)` - Hotline: `087 683 8688`
+       * **Phú Khương:** `35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ) (đối diện cây xăng ngã tư Phú Khương)` - Hotline: `077 788 8688`
+       * **Đồng Khởi:** `173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Bến Tre cũ, ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)` - Hotline: `081 449 6789`
+       * **Cần Thơ:** `94 Trần Hưng Đạo, P. An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh gà rán Jollibee)` - Hotline: `092 136 8688`
+       * **Vĩnh Long:** `120 Trưng Nữ Vương, Phường Long Châu, TP. Vĩnh Long (ngã tư Trưng Nữ Vương & Nguyễn Thị Minh Khai, cạnh Mắt Kính Tâm Đức)` - Hotline: `058 988 6789`
+       * **Thủ Đức:** `178A Võ Văn Ngân, Phường Bình Thọ, TP. Thủ Đức, TP. Hồ Chí Minh` - Hotline: `086 506 8688`
+       * **Văn Phòng / Hệ Thống:** `35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long (Bến Tre cũ)` - Hotline: `083 389 8688`
+     + Cập nhật đồng bộ vào `INITIAL_BRANCHES` (`src/lib/mockData.ts`), `Branch` interface (`src/types/index.ts`), Web Chatbot (`src/components/PublicCustomerChatView.tsx`), `info-pk88.md` và bảng `branches` trên cơ sở dữ liệu Supabase Cloud.
+     + Bổ sung trường `mapUrl` liên kết trực tiếp Google Maps vào từng chi nhánh.
+     + Bổ sung ý định `LOCATION` trong `normalizeTeencode` và phản hồi dự phòng: Khi khách hỏi địa chỉ/vị trí/chỉ đường ("ở đâu", "địa chỉ", "chỉ đường", "map"), Bé 8 báo chính xác 100% địa chỉ kèm link Google Maps điều hướng.
+
+---
 
 ### X. Tách Biệt Nhu Cầu Ốp Lưng vs Kính Cường Lực (Triệt Tiêu Lan Man), Chuẩn Hóa Múi Giờ `Asia/Ho_Chi_Minh` & Xoay Tua Gemini Key Dự Phòng (HOÀN THÀNH 22/10/2026)
 1. **Khắc phục triệt để lỗi Chatbot trả lời lan man khi khách hỏi Ốp Lưng:**

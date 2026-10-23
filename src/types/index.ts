@@ -21,6 +21,7 @@ export interface Branch {
   isActive: boolean;
   hotline?: string;
   zalo?: string;
+  mapUrl?: string;
 }
 
 export interface CompetencyScores {

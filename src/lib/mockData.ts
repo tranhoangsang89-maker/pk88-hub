@@ -35,57 +35,62 @@ export const INITIAL_BRANCHES: Branch[] = [
     id: '11111111-2222-3333-4444-555555555555',
     code: 'PK88_VANPHONG',
     name: 'Hệ Thống Phụ Kiện 88',
-    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
+    address: '35B5 Đoàn Hoàng Minh, Phường Phú Khương, Tỉnh Vĩnh Long (Bến Tre cũ)',
     lat: 10.252668,
     lng: 106.370604,
     isActive: true,
     hotline: '083 389 8688',
-    zalo: '083 389 8688'
+    zalo: '083 389 8688',
+    mapUrl: 'https://maps.app.goo.gl/bEVyXTdPdbzd6L7K7'
   },
   {
     id: '2b150536-0b47-4e32-912b-b5ede701bfa6',
     code: 'PK88_PHUKHUONG',
     name: 'Phụ Kiện 88 - Phú Khương',
-    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre (đối diện cây xăng ngã tư Phú Khương)',
+    address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ) (đối diện cây xăng ngã tư Phú Khương)',
     lat: 10.2527211,
     lng: 106.3707262,
     wifiBssid: '00:11:22:33:44:55',
     isActive: true,
     hotline: '077 788 8688',
-    zalo: '077 788 8688'
+    zalo: '077 788 8688',
+    mapUrl: 'https://maps.app.goo.gl/rTUneKwULXKE4jTy8'
   },
   {
     id: 'df1c32b5-051e-4c7f-80de-3aa7721cdb28',
     code: 'PK88_DONGKHOI',
     name: 'Phụ Kiện 88 - Đồng Khởi',
-    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, TP. Bến Tre (ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
+    address: '173 Đại Lộ Đồng Khởi, Phường Phú Tân, Tỉnh Vĩnh Long (Bến Tre cũ, ngay vòng xoay Tân Thành, đối diện Cafe Trung Nguyên)',
     lat: 10.2584726,
     lng: 106.3616252,
     isActive: true,
     hotline: '081 449 6789',
-    zalo: '081 449 6789'
+    zalo: '081 449 6789',
+    mapUrl: 'https://maps.app.goo.gl/dt37ZhxBXdpjrJTn8'
   },
   {
     id: 'ce898286-8130-44cb-9f92-25176cec6703',
     code: 'PK88_MYTHO',
     name: 'Phụ Kiện 88 - Mỹ Tho',
-    address: '25 Đinh Bộ Lĩnh, Phường 2, TP. Mỹ Tho, Tiền Giang (ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc Cầu Quay)',
+    address: '25 Đinh Bộ Lĩnh, Phường Mỹ Tho, Tỉnh Đồng Tháp (ngay ngã tư Đinh Bộ Lĩnh & Trịnh Hoài Đức, dốc chân Cầu Quay)',
     lat: 10.355880,
     lng: 106.369735,
     isActive: true,
     hotline: '087 683 8688',
-    zalo: '087 683 8688'
+    zalo: '087 683 8688',
+    mapUrl: 'https://maps.app.goo.gl/cvFvkeVnbPL98Wu47'
   },
   {
     id: '7593aa44-bd49-476a-8d13-b9912874c0e0',
     code: 'PK88_CANTHO',
     name: 'Phụ Kiện 88 - Cần Thơ',
-    address: '94 Trần Hưng Đạo, Phường An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh Jollibee)',
+    address: '94 Trần Hưng Đạo, P. An Nghiệp, Quận Ninh Kiều, TP. Cần Thơ (ngã ba Trần Hưng Đạo & Lý Tự Trọng, cạnh gà rán Jollibee)',
     lat: 10.037976,
     lng: 105.7763555,
     isActive: true,
     hotline: '092 136 8688',
-    zalo: '092 136 8688'
+    zalo: '092 136 8688',
+    mapUrl: 'https://maps.app.goo.gl/enVvzP6qUr6fCPTz5'
   },
   {
     id: '98e58c92-edb5-4c5b-8a33-c78e38b3f954',
@@ -96,7 +101,8 @@ export const INITIAL_BRANCHES: Branch[] = [
     lng: 105.9728027,
     isActive: true,
     hotline: '058 988 6789',
-    zalo: '058 988 6789'
+    zalo: '058 988 6789',
+    mapUrl: 'https://maps.app.goo.gl/gUGJWUDfSwZf7BfX7'
   },
   {
     id: 'c65f5a81-a5c3-45a2-b01c-4c842e41f61e',
@@ -107,7 +113,8 @@ export const INITIAL_BRANCHES: Branch[] = [
     lng: 106.762417,
     isActive: true,
     hotline: '086 506 8688',
-    zalo: '086 506 8688'
+    zalo: '086 506 8688',
+    mapUrl: 'https://maps.app.goo.gl/KfNyFD4nQRzFbJsMA'
   },
   {
     id: 'f4468232-5e9b-4c3a-bf30-76663aa3a73e',

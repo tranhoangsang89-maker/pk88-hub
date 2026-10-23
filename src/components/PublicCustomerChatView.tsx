@@ -114,10 +114,11 @@ export const PublicCustomerChatView: React.FC<PublicCustomerChatViewProps> = ({
       id: 'default',
       code: 'PK88_PHUKHUONG',
       name: 'Phụ Kiện 88 - Phú Khương',
-      address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP. Bến Tre',
+      address: '35 B2 Đoàn Hoàng Minh, Phường Phú Khương, TP Vĩnh Long (Bến Tre cũ) (đối diện cây xăng ngã tư Phú Khương)',
       lat: 10.2527,
       lng: 106.3707,
-      isActive: true
+      isActive: true,
+      mapUrl: 'https://maps.app.goo.gl/rTUneKwULXKE4jTy8'
     };
   });
 
@@ -453,6 +454,8 @@ Hãy đóng vai Bé 8 trả lời khách hàng thật thân thiện, tư vấn �
           aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** CÓ SẴN PIN CHÍNH HÃNG Pisen / Deji dung lượng chuẩn và siêu dung lượng cho máy mình ạ! 🔋\n\nBên em bảo hành chính hãng 12 tháng 1 đổi 1 và MIỄN PHÍ hoàn toàn công thay lấy ngay trong 15-20 phút. Anh/Chị cho em xin **Tên + SĐT** hoặc gọi Hotline/Zalo: **${curHotline.display}** để shop giữ pin và giữ quà tặng cho mình nhé ạ! ✨`;
         } else if (lowerQ.includes('kính') || lowerQ.includes('ép kính') || lowerQ.includes('bể kính')) {
           aiReplyText = `Dạ bên em CÓ NHẬN ÉP KÍNH màn hình công nghệ hút chân không chuẩn nhà máy, lấy liền trong 30-45 phút ạ! 📱\n\nMời Anh/Chị ghé chi nhánh **${selectedBranch.name}** (${selectedBranch.address}) để kỹ thuật viên kiểm tra màn hình miễn phí cho mình, hoặc gọi Hotline/Zalo: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
+        } else if (lowerQ.includes('địa chỉ') || lowerQ.includes('ở đâu') || lowerQ.includes('chỗ nào') || lowerQ.includes('đoạn nào') || lowerQ.includes('chỉ đường') || lowerQ.includes('bản đồ') || lowerQ.includes('map')) {
+          aiReplyText = `Dạ chi nhánh **${selectedBranch.name}** tọa lạc tại: **${selectedBranch.address}** ạ! 🏠📍\n\n${(selectedBranch as any).mapUrl ? `Anh/Chị có thể bấm xem chỉ đường Google Maps tại đây: ${(selectedBranch as any).mapUrl}\n\n` : ''}Shop mở cửa phục vụ từ 07:30 đến 22:00 tất cả các ngày trong tuần. Nếu đến gần chưa thấy shop, Anh/Chị gọi ngay Hotline/Zalo: **${curHotline.display}** để nhân viên quầy ra đón nha! ✨`;
         } else {
           aiReplyText = `Dạ hiện tại chi nhánh **${selectedBranch.name}** đang có sẵn rất nhiều sản phẩm và dịch vụ kỹ thuật cho dòng máy của mình ạ!\n\nVì hệ thống đang cân đối mức giá trợ giá tốt nhất, Anh/Chị cho em xin **Tên + Số Điện Thoại Zalo** để kỹ thuật viên gọi lại tư vấn và báo giá ưu đãi chính xác nhất trong 3-5 phút, hoặc mình có thể gọi trực tiếp Hotline/Zalo chi nhánh: **${curHotline.display}** để được phục vụ liền tay nhé ạ! ✨`;
         }
