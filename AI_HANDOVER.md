@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 23/10/2026 (Nâng Cấp Xử Lý Ảnh Messenger, Click-to-Messenger Ads, Bóc Tách Lead Realtime, Lightbox CRM & Cơ Chế Chuyển Giao Người Thật - Human Handover)*
+*Ngày cập nhật mới nhất: 23/10/2026 (Nâng Cấp Xử Lý Ảnh Messenger, Click-to-Messenger Ads, Bóc Tách Lead Realtime, Lightbox CRM, Cơ Chế Chuyển Giao Người Thật & Master Switch Tạm Dừng Bot FB Phương Án B)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -1038,6 +1038,20 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 7. **Cơ Chế Kháng Lỗi Gemini Keys & Vòng Lặp Thử Lại (Retry Loop):** Luôn duy trì chuỗi khóa Base64 dự phòng (`B64_FALLBACK_KEYS`) trong cả Webhook và Frontend kèm vòng lặp `for (const key of shuffledKeys)` để tự động thử key tiếp theo nếu gặp lỗi HTTP 429 hoặc lỗi mạng.
 8. **Quy Tắc Tách Biệt Nhu Cầu Ốp Lưng vs Cường Lực:** Tuyệt đối không gộp chung từ khóa `ốp` với `cường lực/dán` trong hàm `getSmartFallback`. Khách hỏi ốp lưng thì tập trung 100% vào các mẫu ốp thời trang, dẻo trong suốt, chống sốc bảo vệ camera và mời ghé thử hoặc gửi ảnh Zalo; không tự ý tư vấn dán cường lực hay sửa chữa.
 9. **Bộ Tiền Xử Lý Teencode ([teencodeHelper.ts](file:///d:/PK88%20AI%20AUTOMATION/src/lib/teencodeHelper.ts)):** Khi bổ sung từ khóa viết tắt tiếng Việt, bắt buộc dùng biểu thức chính quy Unicode lookbehind/lookahead `(?<=^|[^\p{L}\p{N}])...(?=[^\p{L}\p{N}]|$)` để không bị lỗi boundary `\b` với các nguyên âm có dấu tiếng Việt (đ, ô, ơ, ê...).
+10. **Cơ Chế Bật / Tắt Chatbot Facebook Messenger (Master Switch - Phương Án B Tạm Dừng Đang Kích Hoạt):**
+    - **Trạng thái hiện tại:** `export const IS_FACEBOOK_BOT_ACTIVE = false;` (tại dòng 17 file `api/meta-webhook.ts`).
+    - **Mục đích:** Founder/Quản lý đang rà soát và cập nhật bảng giá phụ kiện / sửa chữa chuẩn hóa toàn chuỗi.
+    - **Hành vi hệ thống:**
+      + Bot hoàn toàn im lặng trên Messenger (không gửi bất kỳ tin nhắn tự động nào ra Facebook).
+      + **Tuy nhiên, Webhook vẫn ghi nhận 100% Lead:** Mọi tin nhắn, số điện thoại (`phoneMatch`), hình ảnh gửi đến (`imageUrl`), và nguồn Ads (`isAdReferral`) đều được tự động bóc tách và lưu vào Supabase `leads` (`activity_log`, `need`, `notes`) theo múi giờ `Asia/Ho_Chi_Minh`. Nhân viên quầy và Telesales mở CRM thấy ngay để gọi điện chốt đơn.
+      + **Kênh Web Chatbot (`src/components/PublicCustomerChatView.tsx`):** Vẫn giữ nguyên 100% để Founder kiểm tra, hỏi đáp thử và tinh chỉnh kịch bản/bảng giá.
+    - **Hướng dẫn cho AI Agent kế tiếp khi user yêu cầu "Mở lại Bot Facebook" hoặc "Cập nhật bảng giá":**
+      + *Bước 1 (Nếu có bảng giá mới):* Cập nhật thông tin giá vào knowledge prompt của Bé 8 trong `api/meta-webhook.ts` và `src/components/PublicCustomerChatView.tsx`.
+      + *Bước 2 (Bật lại Bot):* Mở `api/meta-webhook.ts`, chuyển dòng 17 từ `export const IS_FACEBOOK_BOT_ACTIVE = false;` sang `export const IS_FACEBOOK_BOT_ACTIVE = true;`.
+      + *Bước 3 (Triển khai):* Chạy `npx tsc --noEmit`, `npm run build`, sau đó commit và push lên `origin main`. Vercel tự deploy và toàn bộ 7 Fanpage lập tức được Bé 8 tự động tư vấn 24/7 trở lại, không cần chạm vào Meta Developer Portal.
+11. **Lưu ý Page Access Token Cho Fanpage Đồng Khởi (Page ID `160136970515237`):**
+    - Facebook Messenger sử dụng cơ chế Page-Scoped ID (PSID) độc lập cho từng Fanpage.
+    - Hiện tại trang Đồng Khởi có 2 Page ID (`112851187716380` và `160136970515237`). Khi Page `160136970515237` gửi tin, nếu log Vercel xuất hiện lỗi `(#100) Không tìm thấy người dùng phù hợp (code: 100, subcode: 2018001)`: Hãy nhắc user cấp đúng Page Access Token riêng của Page ID `160136970515237` để cập nhật vào `BRANCH_PAGES` trong `api/meta-webhook.ts`. Các trang khác đã chạy chuẩn xác 100%.
 
 ---
 
