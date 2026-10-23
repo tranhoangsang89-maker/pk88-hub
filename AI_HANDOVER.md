@@ -1,5 +1,5 @@
 # AI HANDOVER REPORT - PK88 AUTOMATION PORTAL
-*Ngày cập nhật mới nhất: 23/10/2026 (Chuẩn Hóa 100% Địa Chỉ & Vị Trí Chi Nhánh Theo google-maps.txt Cho Chatbot Bé 8, CRM & Supabase Cloud, Thêm Google Maps Link)*
+*Ngày cập nhật mới nhất: 23/10/2026 (Nâng Cấp Xử Lý Ảnh Messenger, Click-to-Messenger Ads, Bóc Tách Lead Realtime, Lightbox CRM & Cơ Chế Chuyển Giao Người Thật - Human Handover)*
 
 Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến độ dự án cho các AI Agent tiếp theo nhằm duy trì tính liên tục của dự án.
 
@@ -15,6 +15,52 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
 ---
 
 ## 2. THÀNH TỰU ĐÃ HOÀN THÀNH (CẬP NHẬT 23/10/2026) - QUAN TRỌNG
+
+### Z. Nâng Cấp Xử Lý Ảnh Messenger, Click-to-Messenger Ads & Cơ Chế Chuyển Giao Người Thật (Human Handover) (HOÀN THÀNH 23/10/2026)
+1. **Xử lý hình ảnh gửi đến từ Facebook Messenger & Lưu trữ Web CRM:**
+   - **Bóc tách link ảnh tự động:** File Webhook `api/meta-webhook.ts` trích xuất `event.message.attachments` (loại `image`) và lấy trực tiếp đường dẫn CDN của Meta.
+   - **Xử lý tin nhắn ảnh độc lập:** Khắc phục lỗi webhook bỏ qua tin nhắn khi khách chỉ gửi ảnh mà không gõ chữ (`hasImage && !rawText`).
+   - **Kịch bản chào thông minh khi chỉ gửi ảnh (Đã phê duyệt):**
+     > *"Dạ em là Bé 8 tại [Tên Chi Nhánh] ạ! Em đã nhận được hình ảnh của mình gửi rồi ạ 💖*  
+     > *Dạ không biết Anh/Chị đang quan tâm đến sản phẩm / chương trình ưu đãi trong hình, hay cần em hỗ trợ kiểm tra kỹ thuật cho dòng máy nào vậy ạ? ✨*  
+     > *Anh/Chị nhắn để em hỗ trợ kiểm tra và giữ ưu đãi tốt nhất cho mình liền nhé! 🥰"*
+   - **Đồng bộ cơ sở dữ liệu & CRM:** Bổ sung trường `imageUrl?: string` vào `CustomerLead.activity_log` (`src/types/index.ts`, `src/lib/leadService.ts`).
+   - **Trải nghiệm Web CRM ([CustomerLeadsCRMModal.tsx](file:///c:/PK88%20AA/src/components/CustomerLeadsCRMModal.tsx)):**
+     + Hiển thị hình thu nhỏ (thumbnail) ảnh trực tiếp trong bong bóng chat của khách.
+     + Nhấp vào thumbnail sẽ mở bộ phóng to hình ảnh toàn màn hình (Lightbox Modal) sắc nét, có nút mở tab mới và phím tắt `ESC` để đóng.
+     + Thêm huy hiệu `📷 Có ảnh` trên thẻ danh sách khách hàng.
+
+2. **Nhận diện Click-to-Messenger Ads Referral & Câu hỏi về Bài Đăng Fanpage:**
+   - **Bắt dữ liệu quảng cáo:** Nhận diện trường `referral` từ Meta Ads (`source === 'ADS'`, `ad_id`, `ad_title`).
+   - **Phản hồi chính xác chính sách cửa hàng:** Khẳng định chương trình ưu đãi trên bài viết/hình ảnh của shop hiện vẫn **ĐANG ĐƯỢC ÁP DỤNG** tại chi nhánh tương ứng, khéo léo hỏi dòng máy/màu sắc khách cần để kiểm tra lượng tồn kho sẵn tại quầy và giữ ưu đãi.
+   - **Gắn nhãn Lead:** Gắn nhãn `🔥 Click Ads` / `KHÁCH TỪ QUẢNG CÁO`, tự động nâng cấp thành `🚨 HOT LEAD ADS` khi khách để lại số điện thoại.
+
+3. **Cơ Chế Chuyển Giao Quyền Điều Khiển Thông Minh Giữa Bot & Người Thật (Human Handover & Echo Detection):**
+   - **Cách 1: Tự động "lùi lại giữ im lặng" khi nhân viên gõ chữ (Echo Event Detection):**
+     + Trong hàm `sendMetaTextMessage`, bot gửi kèm `metadata: 'PK88_BOT_BE8'`.
+     + Khi Facebook gửi sự kiện `message.is_echo: true`:
+       * Nếu `message.metadata === 'PK88_BOT_BE8'`: Tin do chính Bé 8 vừa gửi -> bỏ qua.
+       * Nếu `message.metadata !== 'PK88_BOT_BE8'`: Đích thị là **nhân viên thật** gõ từ Meta Business Suite hoặc app Messenger trên điện thoại/máy tính!
+       * Hệ thống tự động ghi nhận tin nhắn của nhân viên vào `activity_log` (người gửi: `staff`), gắn nhãn `NHÂN VIÊN ĐANG CHAT`, chuyển trạng thái `CONTACTED`.
+       * Kích hoạt chế độ **tạm dừng Bot (`[BOT_PAUSED_UNTIL:...]`) trong 45 phút** kể từ tin nhắn cuối của nhân viên.
+       * Trong 45 phút này, khách nhắn thêm câu gì, Bé 8 tuyệt đối giữ im lặng, không nói leo / không trả lời đè, chỉ âm thầm ghi nhận tin nhắn vào CRM để nhân viên theo dõi.
+   - **Cách 2: Khách hàng chủ động yêu cầu gặp nhân viên / người thật:**
+     + Hàm `isRequestingHumanStaff(userText)` nhận diện các câu: *"cho gặp nhân viên"*, *"gặp người thật"*, *"có ai trực không"*, *"nhân viên đâu"*, *"chuyển sang tư vấn viên"*...
+     + Bé 8 trả lời lịch thiệp: *"Dạ em xin phép kết nối cuộc trò chuyện đến Anh/Chị nhân sự trực quầy tại [Tên Chi Nhánh] ngay bây giờ ạ! 💖..."* kèm hotline/Zalo chi nhánh.
+     + Tự động tạm dừng Bot trong **60 phút**, gắn nhãn khẩn cấp `🚨 CẦN GẶP NGƯỜI THẬT`, đẩy mức ưu tiên lên cao nhất (`HIGH/URGENT`, score `100`).
+   - **Cách 3: Điều khiển chủ động trên Web CRM:**
+     + Bổ sung hàm `toggleLeadBotPause(leadId, pause, pauseMinutes)` trong `src/lib/leadService.ts`.
+     + Nhân viên quầy có nút bấm nhanh `⏸️ Tạm dừng Bot` / `▶️ Bật lại Bot` ngay trên từng thẻ khách hàng.
+     + Phân biệt màu sắc trực quan trong lịch sử chat: 👤 Khách hàng (hồng đỏ), 👨‍💼 Nhân viên PK88 (xanh dương, avatar logo PK88), 🤖 Bé 8 AI CSKH (xám đen, avatar Bé 8).
+     + Thẻ khách hàng hiển thị huy hiệu nhấp nháy `🚨 Cần gặp người thật!` và `⏸️ Bot đang tạm dừng`.
+
+4. **Lưu ý Kỹ Thuật Quan Trọng Về Meta Graph API Token:**
+   - **Hiện tượng lỗi log Vercel:** `(#100) Không tìm thấy người dùng phù hợp (code: 100, subcode: 2018001)`.
+   - **Nguyên nhân:** Mã định danh người dùng trên Messenger là **Page-Scoped ID (PSID)** (mỗi Page có một mã PSID riêng). Hiện tại Page Đồng Khởi ID `160136970515237` đang dùng chung token của Page `112851187716380`.
+   - **Khắc phục:** Cần lấy đúng mã Page Access Token riêng của Page ID `160136970515237` để cập nhật vào `BRANCH_PAGES` trong `api/meta-webhook.ts`. Các trang khác (như Thủ Đức ID `1324117450777083`) có token đúng đã gửi tin nhắn thành công 100%.
+
+---
+
 
 ### Y. Chuẩn Hóa 100% Địa Chỉ & Tọa Độ Chi Nhánh Theo Tệp google-maps.txt Cho Toàn Chuỗi (HOÀN THÀNH 23/10/2026)
 1. **Khắc phục triệt để lỗi Chatbot Bé 8 trả lời sai địa chỉ tại các Fanpage:**
