@@ -8,6 +8,14 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL || 'https://kvxxkfgictaqmwcwv
 const SUPABASE_KEY = process.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imt2eHhrZmdpY3RhcW13Y3d2bHVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MTExNTYsImV4cCI6MjEwNjA4NzE1Nn0.2_DlkAogz1dmdPs2lnozj4hSxekY7gmmtT2X_NGs7NQ';
 const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// =========================================================================
+// CÔNG TẮC BẬT / TẮT CHATBOT BÉ 8 TRẢ LỜI TỰ ĐỘNG TRÊN FACEBOOK MESSENGER
+// - false: Tạm dừng im lặng 100% trên Facebook (Đang cập nhật bảng giá).
+//          Khách nhắn tin vẫn được lưu vào CRM, nhưng Bot KHÔNG gửi tin nhắn ra Facebook.
+// - true : Bật lại Bé 8 AI trả lời tự động 24/7 trên toàn bộ 7 Fanpage.
+// =========================================================================
+export const IS_FACEBOOK_BOT_ACTIVE = false;
+
 // Token dự phòng mặc định nếu không khớp Page ID
 const DEFAULT_FALLBACK_TOKEN = 'EAAPsOa0mtpgBS4fAeJ9geALLraVnpZCeiQ8LXy4zSF2fzlJWDQQ90ZC5UcwIjm0W3OQmLmZAEfCdbZA16zYZAmDXB1kZAIebGeFMyLGHD8ZCrgTz1KPNvjuDBMp9ZCZBt8KObSsRD6sR4cGQCgtZAnLhhdZB7HFUubuvM3E3lq1C6ZBZCQGWuPZBfr6RUIRzOQZA18f7P76s0ZBs';
 
@@ -668,6 +676,67 @@ export default async function handler(req: any, res: any) {
                 }
               } catch (dbErr) {
                 console.error('Lỗi kiểm tra lead:', dbErr);
+              }
+
+              // =========================================================================
+              // KIỂM TRA CÔNG TẮC TỔNG (MASTER SWITCH) TẠM DỪNG CHATBOT TRÊN FACEBOOK
+              // =========================================================================
+              if (!IS_FACEBOOK_BOT_ACTIVE) {
+                console.log(`🔇 [BOT FB ĐANG TẮT - CẬP NHẬT BẢNG GIÁ] Khách ${senderId}: "${userText}". Ghi nhận vào CRM, Bé 8 không tự động trả lời.`);
+                const phoneMatch = userText.match(/(0[3|5|7|8|9][0-9]{8})/);
+                const userLog = [{
+                  sender: 'user',
+                  text: userText || (hasImage ? '[Khách gửi 1 hình ảnh]' : ''),
+                  imageUrl: imageUrl,
+                  time: timeStr
+                }];
+
+                try {
+                  const leadSource = isAdReferral ? 'facebook_ads' : (existingLead?.source || 'facebook_messenger');
+                  let leadLabel = phoneMatch ? (isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB') : (isAdReferral ? 'KHÁCH TỪ QUẢNG CÁO' : (hasImage ? 'KHÁCH GỬI ẢNH' : 'KHÁCH FB (CHỜ NHÂN VIÊN)'));
+
+                  let extraNote = ' | [Bot FB đang tạm dừng để cập nhật giá]';
+                  if (hasImage) extraNote += ' | [📷 Có gửi ảnh]';
+                  if (isAdReferral) extraNote += ` | [🔥 Click Ads: ${adTitle || 'Chiến dịch Meta'}]`;
+
+                  if (existingLead) {
+                    const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
+                    const updatePayload: Record<string, any> = {
+                      need: userText || (hasImage ? '[Khách gửi ảnh]' : (existingLead.need || 'Tư vấn sản phẩm')),
+                      activity_log: [...currentLog, ...userLog],
+                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Cập nhật lúc ${timeStr}`,
+                      last_action_at: new Date().toISOString()
+                    };
+                    if (phoneMatch) {
+                      updatePayload.phone = phoneMatch[0];
+                      updatePayload.status = 'NEW';
+                      updatePayload.priority = 'HIGH';
+                      updatePayload.label = isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB';
+                      updatePayload.score = 100;
+                    }
+                    await supabase.from('leads').update(updatePayload).eq('id', existingLead.id);
+                  } else {
+                    await supabase.from('leads').insert([{
+                      lead_id: sessionLeadId,
+                      customer_name: 'Khách Facebook Messenger',
+                      phone: phoneMatch ? phoneMatch[0] : '',
+                      need: userText || (hasImage ? '[Khách gửi ảnh]' : 'Đang tìm hiểu'),
+                      branch: branch.branchName,
+                      branch_id: branch.branchId,
+                      source: leadSource,
+                      status: phoneMatch ? 'NEW' : 'CHATTING',
+                      priority: (phoneMatch || isAdReferral) ? 'HIGH' : 'MEDIUM',
+                      label: leadLabel,
+                      score: phoneMatch ? 100 : (isAdReferral ? 70 : 50),
+                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Tin nhắn: "${userText || '[Gửi ảnh]'}"`,
+                      activity_log: userLog,
+                      conversation_summary: `Khách gửi tin nhắn lúc ${timeStr}: "${userText || '[Gửi ảnh]'}"`
+                    }]);
+                  }
+                } catch (err) {
+                  console.error('Lỗi ghi nhận lead khi Bot FB tắt:', err);
+                }
+                return;
               }
 
               // --- KIỂM TRA BOT CÓ ĐANG TẠM DỪNG (NHƯỜNG NHÂN VIÊN THẬT) KHÔNG? ---

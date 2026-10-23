@@ -59,6 +59,14 @@ Tài liệu này dùng để bàn giao bối cảnh, kiến trúc và tiến đ�
    - **Nguyên nhân:** Mã định danh người dùng trên Messenger là **Page-Scoped ID (PSID)** (mỗi Page có một mã PSID riêng). Hiện tại Page Đồng Khởi ID `160136970515237` đang dùng chung token của Page `112851187716380`.
    - **Khắc phục:** Cần lấy đúng mã Page Access Token riêng của Page ID `160136970515237` để cập nhật vào `BRANCH_PAGES` trong `api/meta-webhook.ts`. Các trang khác (như Thủ Đức ID `1324117450777083`) có token đúng đã gửi tin nhắn thành công 100%.
 
+5. **Công Tắc Tổng (Master Switch) Tạm Dừng Chatbot Facebook (Phương Án B - Im Lặng Hoàn Toàn để Cập Nhật Bảng Giá):**
+   - **Biến công tắc:** `export const IS_FACEBOOK_BOT_ACTIVE = false;` tại dòng 17 trong `api/meta-webhook.ts`.
+   - **Cơ chế hoạt động:**
+     + Khi khách nhắn tin vào Facebook Messenger: Webhook vẫn tiếp nhận, vẫn tự động bóc tách SĐT, hình ảnh, nguồn quảng cáo và lưu toàn bộ vào Supabase `leads` (`activity_log`, `need`, `notes`) để nhân viên quầy và Telesales mở Web CRM gọi điện/chốt đơn ngay lập tức.
+     + Tuyệt đối **KHÔNG gọi `sendMetaTextMessage`**, Bot hoàn toàn im lặng 100% trên Messenger, không gây rủi ro báo giá cũ hay báo nhầm khi bảng giá đang được cập nhật.
+   - **Kênh Web Chatbot:** Giữ nguyên 100% (`src/components/PublicCustomerChatView.tsx`) độc lập để anh thoải mái test tính năng và kịch bản.
+   - **Cách bật lại sau này:** Cực kỳ đơn giản, chỉ cần đổi `IS_FACEBOOK_BOT_ACTIVE = true;` rồi commit/deploy (mất đúng 5 giây, không cần đụng chạm gì đến Meta Developer Console).
+
 ---
 
 
