@@ -54,6 +54,18 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
   const [actionLoadingId, setActionLoadingId] = useState<string | number | null>(null);
   const [expandedChatLeadId, setExpandedChatLeadId] = useState<string | number | null>(null);
   const [activeLeadTab, setActiveLeadTab] = useState<'with_phone' | 'chatting'>('with_phone');
+  const [selectedFullImage, setSelectedFullImage] = useState<string | null>(null);
+
+  // Đóng lightbox khi nhấn ESC
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && selectedFullImage) {
+        setSelectedFullImage(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [selectedFullImage]);
 
   // Khởi tạo lọc theo chi nhánh của nhân viên nếu không phải lãnh đạo cấp cao
   useEffect(() => {
@@ -539,6 +551,35 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                               </span>
                             );
                           })()}
+
+                          {/* Huy hiệu Quảng Cáo Facebook Ads */}
+                          {(() => {
+                            const isAds = (lead.source || '').toLowerCase().includes('ads') || 
+                                          (lead.label || '').toLowerCase().includes('ads') || 
+                                          (lead.notes || '').toLowerCase().includes('click ads') ||
+                                          (lead.notes || '').toLowerCase().includes('từ ads');
+                            if (!isAds) return null;
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 border border-rose-500/40 animate-pulse">
+                                <span>🔥</span>
+                                <span>Click Ads</span>
+                              </span>
+                            );
+                          })()}
+
+                          {/* Huy hiệu Có Hình Ảnh Đính Kèm */}
+                          {(() => {
+                            const hasImg = (Array.isArray(lead.activity_log) && lead.activity_log.some(c => Boolean(c.imageUrl))) ||
+                                           (lead.notes || '').includes('Có gửi ảnh') ||
+                                           (lead.label || '').includes('ẢNH');
+                            if (!hasImg) return null;
+                            return (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/40">
+                                <span>📷</span>
+                                <span>Có ảnh</span>
+                              </span>
+                            );
+                          })()}
                         </div>
                         <p className="text-[11px] text-slate-400 flex items-center gap-1.5 sm:gap-2 mt-0.5">
                           <span className="flex items-center gap-1">
@@ -685,6 +726,25 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
                                   <span>{chat.sender === 'user' ? '👤 Khách hàng' : '🤖 Bé 8 AI CSKH'}</span>
                                   <span className="text-[9px] text-slate-400 font-normal">{chat.time}</span>
                                 </div>
+                                {chat.imageUrl && (
+                                  <div className="my-1.5">
+                                    <div 
+                                      onClick={() => setSelectedFullImage(chat.imageUrl || null)}
+                                      className="relative group cursor-pointer overflow-hidden rounded-lg border border-rose-400/40 hover:border-rose-300 max-w-[220px] shadow bg-black/40 transition-all"
+                                      title="Bấm để xem ảnh phóng to kích thước đầy đủ"
+                                    >
+                                      <img 
+                                        src={chat.imageUrl} 
+                                        alt="Hình ảnh khách gửi" 
+                                        className="w-full h-auto max-h-48 object-cover rounded-lg group-hover:scale-105 transition-transform duration-200"
+                                        loading="lazy"
+                                      />
+                                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1 text-[11px] font-bold text-white backdrop-blur-[2px]">
+                                        <span>🔍 Phóng to</span>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
                                 <div className="whitespace-pre-line text-xs font-medium">
                                   {chat.text}
                                 </div>
@@ -788,6 +848,51 @@ export const CustomerLeadsCRMModal: React.FC<CustomerLeadsCRMModalProps> = ({
         onClose={() => setShowLinkGenModal(false)}
         branches={branches}
       />
+
+      {/* MODAL PHÓNG TO HÌNH ẢNH ĐẦY ĐỦ (LIGHTBOX) */}
+      {selectedFullImage && (
+        <div 
+          className="fixed inset-0 z-[9999] bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-4 animate-in fade-in duration-200"
+          onClick={() => setSelectedFullImage(null)}
+        >
+          <div className="relative max-w-4xl max-h-[90vh] flex flex-col items-center">
+            <button 
+              type="button" 
+              onClick={() => setSelectedFullImage(null)}
+              className="absolute -top-12 right-0 text-white/90 hover:text-white bg-slate-800/90 hover:bg-slate-700 px-3.5 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-all border border-slate-600 shadow-lg"
+            >
+              <XCircle className="w-4 h-4 text-rose-400" />
+              <span>Đóng (ESC)</span>
+            </button>
+            <img 
+              src={selectedFullImage} 
+              alt="Hình ảnh khách gửi phóng to" 
+              className="max-w-full max-h-[80vh] object-contain rounded-xl shadow-2xl border border-slate-700 bg-slate-950/60"
+              onClick={(e) => e.stopPropagation()} 
+            />
+            <div className="mt-3 flex items-center gap-3">
+              <a 
+                href={selectedFullImage} 
+                target="_blank" 
+                rel="noreferrer" 
+                onClick={(e) => e.stopPropagation()}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold shadow-md shadow-blue-600/30 transition-all cursor-pointer"
+              >
+                <ExternalLink className="w-3.5 h-3.5" />
+                <span>Mở trong tab mới</span>
+              </a>
+              <button 
+                type="button"
+                onClick={() => setSelectedFullImage(null)}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-xl text-xs font-bold border border-slate-700 shadow-md transition-all cursor-pointer"
+              >
+                <span>Xong</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+

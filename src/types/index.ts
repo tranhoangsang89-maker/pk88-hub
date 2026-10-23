@@ -323,7 +323,7 @@ export interface CustomerLead {
   product_interest?: string;
   assigned_to?: string | null;
   last_action_at?: string | null;
-  activity_log?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  activity_log?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string; imageUrl?: string }>;
   created_at: string;
 }
 

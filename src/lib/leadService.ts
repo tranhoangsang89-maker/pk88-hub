@@ -26,7 +26,7 @@ export function generateVoucherCode(phone?: string): string {
  */
 export async function submitOrUpdateCustomerLead(params: {
   sessionId: string;
-  chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string; imageUrl?: string }>;
   phone?: string;
   customerName?: string;
   need?: string;
@@ -193,7 +193,7 @@ export async function submitCustomerLead(params: {
   conversationSummary?: string;
   productInterest?: string;
   source?: string;
-  chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string }>;
+  chatMessages?: Array<{ sender: 'be8' | 'user' | string; text: string; time: string; imageUrl?: string }>;
   sessionId?: string;
 }): Promise<{ success: boolean; lead?: CustomerLead; error?: string }> {
   const sessionId = params.sessionId || (typeof crypto !== 'undefined' && crypto.randomUUID 

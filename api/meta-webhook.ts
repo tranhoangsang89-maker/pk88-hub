@@ -268,32 +268,49 @@ function normalizeTeencode(rawText: string): { normalized: string; intent: strin
 /**
  * Phản hồi dự phòng thông minh theo đúng ý định của khách khi Google AI gặp sự cố mạng/hết quota
  */
-function getSmartFallback(userText: string, branch: typeof BRANCH_PAGES[string]): string {
-  const lower = userText.toLowerCase();
+function getSmartFallback(
+  userText: string, 
+  branch: typeof BRANCH_PAGES[string],
+  context?: { hasImage?: boolean; isAdReferral?: boolean }
+): string {
+  const lower = (userText || '').toLowerCase().trim();
+
+  // 0a. Khách chỉ gửi ảnh mà không nhập chữ
+  if (context?.hasImage && !lower) {
+    return `Dạ em là Bé 8 tại ${branch.branchName} ạ! Em đã nhận được hình ảnh của mình gửi rồi ạ 💖\nDạ không biết Anh/Chị đang quan tâm đến sản phẩm / chương trình ưu đãi trong hình, hay cần em hỗ trợ kiểm tra kỹ thuật cho dòng máy nào vậy ạ? ✨\nAnh/Chị nhắn để em hỗ trợ kiểm tra và giữ ưu đãi tốt nhất cho mình liền nhé! 🥰`;
+  }
+
+  // 0b. Khách hỏi chương trình quảng cáo / bài viết Fanpage / Click từ Ads
+  const isAdInquiry = context?.isAdReferral || /(quảng cáo|bài viết|bài đăng|trên bài|bài qc|post|ưu đãi|khuyến mãi|chương trình|thấy bài|thấy fb|coi bài)/i.test(lower);
+  if (isAdInquiry && !lower.includes('ép kính') && !lower.includes('sọc') && !lower.includes('thay pin')) {
+    return `Dạ chương trình ưu đãi trên bài viết/hình ảnh của shop hiện vẫn ĐANG ĐƯỢC ÁP DỤNG tại chi nhánh ${branch.branchName} ạ! 💖\n\nAnh/Chị cho em xin dòng máy mình đang sử dụng (hoặc màu sắc/mẫu mã mình thích) để em kiểm tra lượng tồn kho sẵn tại quầy và giữ phần quà ưu đãi cho mình liền tay nha! ✨\n\nHoặc Anh/Chị có thể gọi điện/nhắn Zalo trực tiếp Hotline shop: ${branch.hotline} để nhân viên chuẩn bị hàng sẵn cho mình nhé! 🥰`;
+  }
+
+  const imagePrefix = context?.hasImage ? 'Dạ em đã nhận được hình ảnh mình gửi rồi ạ 💖 ' : '';
 
   // 1. Khách hỏi ốp lưng / bao da
   if (lower.includes('ốp') || lower.includes('bao da') || lower.includes('case')) {
-    return `Dạ bên em CÓ SẴN rất nhiều mẫu ốp lưng thời trang, ốp dẻo trong suốt, ốp chống sốc bảo vệ camera cho dòng máy mình ạ! 🥰 Viền êm, cầm chắc tay và chống trầy xước cực tốt. Em mời anh/chị ghé ${branch.branchName} (${branch.address}) để thử trực tiếp lên máy, hoặc liên hệ Hotline/Zalo: ${branch.hotline} để shop chụp mẫu thật gửi mình chọn nhé!`;
+    return `${imagePrefix}Dạ bên em CÓ SẴN rất nhiều mẫu ốp lưng thời trang, ốp dẻo trong suốt, ốp chống sốc bảo vệ camera cho dòng máy mình ạ! 🥰 Viền êm, cầm chắc tay và chống trầy xước cực tốt. Em mời anh/chị ghé ${branch.branchName} (${branch.address}) để thử trực tiếp lên máy, hoặc liên hệ Hotline/Zalo: ${branch.hotline} để shop chụp mẫu thật gửi mình chọn nhé!`;
   }
 
   // 2. Khách hỏi dán cường lực / PPF
   if (lower.includes('cường lực') || lower.includes('cl') || lower.includes('dán') || lower.includes('ppf') || lower.includes('nano')) {
-    return `Dạ bên em CÓ SẴN đầy đủ kính cường lực KingKong / Nano 9D vát cạnh và dán PPF chống trầy cho dòng máy mình ạ! 💖 Kính trong vắt, cảm ứng mượt mà và chống bám vân tay tối đa. Ghé shop được kỹ thuật viên dán bao đẹp, ưng ý mới thanh toán. Em mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc gọi Hotline/Zalo: ${branch.hotline} để shop giữ phần cho mình nhé!`;
+    return `${imagePrefix}Dạ bên em CÓ SẴN đầy đủ kính cường lực KingKong / Nano 9D vát cạnh và dán PPF chống trầy cho dòng máy mình ạ! 💖 Kính trong vắt, cảm ứng mượt mà và chống bám vân tay tối đa. Ghé shop được kỹ thuật viên dán bao đẹp, ưng ý mới thanh toán. Em mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc gọi Hotline/Zalo: ${branch.hotline} để shop giữ phần cho mình nhé!`;
   }
 
   // 3. Khách hỏi sạc / chân sạc / không nhận sạc
   if (lower.includes('sạc') || lower.includes('dô pin') || lower.includes('vô pin') || lower.includes('không vào') || lower.includes('chuôi sạc') || lower.includes('chân sạc')) {
-    return `Dạ bên em CÓ NHẬN SỬA CHỮA lỗi sạc không vào pin / không nhận sạc cho máy mình ạ! 💖 Tình trạng này thường do bám bụi chân sạc, lỗi cụm cáp sạc, pin hoặc IC sạc trên main. Bé 8 mời anh/chị ghé ngay ${branch.branchName} (${branch.address}) để kỹ thuật viên kiểm tra và đo dòng sạc miễn phí lấy liền cho mình nhé! Hoặc anh/chị liên hệ Hotline/Zalo: ${branch.hotline} để shop hỗ trợ nhanh ạ!`;
+    return `${imagePrefix}Dạ bên em CÓ NHẬN SỬA CHỮA lỗi sạc không vào pin / không nhận sạc cho máy mình ạ! 💖 Tình trạng này thường do bám bụi chân sạc, lỗi cụm cáp sạc, pin hoặc IC sạc trên main. Bé 8 mời anh/chị ghé ngay ${branch.branchName} (${branch.address}) để kỹ thuật viên kiểm tra và đo dòng sạc miễn phí lấy liền cho mình nhé! Hoặc anh/chị liên hệ Hotline/Zalo: ${branch.hotline} để shop hỗ trợ nhanh ạ!`;
   }
 
   // 4. Khách hỏi pin / thay pin
   if (lower.includes('pin') || lower.includes('thay pin') || lower.includes('chai pin') || lower.includes('phù pin')) {
-    return `Dạ bên em CÓ SẴN PIN CHÍNH HÃNG và nhận thay pin lấy liền trong 15-30 phút ạ! 💖 Pin Pisen/Deji cao cấp bảo hành 12 tháng 1 đổi 1, miễn phí hoàn toàn công thay và vệ sinh máy tại quầy. Bé 8 mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc gọi Hotline/Zalo: ${branch.hotline} để shop giữ pin ưu đãi cho mình nhé!`;
+    return `${imagePrefix}Dạ bên em CÓ SẴN PIN CHÍNH HÃNG và nhận thay pin lấy liền trong 15-30 phút ạ! 💖 Pin Pisen/Deji cao cấp bảo hành 12 tháng 1 đổi 1, miễn phí hoàn toàn công thay và vệ sinh máy tại quầy. Bé 8 mời anh/chị ghé ${branch.branchName} (${branch.address}) hoặc gọi Hotline/Zalo: ${branch.hotline} để shop giữ pin ưu đãi cho mình nhé!`;
   }
 
   // 5. Khách hỏi ép kính / vỡ màn hình
   if (lower.includes('ép kính') || lower.includes('kính') || lower.includes('vỡ') || lower.includes('bể') || lower.includes('màn hình')) {
-    return `Dạ bên em CÓ NHẬN ÉP KÍNH & THAY MÀN HÌNH lấy liền công nghệ hút chân không hiện đại ạ! 💖 Kính thay chuẩn zin hiển thị sắc nét, bảo hành dài hạn và miễn phí vệ sinh máy. Bé 8 mời anh/chị mang máy ghé ${branch.branchName} (${branch.address}) để thợ kiểm tra miễn phí, hoặc gọi Hotline/Zalo: ${branch.hotline} nhé!`;
+    return `${imagePrefix}Dạ bên em CÓ NHẬN ÉP KÍNH & THAY MÀN HÌNH lấy liền công nghệ hút chân không hiện đại ạ! 💖 Kính thay chuẩn zin hiển thị sắc nét, bảo hành dài hạn và miễn phí vệ sinh máy. Bé 8 mời anh/chị mang máy ghé ${branch.branchName} (${branch.address}) để thợ kiểm tra miễn phí, hoặc gọi Hotline/Zalo: ${branch.hotline} nhé!`;
   }
 
   // 6. Khách hỏi địa chỉ / vị trí / chỉ đường
@@ -302,7 +319,7 @@ function getSmartFallback(userText: string, branch: typeof BRANCH_PAGES[string])
   }
 
   // 7. Mặc định
-  return `Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Shop em nhận sửa chữa, thay pin, ép kính lấy liền và đầy đủ phụ kiện chính hãng cho dòng máy của mình ạ! Anh/Chị cần kiểm tra máy hay tư vấn sản phẩm nào cứ nhắn em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
+  return `${imagePrefix}Dạ em chào Anh/Chị! Em là Bé 8 - Chuyên viên tư vấn AI của ${branch.branchName} (${branch.address}). Shop em nhận sửa chữa, thay pin, ép kính lấy liền và đầy đủ phụ kiện chính hãng cho dòng máy của mình ạ! Anh/Chị cần kiểm tra máy hay tư vấn sản phẩm nào cứ nhắn em hoặc gọi trực tiếp Hotline/Zalo shop: ${branch.hotline} nhé!`;
 }
 
 // Danh sách Gemini API Keys dự phòng mã hóa an toàn để luôn đảm bảo chạy được trên Vercel Serverless
@@ -313,15 +330,30 @@ const B64_FALLBACK_KEYS = 'QVEuQWI4Uk42SjYyeWlZbkRZT19BQzFkcUo1QW1jc1MzSGthU2J1Q
  */
 async function generateBe8Response(
   userText: string,
-  branch: typeof BRANCH_PAGES[string]
+  branch: typeof BRANCH_PAGES[string],
+  context?: {
+    hasImage?: boolean;
+    imageUrl?: string;
+    isAdReferral?: boolean;
+    adTitle?: string;
+  }
 ): Promise<string> {
+  const hasImage = Boolean(context?.hasImage);
+  const isAdReferral = Boolean(context?.isAdReferral);
+  const isAdInquiry = isAdReferral || /(quảng cáo|bài viết|bài đăng|trên bài|bài qc|post|ưu đãi|khuyến mãi|chương trình|thấy bài|thấy fb|coi bài)/i.test(userText);
+
+  // TÌNH HUỐNG 1: Khách chỉ gửi ảnh mà không nói gì -> Sử dụng ngay lời chào thông minh Bé 8 đã được duyệt
+  if (hasImage && !userText.trim()) {
+    return `Dạ em là Bé 8 tại ${branch.branchName} ạ! Em đã nhận được hình ảnh của mình gửi rồi ạ 💖\nDạ không biết Anh/Chị đang quan tâm đến sản phẩm / chương trình ưu đãi trong hình, hay cần em hỗ trợ kiểm tra kỹ thuật cho dòng máy nào vậy ạ? ✨\nAnh/Chị nhắn để em hỗ trợ kiểm tra và giữ ưu đãi tốt nhất cho mình liền nhé! 🥰`;
+  }
+
   const envKeysRaw = process.env.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || '';
   const decodedFallback = Buffer.from(B64_FALLBACK_KEYS, 'base64').toString('utf8');
   const combinedRaw = envKeysRaw ? `${envKeysRaw},${decodedFallback}` : decodedFallback;
   const apiKeys = Array.from(new Set(combinedRaw.split(',').map(k => k.trim()).filter(Boolean)));
 
   if (apiKeys.length === 0) {
-    return getSmartFallback(userText, branch);
+    return getSmartFallback(userText, branch, { hasImage, isAdReferral });
   }
 
   const { normalized, intent, device } = normalizeTeencode(userText);
@@ -346,6 +378,7 @@ QUY TẮC HIỂU TỪ VIẾT TẮT, TEENCODE & BỆNH LÝ MÁY CỦA KHÁCH:
   + "sửa k vậy": có sửa không vậy; "đc k": được không; "cl": cường lực; "ép knh": ép kính; "m21", "a54": các dòng máy Samsung.
 - QUY TẮC PHẢN HỒI ĐÚNG TRỌNG TÂM:
   + Khi khách hỏi ĐỊA CHỈ / VỊ TRÍ / TÌM ĐƯỜNG: Cung cấp chính xác 100% địa chỉ cửa hàng: ${branch.address}. Cung cấp link Google Maps: ${branch.mapUrl} để khách bấm vào mở bản đồ điều hướng.
+  + Khi khách hỏi BÀI VIẾT QUẢNG CÁO / ƯU ĐÃI TRÊN FANPAGE: BẮT BUỘC khẳng định chương trình ưu đãi trên bài viết/hình ảnh của shop hiện vẫn ĐANG ĐƯỢC ÁP DỤNG tại chi nhánh ${branch.branchName}. Hỏi dòng máy/màu sắc khách cần để kiểm tra lượng tồn kho sẵn tại quầy và giữ ưu đãi ngay cho khách.
   + Khi khách hỏi ỐP LƯNG / BAO DA: BẮT BUỘC KHẲNG ĐỊNH NGAY là shop CÓ SẴN nhiều mẫu ốp lưng thời trang, ốp dẻo trong suốt, ốp chống sốc bảo vệ camera cho dòng máy của khách. TUYỆT ĐỐI KHÔNG tự chuyển sang nói dán cường lực hay sửa chữa nếu khách không hỏi!
   + Khi khách hỏi CƯỜNG LỰC / DÁN MÀN HÌNH: Khẳng định có sẵn kính KingKong/Nano 9D vát cạnh, dán PPF, ghé shop được dán bao đẹp, ưng ý mới thanh toán.
   + Khi khách hỏi sửa chữa ("Bên mình có sửa không", "sạc ko dô pin có sửa đc ko"):
@@ -370,6 +403,8 @@ QUY TẮC CỐT LÕI - CHÍNH SÁCH BẢO MẬT & ĐIỀU CHỈNH GIÁ BÁN TOÀ
   const userPrompt = `Khách hàng nhắn: "${userText}"
 ${normalized !== userText.toLowerCase() ? `[Bản dịch chuẩn nghĩa tiếng Việt/Teencode]: "${normalized}"` : ''}
 ${device ? `[Dòng máy khách dùng]: ${device}` : ''}
+${hasImage ? `[LƯU Ý]: Khách hàng có gửi kèm 1 HÌNH ẢNH sản phẩm/máy. Hãy mở đầu bằng: "Dạ em đã nhận được hình ảnh của mình gửi rồi ạ 💖" trước khi giải đáp!` : ''}
+${isAdInquiry ? `[LƯU Ý]: Khách hỏi về BÀI VIẾT QUẢNG CÁO / ƯU ĐÃI trên Fanpage (${context?.adTitle || 'Chiến dịch Ads'}). Hãy khẳng định ưu đãi trên bài viết vẫn ĐANG ÁP DỤNG tại chi nhánh ${branch.branchName}, hỏi dòng máy để giữ phần ưu đãi!` : ''}
 ${intent === 'LOCATION' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về ĐỊA CHỈ / VỊ TRÍ / TÌM ĐƯỜNG đến chi nhánh ${branch.branchName}. Hãy báo chính xác địa chỉ: ${branch.address}, gửi link Google Maps: ${branch.mapUrl} và Hotline/Zalo: ${branch.hotline} để khách tiện liên hệ đón!` : ''}
 ${intent === 'CASE' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về ỐP LƯNG / BAO DA cho máy ${device || 'của khách'}. Khẳng định shop CÓ SẴN rất nhiều mẫu ốp đẹp (chống sốc, dẻo trong suốt, bảo vệ camera, thời trang), viền êm cầm chắc tay. KHÔNG tư vấn dán cường lực hay sửa chữa nếu khách không hỏi! Mời khách ghé thử trực tiếp hoặc nhắn Zalo ${branch.hotline} để shop chụp mẫu thật gửi mình chọn!` : ''}
 ${intent === 'SCREEN_PROTECTOR' ? `[LƯU Ý TRỌNG TÂM]: Khách hỏi về KÍNH CƯỜNG LỰC / DÁN MÀN HÌNH cho máy ${device || 'của khách'}. Khẳng định có sẵn kính KingKong/Nano 9D vát cạnh, dán PPF, dán bao đẹp, chống vân tay. Mời khách ghé shop dán miễn phí lấy liền!` : ''}
@@ -421,7 +456,7 @@ Hãy trả lời ngắn gọn, đúng trọng tâm câu hỏi của khách, chu�
   }
 
   // Nếu tất cả API key đều lỗi mạng, dùng phản hồi dự phòng thông minh đúng theo từng nhóm nhu cầu
-  return getSmartFallback(userText, branch);
+  return getSmartFallback(userText, branch, { hasImage, isAdReferral });
 }
 
 /**
@@ -488,15 +523,34 @@ export default async function handler(req: any, res: any) {
             // Bỏ qua tin nhắn do page tự gửi hoặc tin echo
             if (!message || message.is_echo) continue;
 
-            const userText = message.text || '';
-            if (!userText.trim()) continue;
+            const userText = (message.text || '').trim();
 
-            console.log(`📩 [Fanpage ${branch.branchName}] (${pageId}) Khách ${senderId}: "${userText}"`);
+            // Trích xuất hình ảnh từ Messenger đính kèm (Attachments)
+            const imageAttachments = (message.attachments || []).filter(
+              (att: any) => att.type === 'image' && att.payload?.url
+            );
+            const imageUrl = imageAttachments.length > 0 ? (imageAttachments[0].payload?.url as string) : undefined;
+            const hasImage = Boolean(imageUrl);
+
+            // Bỏ qua nếu tin nhắn hoàn toàn rỗng (không chữ và không ảnh)
+            if (!userText && !hasImage) continue;
+
+            // Nhận diện Click-to-Messenger Ads Referral (Quảng cáo Facebook Ads)
+            const referral = event.referral || message.referral || event.postback?.referral;
+            const isAdReferral = Boolean(referral && (referral.source === 'ADS' || referral.ad_id || referral.ref));
+            const adTitle = referral?.ads_context_data?.ad_title || referral?.ref || '';
+
+            console.log(`📩 [Fanpage ${branch.branchName}] (${pageId}) Khách ${senderId}: "${userText}" ${hasImage ? '[📷 Có kèm ảnh]' : ''} ${isAdReferral ? '[🔥 Từ Ads]' : ''}`);
 
             // Đưa task xử lý vào mảng để ĐẢM BẢO HOÀN THÀNH trước khi kết thúc response
             const task = (async () => {
               // 1. Gọi AI Bé 8 tạo câu trả lời
-              const botReply = await generateBe8Response(userText, branch);
+              const botReply = await generateBe8Response(userText, branch, {
+                hasImage,
+                imageUrl,
+                isAdReferral,
+                adTitle
+              });
 
               // 2. Gửi tin nhắn trả lời qua Facebook Graph API
               await sendMetaTextMessage(activeToken, senderId, botReply);
@@ -507,29 +561,58 @@ export default async function handler(req: any, res: any) {
               const sessionLeadId = `fb-${pageId}-${senderId}`;
               
               const chatLog = [
-                { sender: 'user', text: userText, time: timeStr },
-                { sender: 'bot', text: botReply, time: timeStr }
+                { 
+                  sender: 'user', 
+                  text: userText || (hasImage ? '[Khách gửi 1 hình ảnh]' : ''), 
+                  imageUrl: imageUrl,
+                  time: timeStr 
+                },
+                { 
+                  sender: 'bot', 
+                  text: botReply, 
+                  time: timeStr 
+                }
               ];
 
               try {
                 // Kiểm tra xem đã có lead với sessionLeadId này chưa
                 const { data: existingLeads } = await supabase
                   .from('leads')
-                  .select('id, phone, activity_log, status')
+                  .select('id, phone, activity_log, status, source')
                   .eq('lead_id', sessionLeadId)
                   .limit(1);
 
                 const existingLead = existingLeads && existingLeads.length > 0 ? existingLeads[0] : null;
 
+                // Xác định nguồn và nhãn thích hợp
+                const leadSource = isAdReferral ? 'facebook_ads' : (existingLead?.source || 'facebook_messenger');
+                
+                let leadLabel = 'ĐANG TƯ VẤN FB';
+                if (phoneMatch) {
+                  leadLabel = isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB';
+                } else if (isAdReferral) {
+                  leadLabel = 'KHÁCH TỪ QUẢNG CÁO';
+                } else if (hasImage) {
+                  leadLabel = 'KHÁCH GỬI ẢNH';
+                }
+
+                let extraNote = '';
+                if (hasImage) extraNote += ' | [📷 Có gửi ảnh]';
+                if (isAdReferral) extraNote += ` | [🔥 Click Ads: ${adTitle || 'Chiến dịch Meta'}]`;
+
                 if (existingLead) {
                   const currentLog = Array.isArray(existingLead.activity_log) ? existingLead.activity_log : [];
                   const updatedLog = [...currentLog, ...chatLog];
                   const updatePayload: Record<string, any> = {
-                    need: userText,
+                    need: userText || (hasImage ? '[Khách gửi ảnh]' : (existingLead.need || 'Tư vấn sản phẩm')),
                     activity_log: updatedLog,
-                    notes: `Fanpage: ${branch.branchName} (${pageId}) | Cập nhật lúc ${timeStr}`,
+                    notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Cập nhật lúc ${timeStr}`,
                     last_action_at: new Date().toISOString()
                   };
+
+                  if (isAdReferral && existingLead.source !== 'facebook_ads') {
+                    updatePayload.source = 'facebook_ads';
+                  }
 
                   if (phoneMatch) {
                     const detectedPhone = phoneMatch[0];
@@ -537,9 +620,11 @@ export default async function handler(req: any, res: any) {
                     updatePayload.phone = detectedPhone;
                     updatePayload.status = 'NEW';
                     updatePayload.priority = 'HIGH';
-                    updatePayload.label = 'HOT LEAD FB';
+                    updatePayload.label = isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB';
                     updatePayload.score = 100;
-                    updatePayload.conversation_summary = `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`;
+                    updatePayload.conversation_summary = `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText || '[Gửi ảnh]'}"\nBé 8 AI tư vấn: "${botReply}"`;
+                  } else if (hasImage || isAdReferral) {
+                    updatePayload.label = leadLabel;
                   }
 
                   await supabase.from('leads').update(updatePayload).eq('id', existingLead.id);
@@ -552,17 +637,17 @@ export default async function handler(req: any, res: any) {
                       lead_id: sessionLeadId,
                       customer_name: 'Khách Facebook Messenger',
                       phone: detectedPhone,
-                      need: userText,
+                      need: userText || (hasImage ? '[Khách gửi ảnh]' : 'Tư vấn mua sắm'),
                       branch: branch.branchName,
                       branch_id: branch.branchId,
-                      source: 'facebook_messenger',
+                      source: leadSource,
                       status: 'NEW',
                       priority: 'HIGH',
-                      label: 'HOT LEAD FB',
+                      label: isAdReferral ? 'HOT LEAD ADS' : 'HOT LEAD FB',
                       score: 100,
-                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Yêu cầu: "${userText}"`,
+                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Yêu cầu: "${userText || '[Gửi ảnh]'}"`,
                       activity_log: chatLog,
-                      conversation_summary: `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`
+                      conversation_summary: `Khách gửi SĐT: ${detectedPhone} qua tin nhắn: "${userText || '[Gửi ảnh]'}"\nBé 8 AI tư vấn: "${botReply}"`
                     }]);
                   } else {
                     console.log(`💬 [CHATTING FB] Khách Messenger ${senderId} đang chat tại ${branch.branchName}`);
@@ -570,17 +655,17 @@ export default async function handler(req: any, res: any) {
                       lead_id: sessionLeadId,
                       customer_name: 'Khách Facebook Messenger',
                       phone: '',
-                      need: userText,
+                      need: userText || (hasImage ? '[Khách gửi ảnh]' : 'Đang tìm hiểu'),
                       branch: branch.branchName,
                       branch_id: branch.branchId,
-                      source: 'facebook_messenger',
+                      source: leadSource,
                       status: 'CHATTING',
-                      priority: 'MEDIUM',
-                      label: 'ĐANG TƯ VẤN FB',
-                      score: 50,
-                      notes: `Fanpage: ${branch.branchName} (${pageId}) | Đang chat: "${userText}"`,
+                      priority: isAdReferral ? 'HIGH' : 'MEDIUM',
+                      label: leadLabel,
+                      score: isAdReferral ? 70 : 50,
+                      notes: `Fanpage: ${branch.branchName} (${pageId})${extraNote} | Đang chat: "${userText || '[Gửi ảnh]'}"`,
                       activity_log: chatLog,
-                      conversation_summary: `Khách đang chat: "${userText}"\nBé 8 AI tư vấn: "${botReply}"`
+                      conversation_summary: `Khách đang chat: "${userText || '[Khách gửi hình ảnh]'}"\nBé 8 AI tư vấn: "${botReply}"`
                     }]);
                   }
                 }
@@ -611,3 +696,4 @@ export default async function handler(req: any, res: any) {
 
   return res.status(405).send('Method Not Allowed');
 }
+

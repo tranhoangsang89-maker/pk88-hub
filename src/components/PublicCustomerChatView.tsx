@@ -38,6 +38,7 @@ interface ChatMessage {
   sender: 'be8' | 'user';
   text: string;
   time: string;
+  imageUrl?: string;
   voucherCode?: string;
   isLeadPrompt?: boolean;
 }
@@ -705,6 +706,16 @@ Chuyên viên tại cửa hàng sẽ liên hệ xác nhận và chuẩn bị s�
                     ? 'bg-slate-900 border border-slate-800 text-slate-100 rounded-tl-sm'
                     : 'bg-gradient-to-r from-rose-600 to-amber-600 text-white rounded-tr-sm font-medium'
                 }`}>
+                  {msg.imageUrl && (
+                    <div className="my-2">
+                      <img 
+                        src={msg.imageUrl} 
+                        alt="Ảnh đính kèm" 
+                        className="max-w-[200px] rounded-lg border border-white/20 shadow-md"
+                        loading="lazy" 
+                      />
+                    </div>
+                  )}
                   <div className="chat-markdown leading-relaxed text-xs sm:text-sm">
                     <ReactMarkdown
                       remarkPlugins={[remarkGfm]}
